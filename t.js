@@ -3,7 +3,7 @@
  */
 (() => {
   if (window.TTBackExternal) return;
-  const state = window.TTBackExternal = { version: 4, revision: 9, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
+  const state = window.TTBackExternal = { version: 4, revision: 10, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
   const vendor = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
   let pressed = false;
   let badge;
@@ -246,7 +246,6 @@
       if (!client.resolveCommand({ customAction: { action: 'ENTER_MP' } })) return;
       pressed = true;
       stop();
-      notice('TT Voltar r9 — miniplayer solicitado. Segure OK para diagnóstico.', 12000);
     } catch (error) {
       state.lastBack.error = String(error && error.message || error);
       notice('Voltar: não foi possível abrir o miniplayer.');
@@ -257,43 +256,6 @@
   addEventListener('keydown', event => {
     if (event.keyCode === 13 || event.keyCode === 23 || event.key === 'Enter') refreshCachedMenus();
   }, true);
-  let diagnosticTimer;
-  let diagnosticHeld = false;
-  let diagnosticStarted = 0;
-  function showMenuDiagnostic() {
-    const video = document.querySelector('video');
-    let lists = 0, own = 0;
-    for (const reference of cachedMenus) {
-      const items = reference.deref();
-      if (!items) continue;
-      lists++;
-      own += items.filter(isRestoreItem).length;
-    }
-    // Only flags/counters on this screen. No titles, video IDs or account data.
-    notice('Diagnóstico r9 | MP=' + String(window.isPipPlaying)
-      + ' | V=' + (video ? video.readyState : 'ausente')
-      + ' | retorno=' + Number(!!restoreInfo())
-      + ' | JSON=' + state.parseCalls + ' | comandos=' + state.commandCalls
-      + ' | menus=' + state.menusHooked + '/' + state.menusSeen
-      + ' | listas=' + lists + ' | itens=' + own
-      + ' | erro=' + Number(!!state.menuError), 20000);
-  }
-  function diagnosticKey(event) {
-    if (![13, 23].includes(event.keyCode) && event.key !== 'Enter') return;
-    if (event.type === 'keydown' && !diagnosticHeld) {
-      diagnosticHeld = true;
-      diagnosticStarted = Date.now();
-      diagnosticTimer = setTimeout(showMenuDiagnostic, 1100);
-    } else if (event.type === 'keyup') {
-      diagnosticHeld = false;
-      clearTimeout(diagnosticTimer);
-      if (Date.now() - diagnosticStarted >= 500) setTimeout(showMenuDiagnostic, 300);
-    }
-  }
-  addEventListener('keydown', diagnosticKey, true);
-  addEventListener('keyup', diagnosticKey, true);
-  addEventListener('contextmenu', () => setTimeout(showMenuDiagnostic, 300), true);
-  notice('Cobalt pessoal v4: carregando…');
   try {
     const url = vendor + '?v=' + Date.now();
     const script = document.createElement('script');
@@ -312,7 +274,6 @@
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
-      notice('TT Voltar r9 — diagnóstico do menu ativo.', 20000);
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
