@@ -3,7 +3,7 @@
  */
 (() => {
   if (window.TTBackExternal) return;
-  const state = window.TTBackExternal = { version: 4, revision: 6, upstreamLoaded: false, lastBack: null };
+  const state = window.TTBackExternal = { version: 4, revision: 7, upstreamLoaded: false, lastBack: null };
   const vendor = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
   let pressed = false;
   let badge;
@@ -75,6 +75,9 @@
   const restoreAction = 'TT_PERSONAL_RESTORE_MP';
   const menuHook = Symbol('tt-personal-native-menu');
   const hookedMenus = new WeakSet();
+  const rememberedItems = new WeakSet();
+  const returnItems = new WeakMap();
+  const cachedMenus = new Set();
   let menuPoll;
   function isRestoreCommand(command) {
     const action = command && (command.customAction
@@ -96,34 +99,62 @@
       ] } }, trackingParams: null,
     } };
   }
+  function rememberItems(items) {
+    if (!Array.isArray(items) || rememberedItems.has(items)) return;
+    rememberedItems.add(items);
+    const weak = typeof WeakRef === 'function';
+    // Prefer weak references: native menus may outlive their source renderer.
+    // Bound the fallback on older engines without retaining an entire browse history.
+    const limit = weak ? 1000 : 128;
+    if (cachedMenus.size >= limit) cachedMenus.delete(cachedMenus.values().next().value);
+    cachedMenus.add(weak ? new WeakRef(items) : { deref: () => items });
+  }
+  function currentItems(items, show) {
+    if (!Array.isArray(items)) return items;
+    let own = returnItems.get(items);
+    if (!own) { own = restoreMenuItem(); returnItems.set(items, own); }
+    if (!Object.isExtensible(items) || Object.isSealed(items)
+      || !Object.getOwnPropertyDescriptor(items, 'length').writable) {
+      const native = items.filter(item => !isRestoreItem(item));
+      return show ? [own, ...native] : native;
+    }
+    const positions = [];
+    for (let i = 0; i < items.length; i++) if (isRestoreItem(items[i])) positions.push(i);
+    if (show && positions.length === 1 && positions[0] === 0) return items;
+    for (let i = positions.length - 1; i >= 0; i--) items.splice(positions[i], 1);
+    if (show) items.unshift(own);
+    return items;
+  }
+  function refreshCachedMenus() {
+    const show = !!restoreInfo();
+    for (const reference of cachedMenus) {
+      const items = reference.deref();
+      if (!items) { cachedMenus.delete(reference); continue; }
+      try { currentItems(items, show); }
+      catch (error) { state.menuError = String(error && error.message || error); }
+    }
+  }
   function attachMenu(menu) {
     const renderer = menu && menu.menu && menu.menu.menuRenderer;
-    if (!menu || !menu.contentId || !renderer || !Array.isArray(renderer.items)) return;
+    if (!renderer || !Array.isArray(renderer.items)) return;
+    // Some Cobalt tiles omit contentId, while their Play endpoint has the ID.
+    const videoMenu = menu.contentId || renderer.items.some(item => {
+      const link = item && item.menuNavigationItemRenderer;
+      return link && link.navigationEndpoint && link.navigationEndpoint.watchEndpoint
+        && link.navigationEndpoint.watchEndpoint.videoId;
+    });
+    if (!videoMenu) return;
     if (hookedMenus.has(renderer)) return;
     let items = renderer.items;
-    const own = restoreMenuItem();
-    function currentItems() {
-      if (!Array.isArray(items)) return items;
-      const show = window.isPipPlaying === true && !!restoreInfo();
-      if (!Object.isExtensible(items) || Object.isSealed(items)
-        || !Object.getOwnPropertyDescriptor(items, 'length').writable) {
-        const native = items.filter(item => !isRestoreItem(item));
-        return show ? [own, ...native] : native;
-      }
-      const positions = [];
-      for (let i = 0; i < items.length; i++) if (isRestoreItem(items[i])) positions.push(i);
-      if (show && positions.length === 1 && positions[0] === 0) return items;
-      for (let i = positions.length - 1; i >= 0; i--) items.splice(positions[i], 1);
-      if (show) items.unshift(own);
-      return items;
-    }
+    rememberItems(items);
     try {
       Object.defineProperty(renderer, 'items', { enumerable: true, configurable: true,
-        get: currentItems, set(value) { items = value; } });
+        get() { return currentItems(items, !!restoreInfo()); },
+        set(value) { items = value; rememberItems(value); } });
       hookedMenus.add(renderer);
     } catch (_) {
       // Preserve non-configurable native data and add only when it is mutable.
-      try { currentItems(); } catch (_) {}
+      try { currentItems(items, !!restoreInfo()); } catch (_) {}
     }
   }
   function decorateMenus(value) {
@@ -134,6 +165,7 @@
       if (!node || typeof node !== 'object' || seen.has(node)) continue;
       seen.add(node);
       if (node.showMenuCommand) attachMenu(node.showMenuCommand);
+      if (node.menu && node.menu.menuRenderer) attachMenu(node);
       for (const key of Object.keys(node)) {
         const child = node[key];
         if (child && typeof child === 'object') stack.push(child);
@@ -178,6 +210,7 @@
       client.resolveCommand = wrapped;
     }
     decorateSafely(window.ytInitialData);
+    refreshCachedMenus();
   }
   function back(event) {
     if (![4, 27, 166, 461, 10009].includes(event.keyCode)
@@ -209,6 +242,10 @@
     }
   }
   for (const type of ['keydown', 'keypress', 'keyup']) addEventListener(type, back, true);
+  // Refresh cached native arrays before the app opens the menu; never consume OK.
+  addEventListener('keydown', event => {
+    if (event.keyCode === 13 || event.keyCode === 23 || event.key === 'Enter') refreshCachedMenus();
+  }, true);
   notice('Cobalt pessoal v4: carregando…');
   try {
     const url = vendor + '?v=' + Date.now();
@@ -228,7 +265,7 @@
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
-      notice('Cobalt pessoal v4 carregado — OK longo abre opções.');
+      notice('TT Voltar r7 carregado — OK longo abre opções.');
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
