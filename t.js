@@ -3,9 +3,11 @@
  */
 (() => {
   if (window.TTBackExternal) return;
-  const state = window.TTBackExternal = { version: 4, revision: 10, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
+  const state = window.TTBackExternal = { version: 4, revision: 11, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
   const vendor = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
-  let pressed = false;
+  let backPress = null;
+  let replayingBack = false;
+  const backHoldMs = 900;
   let badge;
   let badgeTimer;
   function notice(text, milliseconds = 5000) {
@@ -222,35 +224,84 @@
     decorateSafely(window.ytInitialData);
     refreshCachedMenus();
   }
-  function back(event) {
-    if (![4, 27, 166, 461, 10009].includes(event.keyCode)
-      && !['Escape', 'BrowserBack', 'GoBack'].includes(event.key)) return;
-    const stop = () => { event.preventDefault(); event.stopImmediatePropagation(); };
-    if (pressed) {
-      stop();
-      if (event.type === 'keyup') pressed = false;
-      return;
-    }
-    if (event.type !== 'keydown' || event.repeat) return;
+  function canMinimize() {
     const player = document.querySelector('ytlr-player');
     const video = document.querySelector('video');
-    state.lastBack = { keyCode: event.keyCode, key: event.key,
-      playerClass: player && player.className, hash: location.hash,
-      pip: window.isPipPlaying, videoReady: video && video.readyState };
-    if (window.isPipPlaying !== false || !video || !video.readyState || video.ended
-      || document.querySelector('input:focus,textarea:focus,[contenteditable="true"]:focus')
-      || !watchPage(player) || visibleDialog(player)) return;
-    const client = router();
-    if (!client) return;
+    return window.isPipPlaying === false && video && video.readyState && !video.ended
+      && !document.hidden
+      && !document.querySelector('input:focus,textarea:focus,[contenteditable="true"]:focus')
+      && watchPage(player) && !visibleDialog(player) && !!router();
+  }
+  function cancelBackPress() {
+    if (backPress) clearTimeout(backPress.timer);
+    backPress = null;
+  }
+  function minimizeHeldBack(press) {
+    if (backPress !== press || press.attempted) return;
+    press.attempted = true;
+    if (!canMinimize()) return;
     try {
-      if (!client.resolveCommand({ customAction: { action: 'ENTER_MP' } })) return;
-      pressed = true;
-      stop();
+      press.minimized = !!router().resolveCommand({ customAction: { action: 'ENTER_MP' } });
+      if (press.minimized) state.lastBack.gesture = 'long';
     } catch (error) {
       state.lastBack.error = String(error && error.message || error);
       notice('Voltar: não foi possível abrir o miniplayer.');
     }
   }
+  function replayShortBack(press) {
+    // TizenTube itself uses createEvent/initEvent for its Escape action.
+    // Replay on release so the native app decides how to dismiss suggestions,
+    // controls and navigation. Do not substitute a history command here.
+    const target = press.target && press.target.isConnected !== false
+      && typeof press.target.dispatchEvent === 'function' ? press.target : document;
+    replayingBack = true;
+    try {
+      for (const type of press.keypress ? ['keydown', 'keypress', 'keyup'] : ['keydown', 'keyup']) {
+        const event = document.createEvent('Event');
+        event.initEvent(type, true, true);
+        for (const [name, value] of Object.entries({ keyCode: press.keyCode, which: press.keyCode,
+          key: press.key, code: press.code, repeat: false })) {
+          Object.defineProperty(event, name, { configurable: true, value });
+        }
+        target.dispatchEvent(event);
+      }
+      state.lastBack.gesture = 'short';
+    } catch (error) {
+      state.lastBack.error = String(error && error.message || error);
+      notice('Não foi possível executar Voltar.');
+    } finally { replayingBack = false; }
+  }
+  function back(event) {
+    if (replayingBack) return;
+    if (![4, 27, 166, 461, 10009].includes(event.keyCode)
+      && !['Escape', 'BrowserBack', 'GoBack'].includes(event.key)) return;
+    const stop = () => { event.preventDefault(); event.stopImmediatePropagation(); };
+    if (backPress) {
+      stop();
+      if (event.type === 'keypress') backPress.keypress = true;
+      if (event.type === 'keyup') {
+        const press = backPress;
+        clearTimeout(press.timer);
+        if (Date.now() - press.started >= backHoldMs) minimizeHeldBack(press);
+        backPress = null;
+        if (!press.minimized) replayShortBack(press);
+      }
+      return;
+    }
+    if (event.type !== 'keydown' || event.repeat || !canMinimize()) return;
+    const player = document.querySelector('ytlr-player');
+    const video = document.querySelector('video');
+    state.lastBack = { keyCode: event.keyCode, key: event.key,
+      playerClass: player && player.className, hash: location.hash,
+      pip: window.isPipPlaying, videoReady: video && video.readyState };
+    const press = backPress = { started: Date.now(), keyCode: event.keyCode,
+      key: event.key, code: event.code, target: event.target, keypress: false,
+      attempted: false, minimized: false };
+    press.timer = setTimeout(() => minimizeHeldBack(press), backHoldMs);
+    stop();
+  }
+  addEventListener('blur', cancelBackPress, true);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelBackPress(); }, true);
   for (const type of ['keydown', 'keypress', 'keyup']) addEventListener(type, back, true);
   // Refresh cached native arrays before the app opens the menu; never consume OK.
   addEventListener('keydown', event => {
