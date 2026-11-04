@@ -3,15 +3,11 @@
  */
 (() => {
   if (window.TTBackExternal) return;
-  const state = window.TTBackExternal = { version: 4, revision: 5, upstreamLoaded: false, lastBack: null };
+  const state = window.TTBackExternal = { version: 4, revision: 6, upstreamLoaded: false, lastBack: null };
   const vendor = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
   let pressed = false;
   let badge;
   let badgeTimer;
-  const holdMilliseconds = 650;
-  let okPress = null;
-  let replayingOk = false;
-  let suppressKeyboardClickUntil = 0;
   function notice(text, milliseconds = 5000) {
     if (!badge) {
       badge = document.createElement('div');
@@ -76,84 +72,113 @@
       return false;
     }
   }
-  function keySnapshot(event) {
-    const copy = {};
-    for (const field of ['key', 'code', 'keyCode', 'which', 'charCode', 'location',
-      'altKey', 'ctrlKey', 'shiftKey', 'metaKey']) copy[field] = event[field];
-    return copy;
+  const restoreAction = 'TT_PERSONAL_RESTORE_MP';
+  const menuHook = Symbol('tt-personal-native-menu');
+  const hookedMenus = new WeakSet();
+  let menuPoll;
+  function isRestoreCommand(command) {
+    const action = command && (command.customAction
+      || command.playlistEditEndpoint && command.playlistEditEndpoint.customAction
+      || command.signalAction && command.signalAction.customAction);
+    return !!action && action.action === restoreAction;
   }
-  function replayShortOk(press, release) {
-    replayingOk = true;
+  function isRestoreItem(item) {
+    const endpoint = item && item.menuServiceItemRenderer && item.menuServiceItemRenderer.serviceEndpoint;
+    const commands = endpoint && endpoint.commandExecutorCommand && endpoint.commandExecutorCommand.commands;
+    return Array.isArray(commands) && commands.some(isRestoreCommand);
+  }
+  function restoreMenuItem() {
+    return { menuServiceItemRenderer: {
+      text: { runs: [{ text: 'Voltar ao vídeo em reprodução' }] },
+      serviceEndpoint: { commandExecutorCommand: { commands: [
+        { signalAction: { signal: 'POPUP_BACK' } },
+        { playlistEditEndpoint: { customAction: { action: restoreAction } } },
+      ] } }, trackingParams: null,
+    } };
+  }
+  function attachMenu(menu) {
+    const renderer = menu && menu.menu && menu.menu.menuRenderer;
+    if (!menu || !menu.contentId || !renderer || !Array.isArray(renderer.items)) return;
+    if (hookedMenus.has(renderer)) return;
+    let items = renderer.items;
+    const own = restoreMenuItem();
+    function currentItems() {
+      if (!Array.isArray(items)) return items;
+      const show = window.isPipPlaying === true && !!restoreInfo();
+      if (!Object.isExtensible(items) || Object.isSealed(items)
+        || !Object.getOwnPropertyDescriptor(items, 'length').writable) {
+        const native = items.filter(item => !isRestoreItem(item));
+        return show ? [own, ...native] : native;
+      }
+      const positions = [];
+      for (let i = 0; i < items.length; i++) if (isRestoreItem(items[i])) positions.push(i);
+      if (show && positions.length === 1 && positions[0] === 0) return items;
+      for (let i = positions.length - 1; i >= 0; i--) items.splice(positions[i], 1);
+      if (show) items.unshift(own);
+      return items;
+    }
     try {
-      const target = press.target && press.target.isConnected !== false ? press.target : document.activeElement || document;
-      const events = [['keydown', press.down], ...press.keypress.map(value => ['keypress', value]), ['keyup', release]];
-      for (const [type, init] of events) {
-        const event = new KeyboardEvent(type, { ...init, bubbles: true, cancelable: true, composed: true });
-        for (const field of ['keyCode', 'which', 'charCode']) {
-          if (init[field] !== undefined && event[field] !== init[field]) Object.defineProperty(event, field, { value: init[field] });
+      Object.defineProperty(renderer, 'items', { enumerable: true, configurable: true,
+        get: currentItems, set(value) { items = value; } });
+      hookedMenus.add(renderer);
+    } catch (_) {
+      // Preserve non-configurable native data and add only when it is mutable.
+      try { currentItems(); } catch (_) {}
+    }
+  }
+  function decorateMenus(value) {
+    if (!value || typeof value !== 'object') return value;
+    const stack = [value], seen = new WeakSet();
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== 'object' || seen.has(node)) continue;
+      seen.add(node);
+      if (node.showMenuCommand) attachMenu(node.showMenuCommand);
+      for (const key of Object.keys(node)) {
+        const child = node[key];
+        if (child && typeof child === 'object') stack.push(child);
+      }
+    }
+    return value;
+  }
+  function decorateSafely(value) {
+    try { return decorateMenus(value); }
+    catch (error) { state.menuError = String(error && error.message || error); return value; }
+  }
+  function wrapParser(owner) {
+    if (!owner || typeof owner.parse !== 'function' || owner.parse[menuHook]) return;
+    const original = owner.parse;
+    const wrapped = function () { return decorateSafely(Reflect.apply(original, this, arguments)); };
+    Object.defineProperty(wrapped, menuHook, { value: true });
+    owner.parse = wrapped;
+  }
+  function installMenuHooks() {
+    wrapParser(JSON);
+    for (const entry of Object.values(window._yttv || {})) {
+      if (!entry) continue;
+      if (entry.JSON) wrapParser(entry.JSON);
+      const client = entry.instance;
+      if (!client || typeof client.resolveCommand !== 'function' || client.resolveCommand[menuHook]) continue;
+      const original = client.resolveCommand;
+      const wrapped = function (command) {
+        if (isRestoreCommand(command)) {
+          const info = restoreInfo();
+          if (!info || !restoreVideo(info.video)) notice('Não foi possível voltar ao vídeo.');
+          return true;
         }
-        target.dispatchEvent(event);
-      }
-    } finally { replayingOk = false; }
+        const commands = command && command.commandExecutorCommand && command.commandExecutorCommand.commands;
+        if (Array.isArray(commands) && commands.some(isRestoreCommand)) {
+          for (const child of commands) client.resolveCommand(child);
+          return true;
+        }
+        decorateSafely(command);
+        return Reflect.apply(original, this, arguments);
+      };
+      Object.defineProperty(wrapped, menuHook, { value: true });
+      client.resolveCommand = wrapped;
+    }
+    decorateSafely(window.ytInitialData);
   }
-  function ok(event) {
-    if (replayingOk) return;
-    const isOk = [13, 23, 32].includes(event.keyCode) || ['Enter', 'Select', 'Accept'].includes(event.key);
-    if (!isOk) {
-      if (event.type === 'keydown' && okPress) {
-        clearTimeout(okPress.timer);
-        okPress.cancelled = true;
-      }
-      return;
-    }
-    const stop = () => { event.preventDefault(); event.stopImmediatePropagation(); };
-    if (okPress) {
-      stop();
-      if (event.type === 'keypress' && !event.repeat && !okPress.keypress.length) okPress.keypress.push(keySnapshot(event));
-      if (event.type === 'keyup') {
-        const press = okPress;
-        okPress = null;
-        clearTimeout(press.timer);
-        if (press.long || press.cancelled) suppressKeyboardClickUntil = Date.now() + 300;
-        else replayShortOk(press, keySnapshot(event));
-      }
-      return;
-    }
-    if (event.type !== 'keydown' || event.repeat) return;
-    suppressKeyboardClickUntil = 0;
-    const info = restoreInfo();
-    if (!info || document.querySelector('input:focus,textarea:focus,[contenteditable="true"]:focus')
-      || visibleDialog(document.querySelector('ytlr-player'))) return;
-    stop();
-    const press = okPress = { down: keySnapshot(event), target: event.target || document.activeElement || document,
-      keypress: [], video: info.video, long: false, cancelled: false };
-    press.timer = setTimeout(() => {
-      if (okPress !== press || press.cancelled) return;
-      if (document.querySelector('input:focus,textarea:focus,[contenteditable="true"]:focus')
-        || visibleDialog(document.querySelector('ytlr-player'))) {
-        press.cancelled = true;
-        return;
-      }
-      press.long = true;
-      if (!restoreVideo(press.video)) notice('Não foi possível voltar ao vídeo.');
-    }, holdMilliseconds);
-  }
-  addEventListener('contextmenu', event => {
-    if (!replayingOk && (okPress || Date.now() < suppressKeyboardClickUntil)) {
-      event.preventDefault(); event.stopImmediatePropagation();
-    }
-  }, true);
-  addEventListener('click', event => {
-    if (!replayingOk && event.detail === 0 && (okPress || Date.now() < suppressKeyboardClickUntil)) {
-      event.preventDefault(); event.stopImmediatePropagation();
-    }
-  }, true);
-  addEventListener('blur', event => {
-    if (event.target !== window) return;
-    if (okPress) clearTimeout(okPress.timer);
-    okPress = null;
-    suppressKeyboardClickUntil = 0;
-  }, true);
   function back(event) {
     if (![4, 27, 166, 461, 10009].includes(event.keyCode)
       && !['Escape', 'BrowserBack', 'GoBack'].includes(event.key)) return;
@@ -183,10 +208,7 @@
       notice('Voltar: não foi possível abrir o miniplayer.');
     }
   }
-  for (const type of ['keydown', 'keypress', 'keyup']) {
-    addEventListener(type, ok, true);
-    addEventListener(type, back, true);
-  }
+  for (const type of ['keydown', 'keypress', 'keyup']) addEventListener(type, back, true);
   notice('Cobalt pessoal v4: carregando…');
   try {
     const url = vendor + '?v=' + Date.now();
@@ -204,7 +226,9 @@
     } else script.src = url;
     script.onload = () => {
       state.upstreamLoaded = true;
-      notice('Cobalt pessoal v4 carregado — segure OK para tela cheia.');
+      installMenuHooks();
+      menuPoll = setInterval(installMenuHooks, 500);
+      notice('Cobalt pessoal v4 carregado — OK longo abre opções.');
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
