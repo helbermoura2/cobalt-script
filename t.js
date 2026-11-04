@@ -3,7 +3,7 @@
  */
 (() => {
   if (window.TTBackExternal) return;
-  const state = window.TTBackExternal = { version: 4, revision: 8, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
+  const state = window.TTBackExternal = { version: 4, revision: 9, parseCalls: 0, commandCalls: 0, menusSeen: 0, menusHooked: 0, upstreamLoaded: false, lastBack: null };
   const vendor = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
   let pressed = false;
   let badge;
@@ -88,15 +88,15 @@
   function isRestoreItem(item) {
     const endpoint = item && item.menuServiceItemRenderer && item.menuServiceItemRenderer.serviceEndpoint;
     const commands = endpoint && endpoint.commandExecutorCommand && endpoint.commandExecutorCommand.commands;
-    return Array.isArray(commands) && commands.some(isRestoreCommand);
+    return isRestoreCommand(endpoint) || Array.isArray(commands) && commands.some(isRestoreCommand);
   }
   function restoreMenuItem() {
     return { menuServiceItemRenderer: {
       text: { runs: [{ text: 'Voltar ao vídeo em reprodução' }] },
-      serviceEndpoint: { commandExecutorCommand: { commands: [
-        { signalAction: { signal: 'POPUP_BACK' } },
-        { playlistEditEndpoint: { customAction: { action: restoreAction } } },
-      ] } }, trackingParams: null,
+      // Use the same endpoint type as the visible native Add to Queue item.
+      serviceEndpoint: { clickTrackingParams: null,
+        playlistEditEndpoint: { customAction: { action: restoreAction } },
+      }, trackingParams: null,
     } };
   }
   function rememberItems(items) {
@@ -196,14 +196,21 @@
       const original = client.resolveCommand;
       const wrapped = function (command) {
         state.commandCalls++;
-        if (isRestoreCommand(command)) {
+        function returnFromMenu(closeMenu) {
+          if (closeMenu) client.resolveCommand({ signalAction: { signal: 'POPUP_BACK' } });
           const info = restoreInfo();
           if (!info || !restoreVideo(info.video)) notice('Não foi possível voltar ao vídeo.');
           return true;
         }
+        if (isRestoreCommand(command)) return returnFromMenu(true);
         const commands = command && command.commandExecutorCommand && command.commandExecutorCommand.commands;
         if (Array.isArray(commands) && commands.some(isRestoreCommand)) {
-          for (const child of commands) client.resolveCommand(child);
+          let closed = false;
+          for (const child of commands) {
+            if (isRestoreCommand(child)) returnFromMenu(!closed);
+            else client.resolveCommand(child);
+            if (child && child.signalAction && child.signalAction.signal === 'POPUP_BACK') closed = true;
+          }
           return true;
         }
         decorateSafely(command);
@@ -239,7 +246,7 @@
       if (!client.resolveCommand({ customAction: { action: 'ENTER_MP' } })) return;
       pressed = true;
       stop();
-      notice('TT Voltar r8 — miniplayer solicitado. Segure OK para diagnóstico.', 12000);
+      notice('TT Voltar r9 — miniplayer solicitado. Segure OK para diagnóstico.', 12000);
     } catch (error) {
       state.lastBack.error = String(error && error.message || error);
       notice('Voltar: não foi possível abrir o miniplayer.');
@@ -263,7 +270,7 @@
       own += items.filter(isRestoreItem).length;
     }
     // Only flags/counters on this screen. No titles, video IDs or account data.
-    notice('Diagnóstico r8 | MP=' + String(window.isPipPlaying)
+    notice('Diagnóstico r9 | MP=' + String(window.isPipPlaying)
       + ' | V=' + (video ? video.readyState : 'ausente')
       + ' | retorno=' + Number(!!restoreInfo())
       + ' | JSON=' + state.parseCalls + ' | comandos=' + state.commandCalls
@@ -305,7 +312,7 @@
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
-      notice('TT Voltar r8 — diagnóstico do menu ativo.', 20000);
+      notice('TT Voltar r9 — diagnóstico do menu ativo.', 20000);
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
