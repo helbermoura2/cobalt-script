@@ -1,0 +1,25 @@
+name: CI rápido do controlador (sem gerar APK)
+on:
+  pull_request:
+    branches: [main]
+    paths: ['t.js', '.github/workflows/ci-rapido.yml']
+  push:
+    branches: [main]
+    paths: ['t.js']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cobalt-script-fast-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  syntax:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe do controlador da TV
+        run: node --check t.js
