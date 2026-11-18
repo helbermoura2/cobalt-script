@@ -146,7 +146,13 @@
     } };
   }
   function withHX(items) {
-    if (!window.CobaltHX || typeof window.CobaltHX.open !== 'function' || !Array.isArray(items)) return items;
+    if (!Array.isArray(items)) return items;
+    if (!window.CobaltHX || typeof window.CobaltHX.open !== 'function') {
+      if (!items.some(isHXItem)) return items;
+      if (!Object.isExtensible(items) || Object.isSealed(items)) return items.filter(item => !isHXItem(item));
+      for (let i = items.length - 1; i >= 0; i--) if (isHXItem(items[i])) items.splice(i, 1);
+      return items;
+    }
     let own = hxItems.get(items);
     if (!own) { own = hxMenuItem(); hxItems.set(items, own); }
     if (!Object.isExtensible(items) || Object.isSealed(items)) {
