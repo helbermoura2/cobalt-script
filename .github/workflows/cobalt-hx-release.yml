@@ -1,0 +1,51 @@
+name: Build Cobalt HX ARM and publish direct-download APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cobalt-hx-release.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-hx:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: build-tools;35.0.0
+      - name: Prepare Android Build Tools
+        run: |
+          sdkmanager --install 'build-tools;35.0.0'
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+      - name: Check controller availability and identity
+        shell: bash
+        run: |
+          python3 -m py_compile build-hx-preview.py
+          python3 - <<'PY'
+          import urllib.request
+          u='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js'
+          with urllib.request.urlopen(u,timeout=30) as r: body=r.read(100000)
+          if b"revision: 11" not in body or b"TT_PERSONAL_OPEN_HX" not in body:
+              raise SystemExit("Public HX controller is absent or unexpected")
+          print("HX controller bytes:",len(body))
+          PY
+      - name: Build Cobalt HX 0.1.0 (ARM Android TV)
+        run: python3 build-hx-preview.py --output Cobalt-HX-0.1.0-arm.apk
+      - name: Check package identity with aapt
+        shell: bash
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.1.0-arm.apk | head -8
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.1.0-arm.apk | grep -q "package: name='io.gh.reisxd.tizentube.cobahx'"
+      - name: Publish public direct-download release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create hx-preview-v0.1.0 ./Cobalt-HX-0.1.0-arm.apk \
+            --target "$GITHUB_SHA" \
+            --title 'Cobalt HX 0.1.0 — Android TV ARM (prévia)' \
+            --notes 'Primeira instalação experimental para Android TV (inclui TCL P7K). Edição HX com painel e atualizador visual remoto. Não substitui TT Menu11. APK assinado com chave temporária; atualizações nativas futuras podem precisar de outra instalação. Teste ainda não confirmado na TV física.'
