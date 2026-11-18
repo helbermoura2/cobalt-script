@@ -75,10 +75,12 @@
     }
   }
   const restoreAction = 'TT_PERSONAL_RESTORE_MP';
+  const hxAction = 'TT_PERSONAL_OPEN_HX';
   const menuHook = Symbol('tt-personal-native-menu');
   const hookedMenus = new WeakSet();
   const rememberedItems = new WeakSet();
   const returnItems = new WeakMap();
+  const hxItems = new WeakMap();
   const cachedMenus = new Set();
   let menuPoll;
   let visualPolicy;
@@ -124,6 +126,37 @@
     const commands = endpoint && endpoint.commandExecutorCommand && endpoint.commandExecutorCommand.commands;
     return isRestoreCommand(endpoint) || Array.isArray(commands) && commands.some(isRestoreCommand);
   }
+  function isHXCommand(command) {
+    const action = command && (command.customAction
+      || command.playlistEditEndpoint && command.playlistEditEndpoint.customAction
+      || command.signalAction && command.signalAction.customAction);
+    return !!action && action.action === hxAction;
+  }
+  function isHXItem(item) {
+    const endpoint = item && item.menuServiceItemRenderer && item.menuServiceItemRenderer.serviceEndpoint;
+    const commands = endpoint && endpoint.commandExecutorCommand && endpoint.commandExecutorCommand.commands;
+    return isHXCommand(endpoint) || Array.isArray(commands) && commands.some(isHXCommand);
+  }
+  function hxMenuItem() {
+    return { menuServiceItemRenderer: {
+      text: { runs: [{ text: 'Atualizar / personalizar Cobalt HX' }] },
+      serviceEndpoint: { clickTrackingParams: null,
+        playlistEditEndpoint: { customAction: { action: hxAction } },
+      }, trackingParams: null,
+    } };
+  }
+  function withHX(items) {
+    if (!window.CobaltHX || typeof window.CobaltHX.open !== 'function' || !Array.isArray(items)) return items;
+    let own = hxItems.get(items);
+    if (!own) { own = hxMenuItem(); hxItems.set(items, own); }
+    if (!Object.isExtensible(items) || Object.isSealed(items)) {
+      const native = items.filter(item => !isHXItem(item));
+      return native[0] && isRestoreItem(native[0]) ? [native[0], own, ...native.slice(1)] : [own, ...native];
+    }
+    for (let i = items.length - 1; i >= 0; i--) if (isHXItem(items[i])) items.splice(i, 1);
+    items.splice(items[0] && isRestoreItem(items[0]) ? 1 : 0, 0, own);
+    return items;
+  }
   function restoreMenuItem() {
     return { menuServiceItemRenderer: {
       text: { runs: [{ text: 'Voltar ao vídeo em reprodução' }] },
@@ -150,14 +183,14 @@
     if (!Object.isExtensible(items) || Object.isSealed(items)
       || !Object.getOwnPropertyDescriptor(items, 'length').writable) {
       const native = items.filter(item => !isRestoreItem(item));
-      return show ? [own, ...native] : native;
+      return withHX(show ? [own, ...native] : native);
     }
     const positions = [];
     for (let i = 0; i < items.length; i++) if (isRestoreItem(items[i])) positions.push(i);
-    if (show && positions.length === 1 && positions[0] === 0) return items;
+    if (show && positions.length === 1 && positions[0] === 0) return withHX(items);
     for (let i = positions.length - 1; i >= 0; i--) items.splice(positions[i], 1);
     if (show) items.unshift(own);
-    return items;
+    return withHX(items);
   }
   function refreshCachedMenus() {
     const show = !!restoreInfo();
@@ -236,12 +269,20 @@
           if (!info || !restoreVideo(info.video)) notice('Não foi possível voltar ao vídeo.');
           return true;
         }
+        function openHX(closeMenu) {
+          if (closeMenu) client.resolveCommand({ signalAction: { signal: 'POPUP_BACK' } });
+          if (window.CobaltHX && typeof window.CobaltHX.open === 'function') window.CobaltHX.open();
+          else notice('Painel Cobalt HX não disponível.');
+          return true;
+        }
         if (isRestoreCommand(command)) return returnFromMenu(true);
+        if (isHXCommand(command)) return openHX(true);
         const commands = command && command.commandExecutorCommand && command.commandExecutorCommand.commands;
-        if (Array.isArray(commands) && commands.some(isRestoreCommand)) {
+        if (Array.isArray(commands) && commands.some(child => isRestoreCommand(child) || isHXCommand(child))) {
           let closed = false;
           for (const child of commands) {
             if (isRestoreCommand(child)) returnFromMenu(!closed);
+            else if (isHXCommand(child)) openHX(!closed);
             else client.resolveCommand(child);
             if (child && child.signalAction && child.signalAction.signal === 'POPUP_BACK') closed = true;
           }
