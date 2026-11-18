@@ -81,6 +81,38 @@
   const returnItems = new WeakMap();
   const cachedMenus = new Set();
   let menuPoll;
+  let visualPolicy;
+  function loadVisual() {
+    if (state.visualLoading) return;
+    const base = 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js';
+    const url = base + '?v=' + Date.now();
+    const before = window.CobaltHX && window.CobaltHX.version;
+    const script = document.createElement('script');
+    const nonceSource = document.querySelector('script[nonce]');
+    if (nonceSource && nonceSource.nonce) script.nonce = nonceSource.nonce;
+    try {
+      script.src = visualPolicy ? visualPolicy.createScriptURL(url) : url;
+    } catch (error) {
+      state.visualError = String(error && error.message || error);
+      if (window.CobaltHX) window.CobaltHX.setStatus('Atualização bloqueada pela política da página.');
+      return;
+    }
+    state.visualLoading = true;
+    script.onload = () => {
+      state.visualLoading = false;
+      const after = window.CobaltHX && window.CobaltHX.version;
+      if (window.CobaltHX && before) window.CobaltHX.setStatus(
+        after === before ? 'Nenhuma nova versão visual detectada (v' + after + ').'
+          : 'Visual atualizado para a versão ' + after + ', sem reinstalar APK.');
+    };
+    script.onerror = () => {
+      state.visualLoading = false;
+      state.visualError = 'CDN unavailable';
+      if (window.CobaltHX) window.CobaltHX.setStatus('Não foi possível buscar a atualização. Versão atual preservada.');
+    };
+    (document.head || document.documentElement).appendChild(script);
+  }
+  state.refreshVisual = loadVisual;
   function isRestoreCommand(command) {
     const action = command && (command.customAction
       || command.playlistEditEndpoint && command.playlistEditEndpoint.customAction
@@ -313,18 +345,19 @@
     const nonceSource = document.querySelector('script[nonce]');
     if (nonceSource && nonceSource.nonce) script.nonce = nonceSource.nonce;
     if (window.trustedTypes) {
-      const policy = window.trustedTypes.createPolicy('tt-personal-upstream-v4', {
+      visualPolicy = window.trustedTypes.createPolicy('tt-personal-upstream-v4', {
         createScriptURL(value) {
-          if (value !== url) throw new TypeError('Unexpected upstream URL');
+          if (value !== url && !/^https:\/\/cdn\.jsdelivr\.net\/gh\/helbermoura2\/cobalt-script@main\/hx-ui\.js\?v=\d+$/.test(value)) throw new TypeError('Unexpected script URL');
           return value;
         },
       });
-      script.src = policy.createScriptURL(url);
+      script.src = visualPolicy.createScriptURL(url);
     } else script.src = url;
     script.onload = () => {
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
+      loadVisual();
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
