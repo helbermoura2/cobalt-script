@@ -1,7 +1,7 @@
-/* Cobalt HX 0.2.1 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.2.2 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.2.1';
+  const VERSION = '0.2.2';
   const previous = window.CobaltHX;
   if (previous && previous.version === VERSION) return;
   if (previous && typeof previous.destroy === 'function') previous.destroy();
@@ -56,8 +56,8 @@
     '@media(prefers-reduced-motion:reduce){#cobalt-hx .hx-action:focus,html.hx-effects-on.hx-cinema ytlr-video-renderer:focus-within,html.hx-effects-on.hx-cinema ytlr-grid-video-renderer:focus-within{transition:none;transform:none}}'
   ].join('\n');
 
-  let root, style, signature, accent, launcher, overlay, panel, status, buttons = [];
-  let poll, keyListener, routeListener, retryTimer;
+  let root, style, signature, accent, launcher, overlay, panel, status, settingsEntry, settingsHost, focusedTile, focusedTileStyle, buttons = [];
+  let poll, keyListener, focusListener, blurListener, retryTimer;
   const element = (tag, cls, value) => {
     const node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -80,12 +80,147 @@
   const hasMini = () => {
     try { return window.isPipPlaying === true; } catch (_) { return false; }
   };
+
+  // The action belongs to the TV Settings page, not to the home-screen overlay.
+  // We prefer the native settings DOM; route fallback is for unknown YouTube builds.
+  function settingsPage() {
+    let route = '';
+    try { route = String(location.hash || '') + ' ' + String(location.pathname || ''); } catch (_) {}
+    const shell = document.querySelector('ytlr-settings-page, ytlr-settings-renderer, ytlr-settings-page-renderer, ytlr-settings-section-renderer, ytlr-settings-content');
+    let visible = false;
+    try { visible = !!(shell && (!shell.getClientRects || shell.getClientRects().length)); } catch (_) {}
+    const inSettings = /settings/i.test(route) || visible;
+    if (!inSettings) return null;
+    return shell || document.querySelector('ytlr-app') || document.body;
+  }
+  function removeSettingsEntry() {
+    if (settingsEntry && settingsEntry.parentNode) settingsEntry.parentNode.removeChild(settingsEntry);
+    settingsEntry = null;
+    settingsHost = null;
+  }
+  function syncSettingsEntry() {
+    const host = settingsPage();
+    if (!host || watchingFullscreen() || hasMini()) { removeSettingsEntry(); return; }
+    if (settingsEntry && settingsEntry.parentNode === host) return;
+    removeSettingsEntry();
+    if (!host || typeof host.appendChild !== 'function') return;
+    settingsHost = host;
+    settingsEntry = element('button', 'hx-settings-entry');
+    settingsEntry.type = 'button';
+    settingsEntry.setAttribute('aria-label', 'Atualizar e personalizar Cobalt HX nas configurações');
+    settingsEntry.appendChild(element('span', '', '↻  Atualizar Cobalt HX'));
+    settingsEntry.appendChild(element('small', '', 'Versão ' + VERSION + '  ·  Aparência e atualizações'));
+    Object.assign(settingsEntry.style, {
+      display: 'block', boxSizing: 'border-box', width: '520px', maxWidth: '85vw', minHeight: '90px',
+      padding: '14px 22px', margin: '16px 18px 24px', textAlign: 'left', cursor: 'pointer',
+      background: '#172b35', color: '#eefafa', border: '2px solid #c79c69', borderRadius: '14px',
+      boxShadow: '0 10px 26px rgba(0,0,0,.55)', pointerEvents: 'auto',
+      fontFamily: 'Arial, sans-serif', fontSize: '22px', fontWeight: 'bold', zIndex: '2147483001'
+    });
+    const title = settingsEntry.children[0], subtitle = settingsEntry.children[1];
+    Object.assign(title.style, { display: 'block', fontSize: '22px', lineHeight: '28px', color: '#f9f9fa' });
+    Object.assign(subtitle.style, { display: 'block', paddingTop: '5px', fontSize: '15px', color: '#a8d7d5', fontWeight: 'normal' });
+    if (host === document.body || String(host.tagName || '').toLowerCase() === 'ytlr-app') {
+      Object.assign(settingsEntry.style, {
+        position: 'fixed', top: '17%', right: '5%', margin: '0'
+      });
+    } else {
+      Object.assign(settingsEntry.style, { position: 'relative' });
+    }
+    const onFocus = () => { settingsEntry.style.background = '#25606b'; settingsEntry.style.outline = '4px solid #65e2d7'; };
+    const onBlur = () => { settingsEntry.style.background = '#172b35'; settingsEntry.style.outline = 'none'; };
+    settingsEntry.addEventListener('focus', onFocus);
+    settingsEntry.addEventListener('blur', onBlur);
+    settingsEntry.addEventListener('click', open);
+    // Insert first, so the action is part of Settings rather than covering home tiles.
+    if (typeof host.insertBefore === 'function' && host.firstChild && host !== document.body) {
+      host.insertBefore(settingsEntry, host.firstChild);
+    } else host.appendChild(settingsEntry);
+  }
+  // Native YouTube may reject user CSS style tags under Content Security Policy:
+  // explicit inline styles ensure the UI still has television-grade layout.
+  function applyInlineLayout() {
+    if (!root || !panel) return;
+    Object.assign(root.style, { position: 'fixed', inset: '0', zIndex: '2147483000',
+      pointerEvents: 'none', fontFamily: 'Arial, sans-serif', color: '#f6f6f7' });
+    Object.assign(signature.style, { position: 'absolute', top: '15px', left: '50%',
+      transform: 'translateX(-50%)', display: 'flex', flexDirection: 'row',
+      gap: '15px', alignItems: 'center', whiteSpace: 'nowrap', padding: '9px 18px',
+      border: '1px solid #c89d6c', borderRadius: '0 0 12px 12px',
+      background: '#111d27', pointerEvents: 'none', color: '#f4f5f5' });
+    Object.assign(signature.children[0].style, { fontSize: '19px', fontWeight: 'bold', letterSpacing: '2px' });
+    Object.assign(signature.children[0].children[0].style, { color: '#6fe5dc' });
+    Object.assign(signature.children[1].style, { fontSize: '12px', letterSpacing: '1px',
+      color: '#d8ac78', borderLeft: '1px solid #718186', paddingLeft: '15px' });
+    Object.assign(accent.style, { position: 'absolute', top: '20%', left: '13px', width: '3px',
+      height: '49%', background: '#af895d', opacity: '.66', pointerEvents: 'none' });
+    // Do not place an update control over recommended videos: it lives in Settings.
+    launcher.hidden = true;
+    launcher.style.display = 'none';
+    Object.assign(overlay.style, { position: 'absolute', inset: '0', background: 'rgba(0,0,0,.78)',
+      pointerEvents: 'auto' });
+    Object.assign(panel.style, { position: 'absolute', left: '50%', top: '50%',
+      transform: 'translate(-50%,-50%)', boxSizing: 'border-box',
+      width: '615px', maxWidth: '85vw', maxHeight: '88vh', overflowY: 'auto',
+      padding: '24px 32px 25px', border: '2px solid #cfa06a', borderRadius: '18px',
+      background: '#101e2a', color: '#eef4f5', boxShadow: '0 25px 90px rgba(0,0,0,.85)',
+      pointerEvents: 'auto', fontFamily: 'Arial, sans-serif', textAlign: 'left' });
+    const heading = panel.children[0], subtitle = panel.children[1], footer = panel.children[panel.children.length-1];
+    Object.assign(heading.style, { display: 'block', fontSize: '31px', lineHeight: '38px',
+      fontWeight: 'bold', letterSpacing: '1px', padding: '0', margin: '0 0 7px',
+      color: '#fff' });
+    Object.assign(heading.children[0].style, { color: '#6fe5dc' });
+    Object.assign(subtitle.style, { display: 'block', fontSize: '16px', lineHeight: '21px',
+      margin: '0 0 16px', padding: '0', color: '#b9ccce' });
+    Object.assign(status.style, { display: 'block', fontSize: '16px', lineHeight: '23px',
+      minHeight: '36px', padding: '7px 11px', margin: '0 0 14px',
+      background: '#233844', color: '#f5f6f7', borderLeft: '4px solid #d0a371' });
+    buttons.forEach((button, i) => {
+      Object.assign(button.style, { display: 'block', boxSizing: 'border-box', width: '100%',
+        minHeight: '48px', margin: '8px 0', padding: '10px 17px', textAlign: 'left',
+        color: '#f4f9fa', background: i===0 ? '#15525a' : '#223a47',
+        border: i===0 ? '2px solid #69ded6' : '1px solid #7d979c',
+        borderRadius: '11px', fontSize: '19px', fontWeight: 'normal',
+        lineHeight: '26px', cursor: 'pointer', pointerEvents: 'auto' });
+      button.addEventListener('focus', () => {
+        button.style.background = '#2a6973'; button.style.outline = '3px solid #74e7dc';
+      });
+      button.addEventListener('blur', () => {
+        button.style.background = i===0 ? '#15525a' : '#223a47';
+        button.style.outline = 'none';
+      });
+    });
+    Object.assign(footer.style, { display: 'block', fontSize: '13px', lineHeight: '19px',
+      color: '#9eb5b9', margin: '14px 0 0', padding: '0', maxWidth: '100%' });
+  }
+  function restoreTileFocus() {
+    if (focusedTile && focusedTileStyle && focusedTile.style) {
+      Object.assign(focusedTile.style, focusedTileStyle);
+    }
+    focusedTile = null;
+    focusedTileStyle = null;
+  }
+  function highlightTile(event) {
+    if (!settings.effects) return;
+    let tile;
+    try { tile = event.target && event.target.closest &&
+      event.target.closest('ytlr-tile-renderer, ytlr-video-renderer, ytlr-grid-video-renderer, ytlr-rich-grid-media'); }
+    catch (_) { tile = null; }
+    if (!tile || !tile.style || tile===focusedTile) return;
+    restoreTileFocus();
+    focusedTile = tile;
+    focusedTileStyle = { outline: tile.style.outline, outlineOffset: tile.style.outlineOffset,
+      boxShadow: tile.style.boxShadow, borderRadius: tile.style.borderRadius };
+    Object.assign(tile.style, { outline: '3px solid #6be5dc', outlineOffset: '4px',
+      boxShadow: '0 0 0 6px rgba(105,230,220,.24)', borderRadius: '12px' });
+  }
   function updateVisibility() {
     if (!root || !overlay) return;
     const hide = watchingFullscreen() || hasMini();
-    if (signature) signature.hidden = hide;
-    if (launcher) launcher.hidden = hide || !overlay.hidden;
-    if (accent) accent.hidden = hide;
+    if (signature) { signature.hidden = hide; signature.style.display = hide ? 'none' : 'flex'; }
+    if (launcher) { launcher.hidden = true; launcher.style.display = 'none'; }
+    if (accent) { accent.hidden = hide; accent.style.display = hide ? 'none' : 'block'; }
+    syncSettingsEntry();
   }
   function repaint() {
     const html = document.documentElement;
@@ -93,6 +228,9 @@
     html.classList.toggle('hx-effects-on', settings.effects);
     html.classList.toggle('hx-cinema', settings.effects && settings.intensity === 'cinema');
     html.classList.toggle('hx-theme-cyan', settings.theme === 'cyan');
+    if (!settings.effects) restoreTileFocus();
+    if (panel) panel.style.borderColor = settings.theme === 'bronze' ? '#cfa06a' : '#6fe5dc';
+    if (signature) signature.style.borderColor = settings.theme === 'bronze' ? '#c89d6c' : '#6fe5dc';
     if (buttons[1]) buttons[1].textContent = 'Efeitos visuais: ' + (settings.effects ? 'LIGADOS' : 'DESLIGADOS');
     if (buttons[2]) buttons[2].textContent = 'Paleta: ' + (settings.theme === 'bronze' ? 'BRONZE IMPERIAL' : 'TURQUESA');
     if (buttons[3]) buttons[3].textContent = 'Animações: ' + (settings.intensity === 'cinema' ? 'CINEMA' : 'LEVES');
@@ -190,15 +328,20 @@
     Object.assign(signature.style, { position: 'absolute', top: '18px', left: '52%', color: 'white',
       padding: '10px 20px', background: '#101d27', border: '1px solid #d6a46e' });
     Object.assign(overlay.style, { position: 'absolute', inset: '0', background: '#000a', pointerEvents: 'auto' });
-    Object.assign(panel.style, { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-      width: '660px', maxWidth: '88vw', padding: '30px', border: '2px solid #d6a46e',
-      borderRadius: '22px', background: '#0c1924', color: '#fff' });
+    // Additional explicit typography/spacing overrides for YouTube TV CSP.
+    applyInlineLayout();
     // HTML hidden must be respected even if CSS is blocked.
     overlay.style.display = 'none';
 
     repaint();
     updateVisibility();
     poll = setInterval(updateVisibility, 1250);
+    focusListener = event => highlightTile(event);
+    blurListener = event => {
+      if (focusedTile && focusedTile.contains && !focusedTile.contains(event.relatedTarget)) restoreTileFocus();
+    };
+    document.addEventListener('focusin', focusListener, true);
+    document.addEventListener('focusout', blurListener, true);
     keyListener = event => {
       if (event.type !== 'keydown') return;
       const back = [4, 27, 166, 461, 10009].includes(event.keyCode) ||
@@ -214,7 +357,7 @@
           buttons[i].focus();
           return;
         }
-      } else if (event.keyCode === 406 && !watchingFullscreen() && !hasMini()) {
+      } else if (settingsEntry && [403, 406].includes(event.keyCode) && !watchingFullscreen() && !hasMini()) {
         event.preventDefault(); event.stopImmediatePropagation(); open();
       }
     };
@@ -225,6 +368,10 @@
     if (poll) clearInterval(poll);
     if (retryTimer) clearTimeout(retryTimer);
     if (keyListener) window.removeEventListener('keydown', keyListener, true);
+    if (focusListener && typeof document.removeEventListener === 'function') document.removeEventListener('focusin', focusListener, true);
+    if (blurListener && typeof document.removeEventListener === 'function') document.removeEventListener('focusout', blurListener, true);
+    restoreTileFocus();
+    removeSettingsEntry();
     if (root && root.parentNode) root.parentNode.removeChild(root);
     if (style && style.parentNode) style.parentNode.removeChild(style);
     const html = document.documentElement;
