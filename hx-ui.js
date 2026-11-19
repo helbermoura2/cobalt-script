@@ -57,7 +57,7 @@
   ].join('\n');
 
   let root, style, signature, accent, launcher, overlay, panel, status, settingsEntry, settingsHost, focusedTile, focusedTileStyle, buttons = [];
-  let poll, keyListener, focusListener, blurListener, retryTimer;
+  let poll, keyListener, focusListener, blurListener, retryTimer, returnFocus;
   const element = (tag, cls, value) => {
     const node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -237,6 +237,7 @@
   }
   function open() {
     if (!overlay) return;
+    returnFocus = document.activeElement;
     overlay.hidden = false;
     overlay.style.display = 'block';
     updateVisibility();
@@ -248,7 +249,8 @@
     overlay.hidden = true;
     overlay.style.display = 'none';
     updateVisibility();
-    if (launcher && !launcher.hidden && typeof launcher.focus === 'function') launcher.focus();
+    const destination = settingsEntry && settingsEntry.parentNode ? settingsEntry : returnFocus;
+    if (destination && typeof destination.focus === 'function') destination.focus();
   }
   function refresh() {
     const control = window.TTBackExternal;
