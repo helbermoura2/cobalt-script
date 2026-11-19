@@ -86,7 +86,7 @@
   let visualPolicy;
   function loadVisual() {
     if (state.visualLoading) return;
-    const base = 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js';
+    const base = 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js';
     const url = base + '?v=' + Date.now();
     const before = window.CobaltHX && window.CobaltHX.version;
     const script = document.createElement('script');
@@ -395,7 +395,7 @@
     if (window.trustedTypes) {
       visualPolicy = window.trustedTypes.createPolicy('tt-personal-upstream-v4', {
         createScriptURL(value) {
-          if (value !== url && !/^https:\/\/cdn\.jsdelivr\.net\/gh\/helbermoura2\/cobalt-script@main\/hx-ui\.js\?v=\d+$/.test(value)) throw new TypeError('Unexpected script URL');
+          if (value !== url && !/^https:\/\/cdn\.jsdelivr\.net\/gh\/helbermoura2\/cobalt-script@main\/hx-ui-v3\.js\?v=\d+$/.test(value)) throw new TypeError('Unexpected script URL');
           return value;
         },
       });
@@ -405,7 +405,8 @@
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
-      loadVisual();
+      // Never auto-fetch the visual layer: CDN caches may deliver older code.
+      // The bundled interface is authoritative; updates are manual in Settings.
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
@@ -417,19 +418,35 @@
 
 
 
-/* HX-BUNDLED-V0.2.2: TV Settings updater, reliably styled without external CSS. */
+
+/* HX-BUNDLED-V0.3.0: authoritative TV UI; never load stale remote UI automatically. */
 try {
-  const canMountHX = !!(document.body && document.head && document.createElement &&
-    typeof document.createElement('div').appendChild === 'function' &&
-    document.documentElement && document.documentElement.classList);
+  const canMountHX = !!(document && document.createElement && document.documentElement &&
+    document.documentElement.classList);
   if (canMountHX) {
-/* Cobalt HX 0.2.2 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.3.0 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.2.2';
+  const VERSION = '0.3.0';
   const previous = window.CobaltHX;
-  if (previous && previous.version === VERSION) return;
+  // A stale cached module must never replace a newer version.
+  function compareVersion(a, b) {
+    const x = String(a || '0').split('.').map(v => parseInt(v, 10) || 0);
+    const y = String(b || '0').split('.').map(v => parseInt(v, 10) || 0);
+    for (let i = 0; i < 3; i++) {
+      if ((x[i] || 0) > (y[i] || 0)) return 1;
+      if ((x[i] || 0) < (y[i] || 0)) return -1;
+    }
+    return 0;
+  }
+  if (previous && compareVersion(previous.version, VERSION) >= 0) return;
   if (previous && typeof previous.destroy === 'function') previous.destroy();
+  try {
+    const orphan = document.getElementById && document.getElementById('cobalt-hx');
+    if (orphan && orphan.parentNode) orphan.parentNode.removeChild(orphan);
+    const staleStyle = document.getElementById && document.getElementById('cobalt-hx-css');
+    if (staleStyle && staleStyle.parentNode) staleStyle.parentNode.removeChild(staleStyle);
+  } catch (_) {}
 
   const STORAGE = 'cobalt-hx-preferences';
   const KEY = 'cobalt-hx';
