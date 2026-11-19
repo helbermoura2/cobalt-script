@@ -1,9 +1,9 @@
-/* Cobalt HX Native Preview 0.1.0. Original TV UI; Cobalt playback and blocking unchanged.
+/* Cobalt HX Native Preview 0.1.1. Original TV UI; Cobalt playback and blocking unchanged.
 Design: Taste Skill hierarchy, Transitions.dev short reversible motion, React Bits focus cues;
 plain CSS, no borrowed commercial assets, no autoplay previews. */
 (() => {
 'use strict';
-const VERSION='0.1.0';
+const VERSION='0.1.1';
 const prev=window.CobaltNative;
 if(prev && prev.version===VERSION)return;
 if(prev && typeof prev.destroy==='function')prev.destroy();
@@ -57,7 +57,8 @@ function makeShell(){
  // Inline fallback for stricter YouTube TV content-security policies.
  Object.assign(root.style,{position:'fixed',inset:'0',zIndex:'2147483100',background:'#090a0c',color:'#f6f2ed',fontFamily:'Arial,sans-serif',overflow:'hidden'});
  const left=create('aside','side');Object.assign(left.style,{position:'absolute',left:'0',top:'0',bottom:'0',width:'265px',background:'#1b1815',borderRight:'2px solid #bc8c57',padding:'32px 18px'});
- left.appendChild(create('div','logo','COBALT HX'));left.appendChild(create('div','caption','NATIVE EXPERIENCE • PRÉVIA'));
+ const brand=create('div','logo','COBALT HX');Object.assign(brand.style,{color:'#edc894',fontSize:'28px',fontWeight:'900',letterSpacing:'1px',lineHeight:'1.2',whiteSpace:'nowrap'});left.appendChild(brand);
+ const subtitle=create('div','caption','NATIVE EXPERIENCE • PRÉVIA');Object.assign(subtitle.style,{color:'#d9b88e',fontSize:'13px',letterSpacing:'1px',margin:'10px 0 34px'});left.appendChild(subtitle);
  tabs.forEach((name,i)=>{
   const b=create('button','nav',name);b.type='button';
   Object.assign(b.style,{display:'block',width:'100%',margin:'6px 0',padding:'13px 14px',textAlign:'left',fontSize:'19px',borderRadius:'12px',background:'transparent',border:'1px solid transparent',color:'#e1d9ca'});
@@ -68,9 +69,11 @@ function makeShell(){
  const foot=create('div','foot','Motor Cobalt • SponsorBlock • sem prévias');Object.assign(foot.style,{position:'absolute',bottom:'24px',fontSize:'12px',color:'#b9a17f'});left.appendChild(foot);
  const main=create('main','body');Object.assign(main.style,{position:'absolute',left:'265px',top:'0',right:'0',bottom:'0',padding:'32px 38px',background:'radial-gradient(ellipse at 90% 0%,#30251c,#101215 60%,#090a0c)'});
  const head=create('div','header');Object.assign(head.style,{height:'102px',borderBottom:'1px solid #86643e',display:'flex',alignItems:'center',justifyContent:'space-between'});
- const group=create('div');group.appendChild(create('div','eyebrow','SUA TV. SEU JEITO.'));group.appendChild(create('div','heading','Destaques'));
- head.appendChild(group);head.appendChild(create('div','pill','TESTE 0.1.0'));
- main.appendChild(head);main.appendChild(create('div','desc','Sem prévias automáticas. OK abre o vídeo selecionado.'));
+ const group=create('div');
+ const eyebrow=create('div','eyebrow','SUA TV. SEU JEITO.');Object.assign(eyebrow.style,{color:'#d4aa7c',fontSize:'14px',letterSpacing:'2px'});group.appendChild(eyebrow);
+ const headerText=create('div','heading','Destaques');Object.assign(headerText.style,{color:'#fff5e8',fontSize:'35px',fontWeight:'bold',marginTop:'4px'});group.appendChild(headerText);
+ head.appendChild(group);const ver=create('div','pill','PRÉVIA 0.1.1');Object.assign(ver.style,{color:'#f2cf9c',fontSize:'14px',border:'1px solid #a77d4a',borderRadius:'17px',padding:'8px 14px',background:'#302519'});head.appendChild(ver);
+ main.appendChild(head);const desc=create('div','desc','Sem prévias automáticas. OK abre o vídeo selecionado.');Object.assign(desc.style,{color:'#e2d4c1',fontSize:'18px',margin:'20px 0'});main.appendChild(desc);
  const grid=create('div','grid');Object.assign(grid.style,{height:'calc(100% - 190px)',overflowY:'auto',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'20px',alignContent:'start',padding:'8px 5px 46px'});
  main.appendChild(grid);
  const settings=create('div','panel');main.appendChild(settings);
@@ -103,10 +106,10 @@ function draw(){
   const matches=data.filter(x=>/\bao vivo\b|\blive\b/i.test(x.title));
   if(matches.length)data=matches;
  }
- if(!data.length){grid.appendChild(create('p','','Carregando vídeos do YouTube TV...'));return}
+ if(!data.length){const msg=create('p','','Carregando vídeos do YouTube TV...');msg.style.color='#fff0db';msg.style.fontSize='22px';grid.appendChild(msg);return}
  data.forEach(c=>{
   const card=create('button','card');card.type='button';
-  Object.assign(card.style,{textAlign:'left',minWidth:'0',padding:'0 0 10px',background:'#1d1d20',border:'1px solid #986f43',borderRadius:'13px',overflow:'hidden'});
+  Object.assign(card.style,{textAlign:'left',minWidth:'0',padding:'0 0 10px',color:'#f6f1e8',background:'#1d1d20',border:'1px solid #986f43',borderRadius:'13px',overflow:'hidden'});
   const poster=create('div','poster');Object.assign(poster.style,{width:'100%',aspectRatio:'16/9',position:'relative',background:'linear-gradient(145deg,#352e26,#181a20)'});
   if(c.poster){
    const image=create('img');image.src=c.poster;image.alt='';Object.assign(image.style,{width:'100%',height:'100%',objectFit:'cover',display:'block'});
@@ -114,8 +117,8 @@ function draw(){
    poster.appendChild(image);
   }else poster.appendChild(create('span','fallback','COBALT HX'));
   card.appendChild(poster);
-  const t=create('div','ctitle',c.title);Object.assign(t.style,{padding:'12px 10px 0',fontWeight:'bold',fontSize:'17px',minHeight:'56px',lineHeight:'1.3'});
-  card.appendChild(t);card.appendChild(create('div','meta','OK • Reproduzir'));
+  const t=create('div','ctitle',c.title);Object.assign(t.style,{padding:'12px 10px 0',color:'#f6f1e8',fontWeight:'bold',fontSize:'19px',minHeight:'61px',lineHeight:'1.32',textShadow:'0 1px 2px #0006'});
+  card.appendChild(t);const meta=create('div','meta','OK • Reproduzir');Object.assign(meta.style,{color:'#d5b48a',fontSize:'13px',padding:'4px 10px'});card.appendChild(meta);
   card.addEventListener('focus',()=>{card.style.border='3px solid #dfb47f';card.style.background='#382c20';card.style.transform=motion?'translateY(-4px)':'none'});
   card.addEventListener('blur',()=>{card.style.border='1px solid #986f43';card.style.background='#1d1d20';card.style.transform='none'});
   card.addEventListener('click',()=>play(c));
@@ -137,11 +140,11 @@ function showSettings(){
  ];
  opts.forEach(([name,handler])=>{
   const b=create('button','settings',name);b.type='button';
-  Object.assign(b.style,{display:'block',width:'100%',padding:'16px 22px',margin:'12px 0',textAlign:'left',fontSize:'21px',border:'1px solid #a17a4c',background:'#262327',borderRadius:'13px'});
+  Object.assign(b.style,{display:'block',width:'100%',padding:'16px 22px',margin:'12px 0',textAlign:'left',color:'#f8f1e8',fontSize:'22px',border:'1px solid #a17a4c',background:'#262327',borderRadius:'13px'});
   b.addEventListener('focus',()=>{b.style.background='#795334'});b.addEventListener('blur',()=>{b.style.background='#262327'});
   b.addEventListener('click',handler);p.appendChild(b);
  });
- p.appendChild(create('div','state','AdBlock, SponsorBlock, 4K, miniplayer e OK longo continuam sob responsabilidade do Cobalt. O botão atualiza a interface; APKs futuros exigem instalador Android e assinatura de atualização fixa.'));
+ const note=create('div','state','AdBlock, SponsorBlock, 4K, miniplayer e OK longo continuam sob responsabilidade do Cobalt. O botão atualiza a interface; APKs futuros exigem instalador Android e assinatura de atualização fixa.');Object.assign(note.style,{color:'#ebc999',fontSize:'18px',padding:'16px',background:'#29221b',borderLeft:'4px solid #d2a26c',marginTop:'22px'});p.appendChild(note);
  updateStatus(status);
 }
 function openTab(i){
