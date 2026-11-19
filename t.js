@@ -352,6 +352,7 @@
   }
   function back(event) {
     if (replayingBack) return;
+    if (window.CobaltHX && typeof window.CobaltHX.isOpen === 'function' && window.CobaltHX.isOpen()) return;
     if (![4, 27, 166, 461, 10009].includes(event.keyCode)
       && !['Escape', 'BrowserBack', 'GoBack'].includes(event.key)) return;
     const stop = () => { event.preventDefault(); event.stopImmediatePropagation(); };
@@ -415,16 +416,16 @@
 })();
 
 
-/* HX-BUNDLED-V0.2.0: guaranteed visual layer even if optional CDN script fails. */
+/* HX-BUNDLED-V0.2.1: visual inside the controller so the TV does not depend on a secondary script for the basic interface. */
 try {
   const canMountHX = !!(document.body && document.head && document.createElement &&
     typeof document.createElement('div').appendChild === 'function' &&
     document.documentElement && document.documentElement.classList);
   if (canMountHX) {
-/* Cobalt HX 0.2.0 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.2.1 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const previous = window.CobaltHX;
   if (previous && previous.version === VERSION) return;
   if (previous && typeof previous.destroy === 'function') previous.destroy();
@@ -628,11 +629,11 @@ try {
         ['Escape', 'BrowserBack', 'GoBack'].includes(event.key);
       if (!overlay.hidden) {
         if (back) { event.preventDefault(); event.stopImmediatePropagation(); close(); return; }
-        if ([38, 40].includes(event.keyCode) || ['ArrowUp','ArrowDown'].includes(event.key)) {
+        if ([19, 20, 38, 40].includes(event.keyCode) || ['ArrowUp','ArrowDown'].includes(event.key)) {
           event.preventDefault(); event.stopImmediatePropagation();
           let i = buttons.indexOf(document.activeElement);
           if (i < 0) i = 0;
-          const step = event.keyCode === 38 || event.key === 'ArrowUp' ? -1 : 1;
+          const step = event.keyCode === 19 || event.keyCode === 38 || event.key === 'ArrowUp' ? -1 : 1;
           i = (i + step + buttons.length) % buttons.length;
           buttons[i].focus();
           return;
@@ -657,7 +658,7 @@ try {
       html.classList.remove('hx-theme-cyan');
     }
   }
-  const api = window.CobaltHX = { version: VERSION, open, close, destroy, setStatus: report, refresh,
+  const api = window.CobaltHX = { version: VERSION, open, close, destroy, isOpen: () => !!(overlay && !overlay.hidden), setStatus: report, refresh,
     get preferences() { return { effects: settings.effects, theme: settings.theme, intensity: settings.intensity }; } };
   if (!mount()) {
     document.addEventListener('DOMContentLoaded', () => { if (window.CobaltHX === api) mount(); }, { once: true });
