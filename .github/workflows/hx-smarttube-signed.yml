@@ -1,0 +1,100 @@
+name: HX TV signed in-app update channel
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-signed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      KEYSTORE_BASE64: ${{ secrets.HX_KEYSTORE_B64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.HX_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.HX_KEY_ALIAS }}
+    steps:
+      - name: Check signing secrets before expensive build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ]; then
+            echo "::error::Configure HX_KEYSTORE_B64, HX_KEYSTORE_PASSWORD and HX_KEY_ALIAS in repository Actions secrets. Never commit the signing key."
+            exit 1
+          fi
+      - name: Checkout own code
+        uses: actions/checkout@v4
+        with:
+          ref: smart-cobalt-hybrid
+          persist-credentials: false
+      - name: Checkout pinned SmartTube source
+        uses: actions/checkout@v4
+        with:
+          repository: yuliskov/SmartTube
+          ref: 41fbc7c60ee28e6f13cee74ff630dac6df2724bf
+          submodules: recursive
+          path: upstream
+          persist-credentials: false
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMGR="$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)"
+          if [ -z "$SDKMGR" ]; then exit 1; fi
+          yes | "$SDKMGR" --licenses >/dev/null || true
+          "$SDKMGR" --install 'platforms;android-34' 'build-tools;30.0.3' 'ndk;21.0.6113669'
+      - name: Prepare native project with own package
+        run: |
+          python3 -m pip install --user --break-system-packages Pillow==11.3.0
+          python3 hybrid/patch_smarttube.py upstream
+      - name: Load private signing key only into temporary runner storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hx-signing"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/hx-signing/hx.jks"
+          chmod 600 "$RUNNER_TEMP/hx-signing/hx.jks"
+          keytool -list -keystore "$RUNNER_TEMP/hx-signing/hx.jks" \
+            -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          {
+            echo "storeFile=$RUNNER_TEMP/hx-signing/hx.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+          } > upstream/keystore.properties
+          chmod 600 upstream/keystore.properties
+      - name: Build signed native release
+        working-directory: upstream
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :smarttubetv:assembleStbetaRelease
+      - name: Verify Android package and signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release \
+            -name '*armeabi-v7a.apk' -type f | head -n 1)
+          if [ -z "$apk" ]; then exit 1; fi
+          mkdir -p out
+          cp "$apk" out/HX-TV-Native-0.2.0-ARM-signed.apk
+          bt=$(ls -d "$ANDROID_HOME/build-tools/"* | sort -V | tail -n 1)
+          "$bt/aapt" dump badging out/HX-TV-Native-0.2.0-ARM-signed.apk | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2471'"
+          "$bt/apksigner" verify --verbose --print-certs out/HX-TV-Native-0.2.0-ARM-signed.apk
+          sha256sum out/HX-TV-Native-0.2.0-ARM-signed.apk
+      - name: Publish signed preview for one-time migration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create hx-smarttube-signed-v0.2.0 out/HX-TV-Native-0.2.0-ARM-signed.apk \
+            --target "$GITHUB_SHA" \
+            --title 'HX TV 0.2.0 — canal assinado' \
+            --notes 'Prévia Android TV Bronze OLED com botão Atualizar aplicativo em Configurações. Primeira migração exige remover a instalação debug 0.1.0 antes de instalar a versão assinada. As futuras versões com o mesmo certificado poderão atualizar dentro do aplicativo. O motor Cobalt ainda não está integrado; não desinstalar Cobalt HX.'
+      - name: Cleanup local signing secrets
+        if: always()
+        shell: bash
+        run: |
+          rm -rf "$RUNNER_TEMP/hx-signing"
+          rm -f upstream/keystore.properties
