@@ -28,32 +28,32 @@ jobs:
           python3 -m py_compile build-hx-preview.py
           python3 - <<'PY'
           import urllib.request, hashlib, json, base64, time
-          source='https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx3'
+          source='https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx4'
           request=urllib.request.Request(source,headers={'User-Agent':'CobaltHX-release-validator'})
           with urllib.request.urlopen(request,timeout=30) as r:
               doc=json.load(r)
           expected=base64.b64decode(doc['content'])
-          if b'HX-BUNDLED-V0.3.0' not in expected or b'hx-ui-v3.js' not in expected:
+          if b'const VERSION = '0.4.1'' not in expected or b'hx-ui-v3.js' not in expected:
               raise SystemExit('Bundled version missing in GitHub controller')
-          url='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js?v=verify'+str(int(time.time()))
+          url='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx4/t.js?v=verify'+str(int(time.time()))
           with urllib.request.urlopen(url,timeout=30) as r:
               body=r.read(100000)
           if hashlib.sha256(expected).digest() != hashlib.sha256(body).digest():
-              raise SystemExit('CDN is not serving the exact 0.3.0 controller; refuse to publish APK')
+              raise SystemExit('CDN is not serving the exact 0.4.1 controller; refuse to publish APK')
           print('Controller and CDN SHA-256 match:',hashlib.sha256(body).hexdigest(),'bytes:',len(body))
           PY
-      - name: Build Cobalt HX 0.3.0 (ARM Android TV)
-        run: python3 build-hx-preview.py --output Cobalt-HX-0.3.0-arm.apk
+      - name: Build Cobalt HX 0.4.1 (ARM Android TV)
+        run: python3 build-hx-preview.py --output Cobalt-HX-0.4.1-arm.apk
       - name: Check package identity with aapt
         shell: bash
         run: |
-          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.3.0-arm.apk | head -8
-          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.3.0-arm.apk | grep -q "package: name='io.gh.reisxd.tizentube.cobah3'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.4.1-arm.apk | head -8
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging Cobalt-HX-0.4.1-arm.apk | grep -q "package: name='io.gh.reisxd.tizentube.cobah3'"
       - name: Publish public direct-download release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create hx-preview-v0.3.0 ./Cobalt-HX-0.3.0-arm.apk \
+          gh release create hx-preview-v0.4.1 ./Cobalt-HX-0.4.1-arm.apk \
             --target "$GITHUB_SHA" \
-            --title 'Cobalt HX 0.3.0 — Android TV ARM (prévia)' \
-            --notes 'Cobalt HX 0.3.0: correção do painel antigo sobrepondo a interface. Não carrega UI remota automaticamente; visual 0.3.0 embutido e atualizador manual somente nas Configurações. Identificador separado para testar sem afetar as versões anteriores, que podem ser desinstaladas depois. APK de teste assinado com chave temporária; instalação sobre versões anteriores não é compatível. A TV física ainda requer validação.'
+            --title 'Cobalt HX 0.4.1 — Android TV ARM (prévia)' \
+            --notes 'Cobalt HX 0.4.1: novo endereço independente hx4 para contornar o cache obsoleto da 0.3.1; interface 0.4.1 incluída no carregador e miniaturas originais preservadas. Backup da versão anterior disponível no código. APK de teste assinado com chave temporária, exige desinstalar a versão anterior. Reproduzir videos e testar atualização visual na TCL P7K antes de considerar estável.'
