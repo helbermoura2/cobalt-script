@@ -1,0 +1,67 @@
+name: Verify and refresh Cobalt HX remote UI
+on:
+  push:
+    branches: [main, hx]
+    paths:
+      - hx-ui.js
+      - t.js
+      - .github/workflows/refresh-hx.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-cdn:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check local JavaScript syntax
+        run: |
+          node --check hx-ui.js
+          node --check t.js
+      - name: Verify public controller + refresh CDN cache
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, time, urllib.request
+          targets=[
+            ("https://raw.githubusercontent.com/helbermoura2/cobalt-script/hx/t.js",
+             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
+             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
+             b"HX-BUNDLED-V0.2.0"),
+            ("https://raw.githubusercontent.com/helbermoura2/cobalt-script/main/hx-ui.js",
+             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
+             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
+             b"const VERSION = '0.2.0'"),
+          ]
+          header={"User-Agent":"cobalt-hx-cdn-verify"}
+          def fetch(url):
+            with urllib.request.urlopen(urllib.request.Request(url,headers=header),timeout=25) as response:
+              return response.read(131072)
+          all_ok=True
+          for raw,purge,cdn,marker in targets:
+            latest=fetch(raw)
+            if marker not in latest:
+              raise SystemExit("Missing expected marker in "+raw)
+            expected=hashlib.sha256(latest).hexdigest()
+            try:
+              ans=fetch(purge)
+              print("PURGE",purge,ans[:320].decode(errors="replace"))
+            except Exception as error:
+              print("PURGE_WARNING",str(error))
+            ready=False
+            for attempt in range(10):
+              url=cdn+"?v=HX-20261118-"+str(int(time.time()*1000))
+              try:
+                received=fetch(url)
+                digest=hashlib.sha256(received).hexdigest()
+                if digest==expected:
+                  print("READY",json.dumps({"url":cdn,"sha256":expected,"bytes":len(latest),"attempt":attempt+1}))
+                  ready=True
+                  break
+                print("CDN_OLD",json.dumps({"url":cdn,"expected":expected,"served":digest,"attempt":attempt+1}))
+              except Exception as error:
+                print("CDN_WARNING",str(error))
+              time.sleep(6)
+            if not ready: all_ok=False
+          if not all_ok: raise SystemExit("CDN has not refreshed all the tested URLs")
+          PY
