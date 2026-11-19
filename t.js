@@ -90,11 +90,23 @@
   const cachedMenus = new Set();
   let menuPoll;
   let visualPolicy;
+  // Immutable recovery for 0.4.1: branch refs on CDNs may still serve 0.3.1.
+  // Once recovery is loaded, the Settings button checks the normal moving channel.
+  const minimumVisual = '0.4.1';
+  function compareVisual(a, b) {
+    const x = String(a || '0').split('.').map(v => parseInt(v,10) || 0);
+    const y = String(b || '0').split('.').map(v => parseInt(v,10) || 0);
+    for (let i=0;i<3;i++) { if ((x[i]||0)!==(y[i]||0)) return (x[i]||0)>(y[i]||0)?1:-1; }
+    return 0;
+  }
   function loadVisual() {
     if (state.visualLoading) return;
-    const base = 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js';
-    const url = base + '?v=' + Date.now();
     const before = window.CobaltHX && window.CobaltHX.version;
+    const recovery = compareVisual(before, minimumVisual) < 0;
+    const base = recovery
+      ? 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@8d678d145f2fc98dfc256822b7864ca63680e08f/hx-ui-v3.js'
+      : 'https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js';
+    const url = base + '?v=' + Date.now();
     const script = document.createElement('script');
     const nonceSource = document.querySelector('script[nonce]');
     if (nonceSource && nonceSource.nonce) script.nonce = nonceSource.nonce;
@@ -109,9 +121,14 @@
     script.onload = () => {
       state.visualLoading = false;
       const after = window.CobaltHX && window.CobaltHX.version;
-      if (window.CobaltHX && before) window.CobaltHX.setStatus(
-        after === before ? 'Nenhuma nova versão visual detectada (v' + after + ').'
-          : 'Visual atualizado para a versão ' + after + ', sem reinstalar APK.');
+      if (window.CobaltHX && typeof window.CobaltHX.setStatus === 'function') {
+        if (compareVisual(after, minimumVisual)<0) window.CobaltHX.setStatus(
+          'Versão antiga detectada. O CDN ainda pode estar entregando a interface anterior.');
+        else if (after === before) window.CobaltHX.setStatus(
+          'Interface ' + after + ' carregada. Sem nova versão disponível.');
+        else window.CobaltHX.setStatus(
+          'Interface atualizada para ' + after + '. Reinicie para confirmar a persistência.');
+      }
     };
     script.onerror = () => {
       state.visualLoading = false;
@@ -442,7 +459,7 @@
     if (window.trustedTypes) {
       visualPolicy = window.trustedTypes.createPolicy('tt-personal-upstream-v4', {
         createScriptURL(value) {
-          if (value !== url && !/^https:\/\/cdn\.jsdelivr\.net\/gh\/helbermoura2\/cobalt-script@main\/hx-ui-v3\.js\?v=\d+$/.test(value)) throw new TypeError('Unexpected script URL');
+          if (value !== url && !/^https:\/\/cdn\.jsdelivr\.net\/gh\/helbermoura2\/cobalt-script@(?:main|[a-f0-9]{40})\/hx-ui-v3\.js\?v=\d+$/.test(value)) throw new TypeError('Unexpected script URL');
           return value;
         },
       });
@@ -452,8 +469,13 @@
       state.upstreamLoaded = true;
       installMenuHooks();
       menuPoll = setInterval(installMenuHooks, 500);
-      // Never auto-fetch the visual layer: CDN caches may deliver older code.
-      // The bundled interface is authoritative; updates are manual in Settings.
+      // Recover older cached APK visual modules automatically after startup.
+      // Version comparison in the UI prevents downgrades from stale CDN scripts.
+      setTimeout(() => {
+        if (!state.visualLoading && compareVisual(window.CobaltHX && window.CobaltHX.version, minimumVisual) < 0) {
+          loadVisual();
+        }
+      }, 1800);
     };
     script.onerror = () => { state.upstreamError = true; notice('Falha ao carregar o TizenTube.', 15000); };
     (document.head || document.documentElement).appendChild(script);
