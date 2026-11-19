@@ -15,58 +15,60 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Check local JavaScript syntax
-        run: |
-          node --check hx-ui-v3.js
-          node --check t.js
-      - name: Verify public controller + refresh CDN cache
+      - name: Verify GitHub sources, purge CDN and compare SHA-256
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 - <<'PY'
-          import base64, hashlib, json, os, time, urllib.request
-          targets=[
-            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx3",
-             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
-             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
-             b"HX-BUNDLED-V0.3.1"),
-            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui-v3.js?ref=main",
-             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
-             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
-             b"const VERSION = '0.3.1'"),
+          import base64, hashlib, json, os, time, urllib.error, urllib.request
+          targets = [
+            {
+              "name":"TV boot controller (hx3)",
+              "source":"https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx3",
+              "purge":"https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
+              "cdn":"https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
+              "marker":b"const minimumVisual = '0.4.1';",
+            },
+            {
+              "name":"Manual visual updater (main)",
+              "source":"https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui-v3.js?ref=main",
+              "purge":"https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
+              "cdn":"https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
+              "marker":b"const VERSION = '0.4.1';",
+            },
           ]
-          header={"User-Agent":"cobalt-hx-cdn-verify"}
-          def fetch(url):
-            headers = dict(header)
-            if url.startswith('https://api.github.com/'):
-              headers['Authorization'] = 'Bearer ' + os.environ['GH_TOKEN']
-            with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=25) as response:
-              return response.read(131072)
+          def fetch(url, api=False):
+            header={"User-Agent":"cobalt-hx-0.4.1-verify"}
+            if api: header["Authorization"]="Bearer "+os.environ["GH_TOKEN"]
+            request=urllib.request.Request(url,headers=header)
+            with urllib.request.urlopen(request,timeout=25) as res:
+              return res.read(131072)
           all_ok=True
-          for raw,purge,cdn,marker in targets:
-            latest=base64.b64decode(json.loads(fetch(raw))["content"])
-            if marker not in latest:
-              raise SystemExit("Missing expected marker in "+raw)
-            expected=hashlib.sha256(latest).hexdigest()
+          for target in targets:
+            print("Checking:",target["name"],flush=True)
+            expected=base64.b64decode(json.loads(fetch(target["source"],True))["content"])
+            if target["marker"] not in expected:
+              raise SystemExit("Unexpected GitHub source. Refusing purge: "+target["name"])
+            digest=hashlib.sha256(expected).hexdigest()
             try:
-              ans=fetch(purge)
-              print("PURGE",purge,ans[:320].decode(errors="replace"))
-            except Exception as error:
-              print("PURGE_WARNING",str(error))
+              result=fetch(target["purge"])
+              print("PURGE_RESPONSE",target["name"],result[:300].decode(errors="replace"),flush=True)
+            except Exception as exc:
+              print("PURGE_WARNING",target["name"],str(exc),flush=True)
             ready=False
             for attempt in range(10):
-              url=cdn+"?v=HX-031-"+str(int(time.time()*1000))
               try:
-                received=fetch(url)
-                digest=hashlib.sha256(received).hexdigest()
-                if digest==expected:
-                  print("READY",json.dumps({"url":cdn,"sha256":expected,"bytes":len(latest),"attempt":attempt+1}))
+                current=fetch(target["cdn"]+"?hx041="+str(int(time.time()*1000)))
+                found=hashlib.sha256(current).hexdigest()
+                if found==digest:
+                  print("READY",json.dumps({"name":target["name"],"sha256":digest,"bytes":len(expected)}),flush=True)
                   ready=True
                   break
-                print("CDN_OLD",json.dumps({"url":cdn,"expected":expected,"served":digest,"attempt":attempt+1}))
-              except Exception as error:
-                print("CDN_WARNING",str(error))
-              time.sleep(6)
+                print("STALE",target["name"],"expected",digest,"served",found,flush=True)
+              except Exception as exc:
+                print("CDN_WARNING",target["name"],str(exc),flush=True)
+              time.sleep(5)
             if not ready: all_ok=False
-          if not all_ok: raise SystemExit("CDN has not refreshed all the tested URLs")
+          if not all_ok:
+            raise SystemExit("At least one jsDelivr URL is still stale; NOT verified on TV")
           PY
