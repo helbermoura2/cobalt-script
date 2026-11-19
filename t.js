@@ -472,10 +472,10 @@ try {
   const canMountHX = !!(document && document.createElement && document.documentElement &&
     document.documentElement.classList);
   if (canMountHX) {
-/* Cobalt HX 0.3.1 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.4.0 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.3.1';
+  const VERSION = '0.4.0';
   const previous = window.CobaltHX;
   // A stale cached module must never replace a newer version.
   function compareVersion(a, b) {
@@ -546,8 +546,9 @@ try {
     '@media(prefers-reduced-motion:reduce){#cobalt-hx .hx-action:focus,html.hx-effects-on.hx-cinema ytlr-video-renderer:focus-within,html.hx-effects-on.hx-cinema ytlr-grid-video-renderer:focus-within{transition:none;transform:none}}'
   ].join('\n');
 
+  const extraCSS = "\nhtml.hx-v4 body,html.hx-v4 ytlr-app{background:radial-gradient(ellipse at 80% 0%,#29221a,#101115 52%,#090a0c)!important}\nhtml.hx-v4 ytlr-tile-renderer,html.hx-v4 ytlr-video-renderer,html.hx-v4 ytlr-grid-video-renderer,html.hx-v4 ytlr-rich-grid-media{background:linear-gradient(145deg,#222123,#121417)!important;border:1px solid #9f7b51!important;border-radius:20px!important;box-shadow:0 10px 32px #0009!important;transition:transform .19s ease-out,box-shadow .19s ease-out!important}\nhtml.hx-v4 ytlr-tile-renderer img,html.hx-v4 ytlr-video-renderer img,html.hx-v4 ytlr-grid-video-renderer img{border-radius:17px!important}\nhtml.hx-v4 ytlr-tile-renderer:focus-within,html.hx-v4 ytlr-video-renderer:focus-within,html.hx-v4 ytlr-grid-video-renderer:focus-within{border:2px solid #e2b47b!important;box-shadow:0 0 0 4px #d0a371,0 18px 46px #000c!important;transform:translateY(-4px) scale(1.015)}\nhtml.hx-v4 ytlr-guide-entry-renderer,html.hx-v4 ytlr-guide-item-renderer{border-left:3px solid #c59a62!important;background:#181819!important;border-radius:12px!important}\nhtml.hx-v4 ytlr-guide-entry-renderer:focus-within,html.hx-v4 ytlr-guide-item-renderer:focus-within{background:#58422e!important;outline:2px solid #edc38d!important}\nhtml.hx-v4 ytlr-masthead,html.hx-v4 ytlr-masthead-renderer{background:#111214!important;border-bottom:2px solid #ac8353!important}\nhtml.hx-v4 ytlr-shelf-renderer h2{color:#f0d2ac!important;letter-spacing:.4px!important}\n@media(prefers-reduced-motion:reduce){html.hx-v4 ytlr-tile-renderer,html.hx-v4 ytlr-video-renderer,html.hx-v4 ytlr-grid-video-renderer{transform:none!important;transition:none!important}}\n";
   let root, style, signature, accent, launcher, overlay, panel, status, settingsEntry, settingsHost, focusedTile, focusedTileStyle, buttons = [];
-  let poll, keyListener, focusListener, blurListener, retryTimer, returnFocus;
+  let poll, keyListener, focusListener, blurListener, retryTimer, returnFocus, sidebar;
   const element = (tag, cls, value) => {
     const node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -605,7 +606,7 @@ try {
       padding: '24px 32px 25px', border: '2px solid #cfa06a', borderRadius: '18px',
       background: '#101e2a', color: '#eef4f5', boxShadow: '0 25px 90px rgba(0,0,0,.85)',
       pointerEvents: 'auto', fontFamily: 'Arial, sans-serif', textAlign: 'left' });
-    const heading = panel.children[0], subtitle = panel.children[1], footer = panel.children[panel.children.length-1];
+    const heading = panel.children[0], subtitle = panel.children[1], footer = panel.querySelector('.hx-footer');
     Object.assign(heading.style, { display: 'block', fontSize: '31px', lineHeight: '38px',
       fontWeight: 'bold', letterSpacing: '1px', padding: '0', margin: '0 0 7px',
       color: '#fff' });
@@ -632,6 +633,50 @@ try {
     });
     Object.assign(footer.style, { display: 'block', fontSize: '13px', lineHeight: '19px',
       color: '#9eb5b9', margin: '14px 0 0', padding: '0', maxWidth: '100%' });
+
+    // A dedicated Settings screen rather than a floating panel over old Settings.
+    Object.assign(overlay.style,{inset:'0',background:'#0a0b0e',pointerEvents:'auto'});
+    Object.assign(panel.style,{left:'0',top:'0',transform:'none',width:'100vw',maxWidth:'100vw',
+      height:'100vh',maxHeight:'100vh',boxSizing:'border-box',border:'none',borderRadius:'0',
+      padding:'7vh 8vw 4vh 36vw',overflowY:'auto',boxShadow:'none',
+      background:'radial-gradient(ellipse at 92% 8%,#2a221a,#101114 64%,#08090b)'});
+    Object.assign(heading.style,{fontSize:'clamp(35px,3.7vw,60px)',lineHeight:'1.1',
+      letterSpacing:'2px',margin:'0 0 12px',color:'#f5e7d5'});
+    if(heading.children[0])heading.children[0].style.color='#e0b47c';
+    Object.assign(subtitle.style,{fontSize:'clamp(17px,1.5vw,24px)',marginBottom:'26px',color:'#c6ad8b'});
+    Object.assign(status.style,{background:'#28231e',color:'#f1dfc8',fontSize:'18px',
+      borderLeft:'5px solid #d7a56a',padding:'12px 16px',marginBottom:'22px'});
+    buttons.forEach((button,i)=>{
+      Object.assign(button.style,{fontSize:'clamp(17px,1.5vw,24px)',minHeight:'clamp(49px,6vh,72px)',
+        padding:'12px 19px',margin:'0 0 12px',borderRadius:'14px',
+        background:i===0?'#d5a46b':'#242326',border:i===0?'2px solid #efc18b':'1px solid #877057',
+        color:i===0?'#16110b':'#f4e9d9'});
+      button.addEventListener('focus',()=>{button.style.background='#f0c58f';
+        button.style.color='#17130e';button.style.outline='3px solid #f9d9a9'});
+      button.addEventListener('blur',()=>{button.style.background=i===0?'#d5a46b':'#242326';
+        button.style.color=i===0?'#16110b':'#f4e9d9';button.style.outline='none'});
+    });
+    if(footer)Object.assign(footer.style,{color:'#bda787',fontSize:'15px',lineHeight:'1.45'});
+    if(sidebar)Object.assign(sidebar.style,{position:'absolute',top:'0',left:'0',bottom:'0',
+      width:'29vw',boxSizing:'border-box',padding:'10vh 4vw',
+      background:'linear-gradient(160deg,#2a2119,#111216 65%,#090a0c)',
+      borderRight:'3px solid #cf9f63',color:'#f3d7ab',pointerEvents:'none'});
+    const brand=sidebar&&sidebar.querySelector('.hx-brand');
+    if(brand)Object.assign(brand.style,{fontSize:'clamp(33px,4.2vw,72px)',
+      fontWeight:'900',letterSpacing:'3px',lineHeight:'1.1',color:'#eac38d'});
+    const message=sidebar&&sidebar.querySelector('.hx-message');
+    if(message)Object.assign(message.style,{fontSize:'clamp(17px,1.45vw,23px)',
+      lineHeight:'1.65',marginTop:'44px',color:'#e3d2bb',whiteSpace:'pre-line'});
+    const version=sidebar&&sidebar.querySelector('.hx-edition');
+    if(version)Object.assign(version.style,{fontSize:'17px',marginTop:'38px',
+      color:'#d0a46e',borderLeft:'3px solid #bb8b52',padding:'12px'});
+    Object.assign(signature.style,{left:'auto',right:'32px',top:'15px',
+      transform:'none',background:'#242019',border:'1px solid #c99a5e',
+      borderRadius:'0 0 14px 14px',boxShadow:'0 7px 28px #000a'});
+    if(signature.children[0]&&signature.children[0].children[0])
+      signature.children[0].children[0].style.color='#f0bd80';
+    accent.hidden=true;accent.style.display='none';
+
   }
   function restoreTileFocus() {
     if (focusedTile && focusedTileStyle && focusedTile.style) {
@@ -651,21 +696,55 @@ try {
     focusedTile = tile;
     focusedTileStyle = { outline: tile.style.outline, outlineOffset: tile.style.outlineOffset,
       boxShadow: tile.style.boxShadow, borderRadius: tile.style.borderRadius };
-    Object.assign(tile.style, { outline: '3px solid #6be5dc', outlineOffset: '4px',
-      boxShadow: '0 0 0 6px rgba(105,230,220,.24)', borderRadius: '12px' });
+    Object.assign(tile.style, { outline: '3px solid #e3b67d', outlineOffset: '4px',
+      boxShadow: '0 0 0 6px rgba(215,164,107,.25)', borderRadius: '12px' });
   }
   function updateVisibility() {
     if (!root || !overlay) return;
     const hide = watchingFullscreen() || hasMini();
     if (signature) { signature.hidden = hide; signature.style.display = hide ? 'none' : 'flex'; }
     if (launcher) { launcher.hidden = true; launcher.style.display = 'none'; }
-    if (accent) { accent.hidden = hide; accent.style.display = hide ? 'none' : 'block'; }
+    if (accent) { accent.hidden = true; accent.style.display = 'none'; }
     // No floating Settings DOM button: controller injects a native Settings item.
   }
+
+  // Native YouTube TV home components. Reversible inline fallback for CSP.
+  const modifiedNodes = new Map();
+  function resetNativeSkin(){
+    for(const [node,original] of modifiedNodes){
+      try{if(original===null)node.removeAttribute('style');else node.setAttribute('style',original);}catch(_){}
+    }
+    modifiedNodes.clear();
+  }
+  function decorateNative(){
+    if(!document.body||watchingFullscreen()||hasMini())return;
+    if(modifiedNodes.size>450)for(const [node] of modifiedNodes)if(!node.isConnected)modifiedNodes.delete(node);
+    const color=settings.theme==='bronze'?'#b28b5b':'#5dbeb8';
+    function skin(selector,max,properties){
+      let nodes=[];try{nodes=document.querySelectorAll(selector);}catch(_){return;}
+      for(let i=0;i<Math.min(nodes.length,max);i++){
+        const node=nodes[i];if(modifiedNodes.has(node)||!node.style)continue;
+        try{modifiedNodes.set(node,node.getAttribute('style'));Object.assign(node.style,properties)}
+        catch(_){modifiedNodes.delete(node)}
+      }
+    }
+    skin('ytlr-tile-renderer,ytlr-grid-video-renderer,ytlr-video-renderer,ytlr-rich-grid-media',150,
+      {background:'#1e1e20',border:'1px solid '+color,borderRadius:'19px',padding:'5px',
+       boxShadow:'0 9px 30px rgba(0,0,0,.55)'});
+    skin('ytlr-tile-renderer img,ytlr-grid-video-renderer img,ytlr-video-renderer img',130,
+      {borderRadius:'16px',filter:'contrast(1.05) saturate(1.12)'});
+    skin('ytlr-guide-entry-renderer,ytlr-guide-item-renderer',60,
+      {background:'#18191d',borderLeft:'3px solid '+color,borderRadius:'12px'});
+    skin('ytlr-masthead,ytlr-masthead-renderer',5,{background:'#111215',borderBottom:'2px solid '+color});
+    skin('ytlr-shelf-renderer h2',35,{color:'#f1d2ad',fontWeight:'bold'});
+  }
+
   function repaint() {
+    resetNativeSkin();
     const html = document.documentElement;
     if (!html || !html.classList) return;
     html.classList.toggle('hx-effects-on', settings.effects);
+    html.classList.add('hx-v4');
     html.classList.toggle('hx-cinema', settings.effects && settings.intensity === 'cinema');
     html.classList.toggle('hx-theme-cyan', settings.theme === 'cyan');
     if (!settings.effects) restoreTileFocus();
@@ -674,6 +753,7 @@ try {
     if (buttons[1]) buttons[1].textContent = 'Efeitos visuais: ' + (settings.effects ? 'LIGADOS' : 'DESLIGADOS');
     if (buttons[2]) buttons[2].textContent = 'Paleta: ' + (settings.theme === 'bronze' ? 'BRONZE IMPERIAL' : 'TURQUESA');
     if (buttons[3]) buttons[3].textContent = 'Animações: ' + (settings.intensity === 'cinema' ? 'CINEMA' : 'LEVES');
+    decorateNative();
   }
   function open() {
     if (!overlay) return;
@@ -715,7 +795,7 @@ try {
     style.id = 'cobalt-hx-css';
     const nonceSource = document.querySelector('style[nonce],script[nonce]');
     if (nonceSource && nonceSource.nonce) style.nonce = nonceSource.nonce;
-    style.textContent = css;
+    style.textContent = css + '\n' + extraCSS;
     document.head.appendChild(style);
 
     root = element('div');
@@ -754,6 +834,11 @@ try {
       if (typeof location.reload === 'function') location.reload();
     });
     action('Fechar painel', close);
+    sidebar=element('aside','hx-sidebar');
+    sidebar.appendChild(element('div','hx-brand','COBALT HX'));
+    sidebar.appendChild(element('div','hx-message','PERSONAL TV\n\nA sua central de entretenimento com visual Bronze Imperial e navegação por controle remoto.'));
+    sidebar.appendChild(element('div','hx-edition','EDIÇÃO 0.4.0 | ANDROID TV'));
+    panel.appendChild(sidebar);
     panel.appendChild(element('p', 'hx-footer', 'Acesse este painel em Configurações → Cobalt HX. Atualizações visuais são remotas; atualizações do Android exigem APK compatível. OK seleciona; Voltar fecha o painel.'));
     overlay.appendChild(panel);
     root.appendChild(signature);
@@ -777,7 +862,8 @@ try {
 
     repaint();
     updateVisibility();
-    poll = setInterval(updateVisibility, 1250);
+    decorateNative();
+    poll = setInterval(() => { updateVisibility(); decorateNative(); }, 2300);
     focusListener = event => highlightTile(event);
     blurListener = event => {
       if (focusedTile && focusedTile.contains && !focusedTile.contains(event.relatedTarget)) restoreTileFocus();
@@ -811,12 +897,14 @@ try {
     if (focusListener && typeof document.removeEventListener === 'function') document.removeEventListener('focusin', focusListener, true);
     if (blurListener && typeof document.removeEventListener === 'function') document.removeEventListener('focusout', blurListener, true);
     restoreTileFocus();
+    resetNativeSkin();
     removeSettingsEntry();
     if (root && root.parentNode) root.parentNode.removeChild(root);
     if (style && style.parentNode) style.parentNode.removeChild(style);
     const html = document.documentElement;
     if (html && html.classList) {
       html.classList.remove('hx-effects-on');
+      html.classList.remove('hx-v4');
       html.classList.remove('hx-cinema');
       html.classList.remove('hx-theme-cyan');
     }
@@ -827,6 +915,7 @@ try {
     document.addEventListener('DOMContentLoaded', () => { if (window.CobaltHX === api) mount(); }, { once: true });
   }
 })();
+
 
   }
 } catch (error) {
