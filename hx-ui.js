@@ -100,6 +100,7 @@
   function open() {
     if (!overlay) return;
     overlay.hidden = false;
+    overlay.style.display = 'block';
     updateVisibility();
     report('Cobalt HX ' + VERSION + ' • edição personalizada ativa.');
     if (buttons[0] && typeof buttons[0].focus === 'function') buttons[0].focus();
@@ -107,6 +108,7 @@
   function close() {
     if (!overlay) return;
     overlay.hidden = true;
+    overlay.style.display = 'none';
     updateVisibility();
     if (launcher && !launcher.hidden && typeof launcher.focus === 'function') launcher.focus();
   }
@@ -139,11 +141,15 @@
     root = element('div');
     root.id = KEY;
     signature = element('div', 'hx-signature');
-    signature.innerHTML = '<span class="hx-name">COBALT <b>HX</b></span><span class="hx-tag">PERSONAL TV</span>';
+    const name = element('span', 'hx-name', 'COBALT ');
+    name.appendChild(element('b', '', 'HX'));
+    signature.appendChild(name);
+    signature.appendChild(element('span', 'hx-tag', 'PERSONAL TV'));
     accent = element('div', 'hx-accent');
     launcher = element('button', 'hx-launch');
     launcher.type = 'button';
-    launcher.innerHTML = '<strong>HX</strong> Atualizar e personalizar';
+    launcher.appendChild(element('strong', '', 'HX'));
+    launcher.appendChild(document.createTextNode(' Atualizar e personalizar'));
     launcher.setAttribute('aria-label', 'Abrir configurações do Cobalt HX');
     launcher.addEventListener('click', open);
     overlay = element('div', 'hx-overlay');
@@ -152,7 +158,8 @@
     overlay.setAttribute('aria-label', 'Configurações Cobalt HX');
     panel = element('section', 'hx-panel');
     const title = element('h2', 'hx-title');
-    title.innerHTML = 'COBALT <span>HX</span>';
+    title.appendChild(document.createTextNode('COBALT '));
+    title.appendChild(element('span', '', 'HX'));
     panel.appendChild(title);
     panel.appendChild(element('p', 'hx-subtitle', 'Sua experiência de TV, do seu jeito • v' + VERSION));
     status = element('div', 'hx-state', 'Visual personalizado ativo');
