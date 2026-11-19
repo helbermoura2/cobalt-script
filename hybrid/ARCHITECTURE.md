@@ -62,3 +62,17 @@
 - TizenTube Cobalt: BSD-3-Clause e bibliotecas de terceiros — preservar atribuições e cumprir condições específicas.
 - Usar dependências de fonte confiável e releases próprios assinados com chave persistente; não reutilizar assinatura temporária nem publicar chaves privadas.
 - Não coletar credenciais nem tokens do YouTube no projeto de ponte.
+
+## Resultado real do primeiro build — 19/11/2026
+
+- **Build concluído com sucesso**: [GitHub Actions #44462366312](https://github.com/helbermoura2/cobalt-script/actions/runs/44462366312).
+- APK publicado: [HX TV Native 0.1.0 ARM](https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-native-v0.1.0/HX-TV-Native-0.1.0-arm.apk), 29.318.505 bytes; SHA-256 `b9558d4536aeb954b70de52382a28b292d45ed77beca1ec68663f38c65431699`.
+- Compilação do fonte SmartTube fixado em `41fbc7c60ee28e6f13cee74ff630dac6df2724bf`, incluindo submódulos originais, por `hybrid/patch_smarttube.py`.
+- **Identidade própria validada pelo aapt**: `br.com.hxnative.tvpreview`, `versionCode=2470`, `versionName=0.1.0`.
+- Assinatura de teste APK v1 e v2 verificada pelo `apksigner`.
+- Configuração beta oficial de atualização substituída por `hybrid/updates/native.json`, que inclui somente nosso APK, no menu nativo Sobre/Verificar atualizações.
+- Recurso de prévia automática removido diretamente de `ComplexImageCardView`; sem sobreposição visual.
+- Imagens provisórias de app/banner substituídas por desenhos originais HX; `google-services.json` upstream removido.
+- **Limitações ainda não resolvidas**: este APK usa chave de assinatura *debug efêmera* do runner. O verificador de atualizações existe, mas futuras atualizações de APK **não poderão instalar por cima sem uma chave privada estável**, sob pena de conflito de assinatura. Precisamos configurar armazenamento secreto de chave de assinatura antes de considerar atualização in-place pronta.
+- **Não é um player híbrido Cobalt/SmartTube ainda.** Esta primeira prévia usa o player SmartTube; a ponte com Cobalt, VOLTAR/OK longos e possíveis melhorias na CazéTV ainda requerem engenharia e teste em dispositivo real.
+- **Não testado na TCL P7K**: o sucesso da compilação não comprova qualidade de vídeo, 4K, foco, navegação, contas ou miniplayer.
