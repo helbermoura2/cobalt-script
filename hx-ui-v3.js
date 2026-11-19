@@ -1,7 +1,7 @@
-/* Cobalt HX 0.3.0 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.3.1 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.3.0';
+  const VERSION = '0.3.1';
   const previous = window.CobaltHX;
   // A stale cached module must never replace a newer version.
   function compareVersion(a, b) {
@@ -97,61 +97,11 @@
     try { return window.isPipPlaying === true; } catch (_) { return false; }
   };
 
-  // The action belongs to the TV Settings page, not to the home-screen overlay.
-  // We prefer the native settings DOM; route fallback is for unknown YouTube builds.
-  function settingsPage() {
-    let route = '';
-    try { route = String(location.hash || '') + ' ' + String(location.pathname || ''); } catch (_) {}
-    const shell = document.querySelector('ytlr-settings-page, ytlr-settings-renderer, ytlr-settings-page-renderer, ytlr-settings-section-renderer, ytlr-settings-content');
-    let visible = false;
-    try { visible = !!(shell && (!shell.getClientRects || shell.getClientRects().length)); } catch (_) {}
-    const inSettings = /settings/i.test(route) || visible;
-    if (!inSettings) return null;
-    return shell || document.querySelector('ytlr-app') || document.body;
-  }
+  // Native settingActionRenderer entry is injected by t.js, not by HTML.
   function removeSettingsEntry() {
     if (settingsEntry && settingsEntry.parentNode) settingsEntry.parentNode.removeChild(settingsEntry);
     settingsEntry = null;
     settingsHost = null;
-  }
-  function syncSettingsEntry() {
-    const host = settingsPage();
-    if (!host || watchingFullscreen() || hasMini()) { removeSettingsEntry(); return; }
-    if (settingsEntry && settingsEntry.parentNode === host) return;
-    removeSettingsEntry();
-    if (!host || typeof host.appendChild !== 'function') return;
-    settingsHost = host;
-    settingsEntry = element('button', 'hx-settings-entry');
-    settingsEntry.type = 'button';
-    settingsEntry.setAttribute('aria-label', 'Atualizar e personalizar Cobalt HX nas configurações');
-    settingsEntry.appendChild(element('span', '', '↻  Atualizar Cobalt HX'));
-    settingsEntry.appendChild(element('small', '', 'Versão ' + VERSION + '  ·  Aparência e atualizações'));
-    Object.assign(settingsEntry.style, {
-      display: 'block', boxSizing: 'border-box', width: '520px', maxWidth: '85vw', minHeight: '90px',
-      padding: '14px 22px', margin: '16px 18px 24px', textAlign: 'left', cursor: 'pointer',
-      background: '#172b35', color: '#eefafa', border: '2px solid #c79c69', borderRadius: '14px',
-      boxShadow: '0 10px 26px rgba(0,0,0,.55)', pointerEvents: 'auto',
-      fontFamily: 'Arial, sans-serif', fontSize: '22px', fontWeight: 'bold', zIndex: '2147483001'
-    });
-    const title = settingsEntry.children[0], subtitle = settingsEntry.children[1];
-    Object.assign(title.style, { display: 'block', fontSize: '22px', lineHeight: '28px', color: '#f9f9fa' });
-    Object.assign(subtitle.style, { display: 'block', paddingTop: '5px', fontSize: '15px', color: '#a8d7d5', fontWeight: 'normal' });
-    if (host === document.body || String(host.tagName || '').toLowerCase() === 'ytlr-app') {
-      Object.assign(settingsEntry.style, {
-        position: 'fixed', top: '17%', right: '5%', margin: '0'
-      });
-    } else {
-      Object.assign(settingsEntry.style, { position: 'relative' });
-    }
-    const onFocus = () => { settingsEntry.style.background = '#25606b'; settingsEntry.style.outline = '4px solid #65e2d7'; };
-    const onBlur = () => { settingsEntry.style.background = '#172b35'; settingsEntry.style.outline = 'none'; };
-    settingsEntry.addEventListener('focus', onFocus);
-    settingsEntry.addEventListener('blur', onBlur);
-    settingsEntry.addEventListener('click', open);
-    // Insert first, so the action is part of Settings rather than covering home tiles.
-    if (typeof host.insertBefore === 'function' && host.firstChild && host !== document.body) {
-      host.insertBefore(settingsEntry, host.firstChild);
-    } else host.appendChild(settingsEntry);
   }
   // Native YouTube may reject user CSS style tags under Content Security Policy:
   // explicit inline styles ensure the UI still has television-grade layout.
@@ -236,7 +186,7 @@
     if (signature) { signature.hidden = hide; signature.style.display = hide ? 'none' : 'flex'; }
     if (launcher) { launcher.hidden = true; launcher.style.display = 'none'; }
     if (accent) { accent.hidden = hide; accent.style.display = hide ? 'none' : 'block'; }
-    syncSettingsEntry();
+    // No floating Settings DOM button: controller injects a native Settings item.
   }
   function repaint() {
     const html = document.documentElement;
@@ -330,7 +280,7 @@
       if (typeof location.reload === 'function') location.reload();
     });
     action('Fechar painel', close);
-    panel.appendChild(element('p', 'hx-footer', 'Atualizações visuais são remotas. Atualizações do Android exigem APK assinado compatível. OK seleciona; Voltar fecha o painel.'));
+    panel.appendChild(element('p', 'hx-footer', 'Acesse este painel em Configurações → Cobalt HX. Atualizações visuais são remotas; atualizações do Android exigem APK compatível. OK seleciona; Voltar fecha o painel.'));
     overlay.appendChild(panel);
     root.appendChild(signature);
     root.appendChild(accent);
@@ -375,8 +325,6 @@
           buttons[i].focus();
           return;
         }
-      } else if (settingsEntry && [403, 406].includes(event.keyCode) && !watchingFullscreen() && !hasMini()) {
-        event.preventDefault(); event.stopImmediatePropagation(); open();
       }
     };
     window.addEventListener('keydown', keyListener, true);
