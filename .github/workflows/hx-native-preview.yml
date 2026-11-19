@@ -1,0 +1,61 @@
+name: Build HX Native TV Preview APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/hx-native-preview.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-hx:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: build-tools;35.0.0
+      - name: Prepare Android Build Tools
+        run: |
+          sdkmanager --install 'build-tools;35.0.0'
+          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
+      - name: Validate HX Native source
+        run: node --check native-home.js && python3 -m py_compile build-hx-native.py
+      - name: Check controller availability and identity
+        shell: bash
+        run: |
+          python3 -m py_compile build-hx-native.py
+          python3 - <<'PY'
+          import urllib.request, hashlib, json, base64, time
+          source='https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hn1'
+          request=urllib.request.Request(source,headers={'User-Agent':'CobaltHX-release-validator'})
+          with urllib.request.urlopen(request,timeout=30) as r:
+              doc=json.load(r)
+          expected=base64.b64decode(doc['content'])
+          if b"const VERSION='0.1.0'" not in expected or b'CobaltNative' not in expected:
+              raise SystemExit('Bundled version missing in GitHub controller')
+          url='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hn1/t.js?v=verify'+str(int(time.time()))
+          with urllib.request.urlopen(url,timeout=30) as r:
+              body=r.read(100000)
+          if hashlib.sha256(expected).digest() != hashlib.sha256(body).digest():
+              raise SystemExit('CDN is not serving the exact HX Native 0.1.0 controller; refuse to publish APK')
+          print('Controller and CDN SHA-256 match:',hashlib.sha256(body).hexdigest(),'bytes:',len(body))
+          PY
+      - name: Build HX Native 0.1.0 (ARM Android TV)
+        run: python3 build-hx-native.py --output HX-Native-0.1.0-arm.apk
+      - name: Check package identity with aapt
+        shell: bash
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging HX-Native-0.1.0-arm.apk | head -8
+          "$ANDROID_HOME/build-tools/35.0.0/aapt2" dump badging HX-Native-0.1.0-arm.apk | grep -q "package: name='io.gh.reisxd.tizentube.cobhn1'"
+      - name: Publish public direct-download release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create hx-native-preview-v0.1.0 ./HX-Native-0.1.0-arm.apk \
+            --target "$GITHUB_SHA" \
+            --title 'HX Native 0.1.0 — Android TV ARM (prévia)' \
+            --notes 'HX Native 0.1.0 experimental: nova interface Bronze Imperial com miniaturas do catálogo do YouTube TV sem prévias automáticas; motor Cobalt, bloqueios e SponsorBlock preservados. Atalhos VOLTAR/OK longos dependem do controller Cobalt. Botão atualiza a interface sem novo APK; futuras atualizações do Android exigem certificado estável e confirmação de instalação. Compatibilidade com a TCL P7K, AO VIVO CazéTV e 4K ainda requer testes físicos. Prévia assinada com chave temporária.'
