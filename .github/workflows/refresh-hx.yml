@@ -22,13 +22,13 @@ jobs:
       - name: Verify public controller + refresh CDN cache
         run: |
           python3 - <<'PY'
-          import hashlib, json, time, urllib.request
+          import base64, hashlib, json, time, urllib.request
           targets=[
-            ("https://raw.githubusercontent.com/helbermoura2/cobalt-script/hx/t.js",
+            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx",
              "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
              "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
              b"HX-BUNDLED-V0.2.1"),
-            ("https://raw.githubusercontent.com/helbermoura2/cobalt-script/main/hx-ui.js",
+            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui.js?ref=main",
              "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
              "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
              b"const VERSION = '0.2.1'"),
@@ -39,7 +39,7 @@ jobs:
               return response.read(131072)
           all_ok=True
           for raw,purge,cdn,marker in targets:
-            latest=fetch(raw)
+            latest=base64.b64decode(json.loads(fetch(raw))["content"])
             if marker not in latest:
               raise SystemExit("Missing expected marker in "+raw)
             expected=hashlib.sha256(latest).hexdigest()
