@@ -472,10 +472,10 @@ try {
   const canMountHX = !!(document && document.createElement && document.documentElement &&
     document.documentElement.classList);
   if (canMountHX) {
-/* Cobalt HX 0.4.0 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.4.1 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.4.0';
+  const VERSION = '0.4.1';
   const previous = window.CobaltHX;
   // A stale cached module must never replace a newer version.
   function compareVersion(a, b) {
@@ -546,7 +546,7 @@ try {
     '@media(prefers-reduced-motion:reduce){#cobalt-hx .hx-action:focus,html.hx-effects-on.hx-cinema ytlr-video-renderer:focus-within,html.hx-effects-on.hx-cinema ytlr-grid-video-renderer:focus-within{transition:none;transform:none}}'
   ].join('\n');
 
-  const extraCSS = "\nhtml.hx-v4 body,html.hx-v4 ytlr-app{background:radial-gradient(ellipse at 80% 0%,#29221a,#101115 52%,#090a0c)!important}\nhtml.hx-v4 ytlr-tile-renderer,html.hx-v4 ytlr-video-renderer,html.hx-v4 ytlr-grid-video-renderer,html.hx-v4 ytlr-rich-grid-media{background:linear-gradient(145deg,#222123,#121417)!important;border:1px solid #9f7b51!important;border-radius:20px!important;box-shadow:0 10px 32px #0009!important;transition:transform .19s ease-out,box-shadow .19s ease-out!important}\nhtml.hx-v4 ytlr-tile-renderer img,html.hx-v4 ytlr-video-renderer img,html.hx-v4 ytlr-grid-video-renderer img{border-radius:17px!important}\nhtml.hx-v4 ytlr-tile-renderer:focus-within,html.hx-v4 ytlr-video-renderer:focus-within,html.hx-v4 ytlr-grid-video-renderer:focus-within{border:2px solid #e2b47b!important;box-shadow:0 0 0 4px #d0a371,0 18px 46px #000c!important;transform:translateY(-4px) scale(1.015)}\nhtml.hx-v4 ytlr-guide-entry-renderer,html.hx-v4 ytlr-guide-item-renderer{border-left:3px solid #c59a62!important;background:#181819!important;border-radius:12px!important}\nhtml.hx-v4 ytlr-guide-entry-renderer:focus-within,html.hx-v4 ytlr-guide-item-renderer:focus-within{background:#58422e!important;outline:2px solid #edc38d!important}\nhtml.hx-v4 ytlr-masthead,html.hx-v4 ytlr-masthead-renderer{background:#111214!important;border-bottom:2px solid #ac8353!important}\nhtml.hx-v4 ytlr-shelf-renderer h2{color:#f0d2ac!important;letter-spacing:.4px!important}\n@media(prefers-reduced-motion:reduce){html.hx-v4 ytlr-tile-renderer,html.hx-v4 ytlr-video-renderer,html.hx-v4 ytlr-grid-video-renderer{transform:none!important;transition:none!important}}\n";
+  const extraCSS = "\n/* Native thumbnails and video tile layout deliberately left untouched.\n   YouTube TV may draw artwork as background layers on tile renderer itself. */\nhtml.hx-v4 body,html.hx-v4 ytlr-app{background-color:#111215!important}\nhtml.hx-v4 ytlr-tile-renderer:focus-within,\nhtml.hx-v4 ytlr-video-renderer:focus-within,\nhtml.hx-v4 ytlr-grid-video-renderer:focus-within{\noutline:3px solid #d6a36a!important;outline-offset:3px!important;\nborder-radius:12px!important;box-shadow:0 0 0 5px #d6a36a2b!important\n}\nhtml.hx-v4 ytlr-guide-entry-renderer:focus-within,\nhtml.hx-v4 ytlr-guide-item-renderer:focus-within{\noutline:2px solid #d6a36a!important;border-radius:10px!important\n}\nhtml.hx-v4 ytlr-masthead,html.hx-v4 ytlr-masthead-renderer{\nborder-bottom:1px solid #9a754c!important\n}\nhtml.hx-v4 ytlr-shelf-renderer h2{color:#e3bd8c!important}\n@media(prefers-reduced-motion:reduce){\nhtml.hx-v4 ytlr-tile-renderer:focus-within,\nhtml.hx-v4 ytlr-video-renderer:focus-within,\nhtml.hx-v4 ytlr-grid-video-renderer:focus-within{transform:none!important}\n}\n";
   let root, style, signature, accent, launcher, overlay, panel, status, settingsEntry, settingsHost, focusedTile, focusedTileStyle, buttons = [];
   let poll, keyListener, focusListener, blurListener, retryTimer, returnFocus, sidebar;
   const element = (tag, cls, value) => {
@@ -708,36 +708,18 @@ try {
     // No floating Settings DOM button: controller injects a native Settings item.
   }
 
-  // Native YouTube TV home components. Reversible inline fallback for CSP.
+
+  // 0.4.1 safety patch: never inject inline backgrounds, borders or padding
+  // into video renderers; doing so can hide poster/thumb layers on some TV builds.
+  // Restore all previous v0.4.0 mutations when the version is replaced.
   const modifiedNodes = new Map();
   function resetNativeSkin(){
     for(const [node,original] of modifiedNodes){
-      try{if(original===null)node.removeAttribute('style');else node.setAttribute('style',original);}catch(_){}
+      try{if(original===null)node.removeAttribute('style');else node.setAttribute('style',original)}catch(_){}
     }
     modifiedNodes.clear();
   }
-  function decorateNative(){
-    if(!document.body||watchingFullscreen()||hasMini())return;
-    if(modifiedNodes.size>450)for(const [node] of modifiedNodes)if(!node.isConnected)modifiedNodes.delete(node);
-    const color=settings.theme==='bronze'?'#b28b5b':'#5dbeb8';
-    function skin(selector,max,properties){
-      let nodes=[];try{nodes=document.querySelectorAll(selector);}catch(_){return;}
-      for(let i=0;i<Math.min(nodes.length,max);i++){
-        const node=nodes[i];if(modifiedNodes.has(node)||!node.style)continue;
-        try{modifiedNodes.set(node,node.getAttribute('style'));Object.assign(node.style,properties)}
-        catch(_){modifiedNodes.delete(node)}
-      }
-    }
-    skin('ytlr-tile-renderer,ytlr-grid-video-renderer,ytlr-video-renderer,ytlr-rich-grid-media',150,
-      {background:'#1e1e20',border:'1px solid '+color,borderRadius:'19px',padding:'5px',
-       boxShadow:'0 9px 30px rgba(0,0,0,.55)'});
-    skin('ytlr-tile-renderer img,ytlr-grid-video-renderer img,ytlr-video-renderer img',130,
-      {borderRadius:'16px',filter:'contrast(1.05) saturate(1.12)'});
-    skin('ytlr-guide-entry-renderer,ytlr-guide-item-renderer',60,
-      {background:'#18191d',borderLeft:'3px solid '+color,borderRadius:'12px'});
-    skin('ytlr-masthead,ytlr-masthead-renderer',5,{background:'#111215',borderBottom:'2px solid '+color});
-    skin('ytlr-shelf-renderer h2',35,{color:'#f1d2ad',fontWeight:'bold'});
-  }
+  function decorateNative(){ /* Layout provided exclusively through non-destructive focus styling. */ }
 
   function repaint() {
     resetNativeSkin();
@@ -837,7 +819,7 @@ try {
     sidebar=element('aside','hx-sidebar');
     sidebar.appendChild(element('div','hx-brand','COBALT HX'));
     sidebar.appendChild(element('div','hx-message','PERSONAL TV\n\nA sua central de entretenimento com visual Bronze Imperial e navegação por controle remoto.'));
-    sidebar.appendChild(element('div','hx-edition','EDIÇÃO 0.4.0 | ANDROID TV'));
+    sidebar.appendChild(element('div','hx-edition','EDIÇÃO 0.4.1 | ANDROID TV'));
     panel.appendChild(sidebar);
     panel.appendChild(element('p', 'hx-footer', 'Acesse este painel em Configurações → Cobalt HX. Atualizações visuais são remotas; atualizações do Android exigem APK compatível. OK seleciona; Voltar fecha o painel.'));
     overlay.appendChild(panel);
