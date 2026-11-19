@@ -1,0 +1,82 @@
+name: HX Native Android TV (SmartTube source build)
+on:
+  push:
+    branches: [smart-cobalt-hybrid]
+    paths:
+      - hybrid/patch_smarttube.py
+      - hybrid/updates/native.json
+      - .github/workflows/hx-smarttube-native.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - name: Checkout our source patches and updater
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout pinned SmartTube native Android TV code
+        uses: actions/checkout@v4
+        with:
+          repository: yuliskov/SmartTube
+          ref: 41fbc7c60ee28e6f13cee74ff630dac6df2724bf
+          submodules: recursive
+          path: upstream
+          persist-credentials: false
+      - name: Use Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            upstream/gradle/wrapper/gradle-wrapper.properties
+            upstream/build.gradle
+      - name: Install Android build tools
+        uses: android-actions/setup-android@v3
+      - name: Prepare icon generator
+        run: python3 -m pip install --user Pillow==11.3.0
+      - name: Patch source, package, branding, preview behavior and updater
+        run: |
+          python3 -m py_compile hybrid/patch_smarttube.py
+          python3 hybrid/patch_smarttube.py upstream
+          python3 -m json.tool hybrid/updates/native.json >/dev/null
+          test -z "$(find upstream -name keystore.properties -type f -print -quit)"
+          grep -q 'br.com.hxnative.tvpreview' upstream/smarttubetv/build.gradle
+          grep -q 'raw.githubusercontent.com/helbermoura2/cobalt-script/smart-cobalt-hybrid' upstream/common/src/stbeta/res/values/update_urls.xml
+      - name: Build real native Android TV APK from SmartTube source
+        working-directory: upstream
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaDebug
+      - name: Collect ARM build and validate package
+        run: |
+          set -euo pipefail
+          find upstream/smarttubetv/build/outputs/apk/stbeta/debug -name '*.apk' -maxdepth 1 -type f
+          apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/debug -name '*armeabi-v7a.apk' -type f | head -n 1)
+          if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
+          mkdir -p out
+          cp "$apk" out/HX-TV-Native-0.1.0-arm.apk
+          sdk="$ANDROID_HOME/build-tools"
+          bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
+          "$bt/aapt" dump badging out/HX-TV-Native-0.1.0-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.1.0-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          "$bt/apksigner" verify --verbose out/HX-TV-Native-0.1.0-arm.apk
+          sha256sum out/HX-TV-Native-0.1.0-arm.apk
+      - name: Upload backup APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hx-native-androidtv-test-0.1.0
+          path: out/HX-TV-Native-0.1.0-arm.apk
+          if-no-files-found: error
+      - name: Publish test APK direct link to Downloader
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create hx-smarttube-native-v0.1.0 ./out/HX-TV-Native-0.1.0-arm.apk \
+            --target "$GITHUB_SHA" \
+            --title "HX TV Native 0.1.0 — prévia Android TV" \
+            --notes "Construído do código-fonte do SmartTube, interface Android TV nativa (SEM máscara Cobalt). Nome e ícones provisórios, pacote br.com.hxnative.tvpreview, miniaturas sem autoplay. O player desta primeira compilação é o SmartTube; integração real com Cobalt está em desenvolvimento. Atualizador do próprio SmartTube aponta para releases HX, mas esta compilação de teste usa assinatura debug não permanente; atualizações APK in-place exigem chave privada persistente. CazéTV AO VIVO/4K e controles longos ainda não validados na TCL P7K. NÃO desinstalar o Cobalt HX atual."
