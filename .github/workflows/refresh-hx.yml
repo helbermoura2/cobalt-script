@@ -1,9 +1,9 @@
 name: Verify and refresh Cobalt HX remote UI
 on:
   push:
-    branches: [main, hx]
+    branches: [main, hx3]
     paths:
-      - hx-ui.js
+      - hx-ui-v3.js
       - t.js
       - .github/workflows/refresh-hx.yml
   workflow_dispatch:
@@ -17,21 +17,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check local JavaScript syntax
         run: |
-          node --check hx-ui.js
+          node --check hx-ui-v3.js
           node --check t.js
       - name: Verify public controller + refresh CDN cache
         run: |
           python3 - <<'PY'
           import base64, hashlib, json, time, urllib.request
           targets=[
-            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx",
-             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
-             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
-             b"HX-BUNDLED-V0.2.2"),
-            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui.js?ref=main",
-             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
-             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
-             b"const VERSION = '0.2.2'"),
+            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx3",
+             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
+             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js",
+             b"HX-BUNDLED-V0.3.1"),
+            ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui-v3.js?ref=main",
+             "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
+             "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui-v3.js",
+             b"const VERSION = '0.3.1'"),
           ]
           header={"User-Agent":"cobalt-hx-cdn-verify"}
           def fetch(url):
@@ -50,7 +50,7 @@ jobs:
               print("PURGE_WARNING",str(error))
             ready=False
             for attempt in range(10):
-              url=cdn+"?v=HX-20261118-"+str(int(time.time()*1000))
+              url=cdn+"?v=HX-031-"+str(int(time.time()*1000))
               try:
                 received=fetch(url)
                 digest=hashlib.sha256(received).hexdigest()
