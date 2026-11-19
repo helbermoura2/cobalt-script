@@ -1,7 +1,7 @@
-/* Cobalt HX 0.2.0 — original, lightweight TV identity (no third-party UI libraries). */
+/* Cobalt HX 0.2.1 — original, lightweight TV identity (no third-party UI libraries). */
 (() => {
   'use strict';
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const previous = window.CobaltHX;
   if (previous && previous.version === VERSION) return;
   if (previous && typeof previous.destroy === 'function') previous.destroy();
