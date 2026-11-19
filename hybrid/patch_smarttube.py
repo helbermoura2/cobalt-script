@@ -11,9 +11,9 @@ import sys
 
 PACKAGE_ID = "br.com.hxnative.tvpreview"
 LABEL = "HX TV Preview"
-VERSION_NAME = "0.1.0"
-VERSION_CODE = 2470
-RELEASE_TAG = "hx-smarttube-native-v0.1.0"
+VERSION_NAME = "0.2.0"
+VERSION_CODE = 2471
+RELEASE_TAG = "hx-smarttube-native-v0.2.0"
 REPO = "helbermoura2/cobalt-script"
 
 
@@ -86,6 +86,84 @@ def main():
                        '<resources>\n    <string-array name="update_urls">\n'
                        f'        <item>{url}</item>\n'
                        '    </string-array>\n</resources>\n',encoding="utf-8")
+    # The exact native Settings list is used by every screen; there is no
+    # HTML overlay. The upstream app routes unrecognized package IDs to a
+    # simplified "About" panel that hides AppUpdateChecker, so fix that route
+    # and add our own updater entry prominently.
+    setting_items=(root/"common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java")
+    replace_exact(setting_items,
+                  "import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;",
+                  "import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;\n"
+                  "import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AppUpdatePresenter;")
+    replace_exact(setting_items,
+                  "        List<SettingsItem> settingItems = new ArrayList<>();",
+                  "        List<SettingsItem> settingItems = new ArrayList<>();\n"
+                  "        // HX: show the native app updater at the top of Settings.\n"
+                  "        settingItems.add(new SettingsItem(\n"
+                  "                context.getString(R.string.hx_update_app),\n"
+                  "                () -> AppUpdatePresenter.instance(context).start(true),\n"
+                  "                R.drawable.settings_about));")
+    replace_exact(setting_items,
+                  '''        if (Helpers.equalsAny(context.getPackageName(), Utils.KNOWN_PACKAGES)) {
+            settingItems.add(new SettingsItem(
+                    context.getString(R.string.settings_about), () -> AboutSettingsPresenter.instance(context).show(), R.drawable.settings_about));
+        } else {
+            settingItems.add(new SettingsItem(
+                    context.getString(R.string.settings_about), () -> AboutSimpleSettingsPresenter.instance(context).show(), R.drawable.settings_about));
+        }''',
+                  '''        // HX has a dedicated update manifest; always expose the full About page.
+        settingItems.add(new SettingsItem(
+                context.getString(R.string.settings_about), () -> AboutSettingsPresenter.instance(context).show(), R.drawable.settings_about));''')
+
+    common_strings=root/"common/src/main/res/values/strings.xml"
+    common_text=common_strings.read_text(encoding="utf-8")
+    assert "<resources xmlns:tools" in common_text
+    assert 'name="hx_update_app"' not in common_text
+    common_text=common_text.replace(
+        '    <string name="check_for_updates">Check for updates</string>',
+        '    <string name="hx_update_app">Atualizar aplicativo</string>\n'
+        '    <string name="check_for_updates">Check for updates</string>',1)
+    common_strings.write_text(common_text,encoding="utf-8")
+
+    # Native Android TV resources for an actual OLED/bronze visual direction.
+    # Keep card foreground bright for accessibility and do not touch the video decoder.
+    colors=root/"smarttubetv/src/main/res/values/colors.xml"
+    for old,new in (
+        ('<color name="fastlane_background">#0096a6</color>', '<color name="fastlane_background">#B68A56</color>'),
+        ('<color name="fastlane_background_dark">#004B53</color>', '<color name="fastlane_background_dark">#30241A</color>'),
+        ('<color name="search_opaque">#0096a6</color>', '<color name="search_opaque">#A67C4E</color>'),
+        ('<color name="card_default_background">#0096a6</color>', '<color name="card_default_background">#211A15</color>'),
+        ('<color name="card_default_background_dark">#004B53</color>', '<color name="card_default_background_dark">#191819</color>'),
+        ('<color name="shelf_background">#282828</color>', '<color name="shelf_background">#111112</color>'),
+        ('<color name="shelf_background_dark">#131313</color>', '<color name="shelf_background_dark">#080809</color>'),
+        ('<color name="scheme_grey_background">#181818</color>', '<color name="scheme_grey_background">#101011</color>'),
+        ('<color name="scheme_grey_background_dark">#181818</color>', '<color name="scheme_grey_background_dark">#0A0A0B</color>'),
+        ('<color name="scheme_grey_card_background_dark">#121212</color>', '<color name="scheme_grey_card_background_dark">#171719</color>'),
+        ('<color name="card_selected_background_yellow">#ffaa3f</color>', '<color name="card_selected_background_yellow">#DAB27D</color>'),
+        ('<color name="icon_background">#4A4F51</color>', '<color name="icon_background">#34271C</color>'),
+        ('<color name="orb_color">@color/grey</color>', '<color name="orb_color">@color/fastlane_background_dark</color>'),
+        ('<color name="orb_bright_color">@color/grey</color>', '<color name="orb_bright_color">@color/fastlane_background</color>'),
+    ):
+        replace_exact(colors,old,new)
+    shared_colors=root/"common/src/main/res/values/colors.xml"
+    replace_exact(shared_colors,
+                  '<color name="leanback">#0096A6</color>',
+                  '<color name="leanback">#B68A56</color>')
+
+    metrics=root/"smarttubetv/src/main/res/values/dimens.xml"
+    replace_exact(metrics,'<dimen name="card_width">200dp</dimen>','<dimen name="card_width">218dp</dimen>')
+    replace_exact(metrics,'<dimen name="card_height">110dp</dimen>','<dimen name="card_height">122dp</dimen>')
+    replace_exact(metrics,'<dimen name="lb_basic_card_title_text_size">16sp</dimen>','<dimen name="lb_basic_card_title_text_size">18sp</dimen>')
+    replace_exact(metrics,'<dimen name="lb_basic_card_content_text_size">12sp</dimen>','<dimen name="lb_basic_card_content_text_size">13sp</dimen>')
+    replace_exact(metrics,'<dimen name="grid_item_horizontal_spacing">15dp</dimen>','<dimen name="grid_item_horizontal_spacing">19dp</dimen>')
+
+    # Sanity-check our native modifications; fail CI rather than publishing a
+    # misleading APK if upstream code changes underneath the pinned revision.
+    assert 'hx_update_app' in setting_items.read_text(encoding="utf-8")
+    assert 'AppUpdatePresenter.instance(context).start(true)' in setting_items.read_text(encoding="utf-8")
+    assert 'name="hx_update_app"' in common_strings.read_text(encoding="utf-8")
+    assert 'name="fastlane_background">#B68A56' in colors.read_text(encoding="utf-8")
+
     # Disable upstream Google/Firebase tracking for our development preview.
     google=root/"smarttubetv/google-services.json"
     if google.exists():
@@ -95,7 +173,7 @@ def main():
     make_icons(root)
     # Output compatibility checks.
     b=build.read_text(encoding="utf-8")
-    assert PACKAGE_ID in b and 'versionName "0.1.0"' in b
+    assert PACKAGE_ID in b and f'versionName "{VERSION_NAME}"' in b
     assert "enableVideoPreview(selected);" not in card.read_text(encoding="utf-8")
     assert url in updates.read_text(encoding="utf-8")
     print("HX Native TV source patch validated; updater manifest =",url)
