@@ -33,7 +33,7 @@ jobs:
           with urllib.request.urlopen(request,timeout=30) as r:
               doc=json.load(r)
           expected=base64.b64decode(doc['content'])
-          if b'const VERSION = '0.4.1'' not in expected or b'hx-ui-v3.js' not in expected:
+          if b"const VERSION = '0.4.1'" not in expected or b'hx-ui-v3.js' not in expected:
               raise SystemExit('Bundled version missing in GitHub controller')
           url='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx4/t.js?v=verify'+str(int(time.time()))
           with urllib.request.urlopen(url,timeout=30) as r:
