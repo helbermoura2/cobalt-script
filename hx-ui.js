@@ -205,11 +205,11 @@
         ['Escape', 'BrowserBack', 'GoBack'].includes(event.key);
       if (!overlay.hidden) {
         if (back) { event.preventDefault(); event.stopImmediatePropagation(); close(); return; }
-        if ([38, 40].includes(event.keyCode) || ['ArrowUp','ArrowDown'].includes(event.key)) {
+        if ([19, 20, 38, 40].includes(event.keyCode) || ['ArrowUp','ArrowDown'].includes(event.key)) {
           event.preventDefault(); event.stopImmediatePropagation();
           let i = buttons.indexOf(document.activeElement);
           if (i < 0) i = 0;
-          const step = event.keyCode === 38 || event.key === 'ArrowUp' ? -1 : 1;
+          const step = event.keyCode === 19 || event.keyCode === 38 || event.key === 'ArrowUp' ? -1 : 1;
           i = (i + step + buttons.length) % buttons.length;
           buttons[i].focus();
           return;
@@ -234,7 +234,7 @@
       html.classList.remove('hx-theme-cyan');
     }
   }
-  const api = window.CobaltHX = { version: VERSION, open, close, destroy, setStatus: report, refresh,
+  const api = window.CobaltHX = { version: VERSION, open, close, destroy, isOpen: () => !!(overlay && !overlay.hidden), setStatus: report, refresh,
     get preferences() { return { effects: settings.effects, theme: settings.theme, intensity: settings.intensity }; } };
   if (!mount()) {
     document.addEventListener('DOMContentLoaded', () => { if (window.CobaltHX === api) mount(); }, { once: true });
