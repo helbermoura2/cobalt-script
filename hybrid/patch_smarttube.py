@@ -154,7 +154,15 @@ def main():
     replace_exact(metrics,'<dimen name="card_width">200dp</dimen>','<dimen name="card_width">218dp</dimen>')
     replace_exact(metrics,'<dimen name="card_height">110dp</dimen>','<dimen name="card_height">122dp</dimen>')
     replace_exact(metrics,'<dimen name="lb_basic_card_title_text_size">16sp</dimen>','<dimen name="lb_basic_card_title_text_size">18sp</dimen>')
-    replace_exact(metrics,'<dimen name="lb_basic_card_content_text_size">12sp</dimen>','<dimen name="lb_basic_card_content_text_size">13sp</dimen>')
+    # This dimension also appears in a commented block upstream. Replace the
+    # actual declaration, not the documented/commented example.
+    dimen_source=metrics.read_text(encoding="utf-8")
+    old='<dimen name="lb_basic_card_content_text_size">12sp</dimen>'
+    assert dimen_source.count(old)==2
+    i=dimen_source.rfind(old)
+    metrics.write_text(dimen_source[:i]+
+                       '<dimen name="lb_basic_card_content_text_size">13sp</dimen>'+
+                       dimen_source[i+len(old):],encoding="utf-8")
     replace_exact(metrics,'<dimen name="grid_item_horizontal_spacing">15dp</dimen>','<dimen name="grid_item_horizontal_spacing">19dp</dimen>')
 
     # Sanity-check our native modifications; fail CI rather than publishing a
