@@ -35,10 +35,18 @@ jobs:
           cache-dependency-path: |
             upstream/gradle/wrapper/gradle-wrapper.properties
             upstream/build.gradle
-      - name: Install Android build tools
-        uses: android-actions/setup-android@v3
+      - name: Install supported Android SDK components
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Android home: $ANDROID_HOME"
+          SDKMGR="$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -n 1)"
+          if [ -z "$SDKMGR" ]; then echo 'SDK manager missing'; exit 1; fi
+          echo "Using $SDKMGR"
+          yes | "$SDKMGR" --licenses >/dev/null || true
+          "$SDKMGR" --install 'platforms;android-34' 'build-tools;30.0.3' 'ndk;21.0.6113669'
       - name: Prepare icon generator
-        run: python3 -m pip install --user Pillow==11.3.0
+        run: python3 -m pip install --user --break-system-packages Pillow==11.3.0
       - name: Patch source, package, branding, preview behavior and updater
         run: |
           python3 -m py_compile hybrid/patch_smarttube.py
