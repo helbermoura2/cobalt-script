@@ -1,3 +1,20 @@
+## 19/11/2026 — Assinatura local sem GitHub Actions
+
+Uma copia do HX TV Native 0.2.0 foi assinada localmente, usando o APK ja compilado anteriormente no run 44609431204. O codigo-fonte NAO foi recompilado nesta etapa local.
+
+- Arquivo gerado: HX-TV-Native-0.2.0-assinatura-permanente.apk
+- Pacote Android: br.com.hxnative.tvpreview; versionCode=2471; manifesto binario preservado.
+- APK SHA-256: 7f2dd04f07edb7180ca3a9232fe386ca826d12e67bbce831326da2bdc5743952
+- Certificado X.509 SHA-256: 1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7
+- Assinaturas: APK v1 usando jarsigner e v2 RSA SHA-256 usando assinatura e verificacao locais. Sem teste na TV real.
+- Chave privada: PKCS12 protegido por senha, entregue separadamente ao usuario. Nunca publicar a chave no GitHub publico.
+- Este ambiente nao possui Android SDK nem Gradle ou rede direta para clonar o codigo-fonte, portanto nao e possivel compilar o projeto nativo integralmente nele.
+- A release publica hx-smarttube-native-v0.2.0 ainda contem o APK debug original, nao o APK assinado localmente.
+- ATUALIZADOR AINDA NAO FUNCIONAL: hybrid/updates/native.json continua apontando para 0.1.0 debug. Nao alterar para um APK sem URL publica e certificado compativel.
+- Para liberar OTA e preciso hospedar um APK binario assinado com o mesmo certificado em URL publica direta, depois mudar manifesto para versionCode maior e testar instalacao na TCL P7K.
+- Nao desinstalar Cobalt HX. A migracao inicial da instalacao HX TV Preview 0.1.0 debug para a chave permanente exige remover apenas o HX TV Preview.
+
+---
 # HX TV — atualização real sem baixar APK manualmente
 
 ## Situação atual
