@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cobalt HX 0.3.0 APK: patch only a pinned native URL and same-length manifest identity.
+"""Cobalt HX 0.4.1 APK: patch only a pinned native URL and same-length manifest identity.
 For personal testing on Android TV. Original source: reisxd/TizenTubeCobalt v2.0.3.
 The upstream web application and userscript remain separate.
 """
@@ -14,7 +14,7 @@ import urllib.request
 import zipfile
 
 ORIGINAL_URL = b"https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js?v="
-NEW_URL = b"https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx3/t.js?v="
+NEW_URL = b"https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx4/t.js?v="
 OLD_PACKAGE = "io.gh.reisxd.tizentube.cobalt"
 NEW_PACKAGE = "io.gh.reisxd.tizentube.cobah3"
 APK_URL = "https://github.com/reisxd/TizenTubeCobalt/releases/download/v2.0.3/cobalt-arm.apk"
@@ -28,7 +28,7 @@ def run(*args):
     subprocess.run(list(map(str,args)), check=True)
 
 def download(dest):
-    req = urllib.request.Request(APK_URL, headers={"User-Agent": "CobaltHX-030-builder"})
+    req = urllib.request.Request(APK_URL, headers={"User-Agent": "CobaltHX-041-builder"})
     with urllib.request.urlopen(req, timeout=90) as src, dest.open("wb") as out:
         while True:
             block = src.read(1024 * 1024)
@@ -107,7 +107,7 @@ def main():
         run(opts.keytool,"-genkeypair","-noprompt","-keystore",key,
             "-storepass",password,"-keypass",password,"-alias","hx-preview",
             "-keyalg","RSA","-keysize","3072","-validity","3650",
-            "-dname","CN=Cobalt HX 0.3.0 test,O=Personal TV test,C=BR")
+            "-dname","CN=Cobalt HX 0.4.1 test,O=Personal TV test,C=BR")
         run(opts.apksigner,"sign","--ks",key,"--ks-key-alias","hx-preview",
             "--ks-pass","pass:"+password,"--key-pass","pass:"+password,
             "--v1-signing-enabled","true","--v2-signing-enabled","true",
