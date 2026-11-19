@@ -1,11 +1,5 @@
 name: HX Native Android TV (SmartTube source build)
 on:
-  push:
-    branches: [smart-cobalt-hybrid]
-    paths:
-      - hybrid/patch_smarttube.py
-      - hybrid/updates/native.json
-      - .github/workflows/hx-smarttube-native.yml
   workflow_dispatch:
 permissions:
   contents: write
@@ -51,6 +45,7 @@ jobs:
         run: |
           python3 -m py_compile hybrid/patch_smarttube.py
           python3 hybrid/patch_smarttube.py upstream
+          python3 hybrid/patch_hx_design.py upstream
           python3 -m json.tool hybrid/updates/native.json >/dev/null
           test -z "$(find upstream -name keystore.properties -type f -print -quit)"
           grep -q 'br.com.hxnative.tvpreview' upstream/smarttubetv/build.gradle
