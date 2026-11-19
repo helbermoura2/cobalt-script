@@ -272,7 +272,7 @@
         itemId: hxSettingsItemId,
         title: { runs: [{ text: 'Atualizar Cobalt HX' }] },
         actionLabel: { runs: [{ text: 'Atualizar Cobalt HX' }] },
-        summary: { runs: [{ text: 'Atualização e personalização • versão 0.3.1' }] },
+        summary: { runs: [{ text: 'Configurações e atualização • interface v' + (window.CobaltHX && window.CobaltHX.version || '0.4.1') }] },
         thumbnail: { thumbnails: [{ url: 'https://www.gstatic.com/ytlr/img/parent_code.png' }] },
         trackingParams: null,
         serviceEndpoint: { customAction: { action: hxSettingsAction, parameters: [] } },
@@ -489,7 +489,7 @@
 
 
 
-/* HX-BUNDLED-V0.3.1: native Settings category and stable visual bootstrap. */
+/* HX-BUNDLED-V0.4.1: native Settings category and visual bootstrap. */
 try {
   const canMountHX = !!(document && document.createElement && document.documentElement &&
     document.documentElement.classList);
