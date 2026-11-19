@@ -27,11 +27,11 @@ jobs:
             ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/t.js?ref=hx",
              "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
              "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@hx/t.js",
-             b"HX-BUNDLED-V0.2.1"),
+             b"HX-BUNDLED-V0.2.2"),
             ("https://api.github.com/repos/helbermoura2/cobalt-script/contents/hx-ui.js?ref=main",
              "https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
              "https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/hx-ui.js",
-             b"const VERSION = '0.2.1'"),
+             b"const VERSION = '0.2.2'"),
           ]
           header={"User-Agent":"cobalt-hx-cdn-verify"}
           def fetch(url):
