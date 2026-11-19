@@ -1,0 +1,47 @@
+name: Verify HX Native remote update delivery
+on:
+  push:
+    branches: [main]
+    paths:
+      - native-home.js
+      - .github/workflows/verify-hx-native-remote.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Verify version and jsDelivr remote file
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, json, hashlib, base64, os, time
+          raw='https://api.github.com/repos/helbermoura2/cobalt-script/contents/native-home.js?ref=main'
+          purge='https://purge.jsdelivr.net/gh/helbermoura2/cobalt-script@main/native-home.js'
+          cdn='https://cdn.jsdelivr.net/gh/helbermoura2/cobalt-script@main/native-home.js'
+          def get(url,auth=False):
+            headers={'User-Agent':'HX-Native-0.1.2-remote-check'}
+            if auth: headers['Authorization']='Bearer '+os.environ['GH_TOKEN']
+            with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=25) as r:
+              return r.read(160000)
+          expected=base64.b64decode(json.loads(get(raw,True))['content'])
+          if b"const VERSION='0.1.2'" not in expected or b'function stopBackgroundPreview()' not in expected:
+            raise SystemExit('Expected HX Native v0.1.2 source unavailable')
+          desired=hashlib.sha256(expected).hexdigest()
+          try: print('PURGE',get(purge)[:300],flush=True)
+          except Exception as e: print('Purge service unavailable',repr(e),flush=True)
+          for attempt in range(8):
+            try:
+              body=get(cdn+'?hn012='+str(int(time.time()*1000)))
+              if hashlib.sha256(body).hexdigest()==desired:
+                print('READY: jsDelivr exactly matches GitHub 0.1.2',desired,flush=True)
+                break
+              print('STALE:',hashlib.sha256(body).hexdigest(),'expected:',desired,flush=True)
+            except Exception as e: print('Delivery error',repr(e),flush=True)
+            time.sleep(3)
+          else:
+            raise SystemExit('NOT READY: jsDelivr still serves stale HX Native; on-TV UI update is NOT verified')
+          PY
