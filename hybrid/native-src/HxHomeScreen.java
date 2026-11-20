@@ -1168,6 +1168,137 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         idsNaTela.put(chave,atuais);
         return distintos;
     }
+    // INSCRIÇÕES: feed vertical de verdade, sem carrossel horizontal.
+    // Cada linha tem capa à esquerda e título amplo à direita.
+    private void desenharInscricoesEmLista(String chave,String nome,
+            List<Video> videos,boolean principal){
+        if(videos==null||videos.isEmpty())return;
+        LinearLayout coluna=fileiras.get(chave);
+        if(coluna==null){
+            LinearLayout bloco=new LinearLayout(getContext());
+            bloco.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
+            bp.bottomMargin=dp(20);
+            pagina.addView(bloco,bp);
+            TextView cabecalho=texto(principal?"ÚLTIMOS DAS SUAS INSCRIÇÕES":nome,
+                    17,TEXTO,true);
+            margem(cabecalho,3,4,0,14);
+            bloco.addView(cabecalho);
+            coluna=new LinearLayout(getContext());
+            coluna.setOrientation(LinearLayout.VERTICAL);
+            bloco.addView(coluna,new LinearLayout.LayoutParams(-1,-2));
+            fileiras.put(chave,coluna);
+        }
+        final LinearLayout lista=coluna;
+        if(lista.hasFocus()){
+            focoPendente=true;
+            ultimaSecaoFocada=secaoAtual;
+        }
+        if(principal)primeiraFileira.clear();
+        lista.removeAllViews();
+        int limite=Math.min(videos.size(),
+                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):28);
+        for(int i=0;i<limite;i++){
+            final int pos=i;
+            final Video video=videos.get(i);
+            if(video==null)continue;
+            String referencia=chave+"|"+(video.videoId==null?
+                    "id:"+video.id:"vid:"+video.videoId);
+            LinearLayout cartao=new LinearLayout(getContext());
+            cartao.setOrientation(LinearLayout.HORIZONTAL);
+            cartao.setGravity(Gravity.CENTER_VERTICAL);
+            cartao.setFocusable(true);
+            cartao.setBackground(vidro(0x5F253446,0x365B728A,16));
+            margem(cartao,10,9,12,9);
+            LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(139));
+            rp.bottomMargin=dp(11);
+            lista.addView(cartao,rp);
+            FrameLayout capa=new FrameLayout(getContext());
+            capa.setBackground(fundo(0xFF1D2B3D,0,12));
+            LinearLayout.LayoutParams im=new LinearLayout.LayoutParams(dp(190),dp(107));
+            cartao.addView(capa,im);
+            TextView fallback=texto("HX TV",14,SECUNDARIO,true);
+            fallback.setGravity(Gravity.CENTER);
+            capa.addView(fallback,new FrameLayout.LayoutParams(-1,-1));
+            ImageView imagem=new ImageView(getContext());
+            imagem.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            capa.addView(imagem,new FrameLayout.LayoutParams(-1,-1));
+            Glide.with(getContext())
+                    .load(ClickbaitRemover.updateThumbnail(video,
+                            MainUIData.instance(getContext()).getThumbQuality()))
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .error(android.R.color.transparent)
+                    .into(imagem);
+            LinearLayout informacoes=new LinearLayout(getContext());
+            informacoes.setOrientation(LinearLayout.VERTICAL);
+            informacoes.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams txt=new LinearLayout.LayoutParams(0,-1,1);
+            txt.leftMargin=dp(17);
+            cartao.addView(informacoes,txt);
+            TextView titulo=texto(video.getTitle(),16,TEXTO,true);
+            titulo.setGravity(Gravity.TOP|Gravity.START);
+            titulo.setMaxLines(3);
+            titulo.setLineSpacing(dp(2),1.1f);
+            titulo.setEllipsize(TextUtils.TruncateAt.END);
+            informacoes.addView(titulo,new LinearLayout.LayoutParams(-1,0,1));
+            TextView detalhes=texto(video.getSecondTitle(),11,SECUNDARIO,false);
+            detalhes.setMaxLines(2);
+            detalhes.setEllipsize(TextUtils.TruncateAt.END);
+            informacoes.addView(detalhes,new LinearLayout.LayoutParams(-1,dp(36)));
+            cartoesPorId.put(referencia,cartao);
+            if(principal)primeiraFileira.add(cartao);
+            if(primeiroCartao==null)primeiroCartao=cartao;
+            cartao.setOnFocusChangeListener((v,selecionado)->{
+                v.setBackground(vidro(selecionado?0xAB485D74:0x5F253446,
+                        selecionado?0xFFF4F8FF:0x365B728A,16));
+                if(selecionado){
+                    ultimoVideoFocado=referencia;
+                    ultimoControleFocado=v;
+                    ultimaSecaoFocada=secaoAtual;
+                    estavaNoMenu=false;
+                    if(tituloSelecionado!=null){
+                        tituloSelecionado.setText(video.getTitle());
+                        tituloSelecionado.setSelected(true);
+                    }
+                    dados.onVideoItemSelected(video);
+                    if(pos>=limite-3 && limite<videos.size()){
+                        int mais=Math.min(videos.size(),limite+18);
+                        limitesPorFileira.put(chave,mais);
+                        postDelayed(()->{
+                            if(lista.isAttachedToWindow())
+                                desenharInscricoesEmLista(chave,nome,videos,principal);
+                        },180);
+                    }
+                }
+            });
+            cartao.setOnKeyListener((v,key,event)->{
+                if(event.getAction()!=KeyEvent.ACTION_DOWN)return false;
+                if(key==KeyEvent.KEYCODE_DPAD_LEFT)return focarCategoriaAtual();
+                if(key==KeyEvent.KEYCODE_DPAD_UP && pos==0)
+                    return focarCategoriaAtual();
+                if(key==KeyEvent.KEYCODE_DPAD_UP && pos>0)
+                    return lista.getChildAt(pos-1).requestFocus();
+                if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1<lista.getChildCount())
+                    return lista.getChildAt(pos+1).requestFocus();
+                if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1==lista.getChildCount()){
+                    dados.onScrollEnd(video);
+                }
+                return false;
+            });
+            cartao.setOnClickListener(v->{
+                guardarFocoAntesDeSair();
+                dados.onVideoItemClicked(video);
+            });
+            cartao.setOnLongClickListener(v->{
+                dados.onVideoItemLongClicked(video);
+                return true;
+            });
+        }
+        if(focoPendente && ultimaSecaoFocada==secaoAtual)
+            post(this::tentarRestaurarFoco);
+        if(entrarNoConteudoPendente)post(this::entrarNoConteudo);
+    }
+
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
         if(estaNasInscricoes()){
             desenharInscricoesEmLista(chave,nome,videos,principal);
@@ -1410,7 +1541,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(principal&&videoDestaque==null){
             limparEstadoSecao();
             pagina.removeAllViews();
-            destaque(videos.get(0));
+            if(estaNasInscricoes())videoDestaque=videos.get(0);
+            else destaque(videos.get(0));
         }
         desenharFileira(id,grupo.getTitle()==null?"Para você":grupo.getTitle(),
                 videos,principal);
