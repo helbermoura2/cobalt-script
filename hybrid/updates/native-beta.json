@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.14-beta/HX-TV-Native-0.9.14-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.15-beta/HX-TV-Native-0.9.15-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.14-beta/HX-TV-Native-0.9.14-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.15-beta/HX-TV-Native-0.9.15-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -177,6 +177,20 @@
       "Preservado o player estável da 0.9.13, incluindo sugestões compactas e aviso de carregamento que desaparece ao iniciar",
       "Miniplayer, menu lateral, 28 assuntos, AO VIVO, histórico, qualidade e assinatura persistente preservados",
       "Atualização interna sem desinstalar o aplicativo, ativada somente após validar APK assinado"
+    ]
+  },
+  "0.9.15": {
+    "versionCode": 2493,
+    "changelog": [
+      "Nova interface Glass Studio: painéis grafite translúcidos, bordas suaves e foco prateado",
+      "Títulos dos vídeos com três linhas reais e cards mais altos; título completo aparece no cabeçalho ao selecionar",
+      "Sugestões do player corrigidas: removido recorte de altura que escondia as imagens e miniaturas maiores 16:9",
+      "Inscrições em lista vertical de vídeos, com capa à esquerda e títulos legíveis à direita",
+      "Barra lateral redesenhada com ícones centralizados e alinhados em menu aberto/recolhido",
+      "Pesquisa, Atualizar e Modo Clássico agora rolam junto com todas as outras categorias",
+      "Botões do player redesenhados: sem arte antiga circular, superfícies de vidro, ícones padronizados e foco discreto",
+      "Mantidos ExoPlayer original, legendas, qualidade, histórico, miniplayer, AO VIVO e atualização interna sem desinstalar",
+      "Compilação assinada com o mesmo certificado permanente da versão 0.9.14"
     ]
   }
 }
