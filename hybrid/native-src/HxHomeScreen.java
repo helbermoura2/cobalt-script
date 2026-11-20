@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -27,6 +28,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AppUpdatePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
@@ -50,6 +52,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
     private final LinkedHashMap<String,List<Video>> grupos=new LinkedHashMap<>();
     private final LinearLayout menu;
+    private final List<View> primeiraFileira=new ArrayList<>();
     private final LinearLayout pagina;
     private final ScrollView rolagem;
     private final ProgressBar carregando;
@@ -134,6 +137,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 SearchPresenter.instance(getContext()).startSearch(null));
         topo.addView(pesquisa);
 
+        // A interface independente não herdava os atalhos das Configurações.
+        // Usar o mesmo verificador e instalador seguro do HX, sem outro APK.
+        TextView atualizar=texto("↻  ATUALIZAR",12,BRONZE,true);
+        margem(atualizar,12,9,12,9);foco(atualizar);
+        atualizar.setContentDescription("Verificar atualizações do HX TV");
+        atualizar.setOnClickListener(v->
+                AppUpdatePresenter.instance(getContext()).start(true));
+        topo.addView(atualizar);
+
         TextView antigo=texto("  MODO CLÁSSICO  ",11,SECUNDARIO,true);
         margem(antigo,11,9,11,9);foco(antigo);
         antigo.setOnClickListener(v->{
@@ -185,8 +197,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             aba.setFocusable(true);
             aba.setOnFocusChangeListener((v,ativo)->{
                 aba.setSelected(ativo);
-                aba.setBackground(fundo((ativo||secaoAtual==indice)?FOCO:PAINEL,
-                        (ativo||secaoAtual==indice)?BRONZE:0,10));
+                pintarCategoria(aba,ativo,secaoAtual==indice);
             });
             aba.setOnClickListener(v->abrirSecao(indice));
             LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,dp(42));
@@ -195,16 +206,67 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
         marcarMenu();
     }
+    /** Apenas o item com foco ganha CONTORNO. Categoria atual usa preenchimento discreto. */
+    private void pintarCategoria(TextView aba, boolean focada, boolean atual){
+        aba.setBackground(fundo(focada?FOCO:atual?0xFF232934:PAINEL,
+                focada?BRONZE:0,10));
+        aba.setTextColor(focada?BRONZE:atual?TEXTO:SECUNDARIO);
+    }
     private void marcarMenu(){
-        for(int i=0;i<menu.getChildCount();i++)
-            menu.getChildAt(i).setBackground(fundo(i==secaoAtual?FOCO:PAINEL,
-                    i==secaoAtual?BRONZE:0,10));
+        for(int i=0;i<menu.getChildCount();i++){
+            TextView aba=(TextView)menu.getChildAt(i);
+            pintarCategoria(aba,aba.isFocused(),i==secaoAtual);
+        }
+    }
+
+    private boolean estaNaPrimeiraFileira(View focado){
+        View atual=focado;
+        while(atual!=null){
+            if(primeiraFileira.contains(atual))return true;
+            if(!(atual.getParent() instanceof View))break;
+            atual=(View)atual.getParent();
+        }
+        return false;
+    }
+
+    private boolean focarCategoriaAtual(){
+        if(menu.getChildCount()==0)return false;
+        int indice=Math.max(0,Math.min(secaoAtual,menu.getChildCount()-1));
+        View aba=menu.getChildAt(indice);
+        if(aba.requestFocus()){
+            estavaNoMenu=true;
+            ultimoControleFocado=aba;
+            marcarMenu();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent evento){
+        if(evento.getAction()==KeyEvent.ACTION_DOWN){
+            View atual=findFocus();
+            if(evento.getKeyCode()==KeyEvent.KEYCODE_DPAD_UP &&
+                    atual!=null && estaNaPrimeiraFileira(atual)){
+                // Funciona no Histórico mesmo quando o cursor está na última capa.
+                if(focarCategoriaAtual())return true;
+            }
+            if(evento.getKeyCode()==KeyEvent.KEYCODE_DPAD_DOWN &&
+                    menu.hasFocus() && primeiroCartao!=null){
+                View destino=ultimoControleFocado;
+                if(destino==null || !destino.isShown() || menu.hasFocus())
+                    destino=primeiroCartao;
+                if(destino.requestFocus())return true;
+            }
+        }
+        return super.dispatchKeyEvent(evento);
     }
     private void limparConteudo(){
         pagina.removeAllViews();
         fileiras.clear();
         grupos.clear();
         primeiroCartao=null;
+        primeiraFileira.clear();
         cartoesPorId.clear();
         videoDestaque=null;
         tituloDestaque=null;
@@ -317,6 +379,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             focoPendente=true;
             ultimaSecaoFocada=secaoAtual;
         }
+        if(principal)primeiraFileira.clear();
         faixa.removeAllViews();
         int n=0;
         for(Video video:videos){
@@ -371,6 +434,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             margem(dadosCartao,8,0,8,7);
             cartao.addView(dadosCartao,new LinearLayout.LayoutParams(-1,dp(24)));
             cartoesPorId.put(referencia,cartao);
+            if(principal)primeiraFileira.add(cartao);
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 v.setBackground(fundo(selecionado?FOCO:PAINEL,
                         selecionado?BRONZE:0,12));
@@ -435,6 +499,14 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         TextView titulo=texto("AJUSTES DO HX TV",24,TEXTO,true);
         margem(titulo,0,12,0,17);
         pagina.addView(titulo);
+        TextView atualizar=texto("↻   ATUALIZAR HX TV",17,BRONZE,true);
+        margem(atualizar,18,12,18,12);foco(atualizar);
+        LinearLayout.LayoutParams linhaAtualizacao=new LinearLayout.LayoutParams(-1,dp(58));
+        linhaAtualizacao.bottomMargin=dp(10);
+        pagina.addView(atualizar,linhaAtualizacao);
+        atualizar.setOnClickListener(v->
+                AppUpdatePresenter.instance(getContext()).start(true));
+        primeiroCartao=atualizar;
         if(grupo==null||grupo.getItems()==null)return;
         for(SettingsItem opcao:grupo.getItems()){
             TextView item=texto(opcao.title,16,TEXTO,true);
