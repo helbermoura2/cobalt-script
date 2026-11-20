@@ -74,8 +74,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     };
     private final ProgressBar carregando;
     private LinearLayout estadoSecao;
+    private HorizontalScrollView esqueletosSecao;
     private TextView mensagemEstadoSecao, tentarSecao;
     private Runnable checagemSecaoVazia;
+    // Agrupa mudanças de catálogo durante refresh para não mostrar
+    // uma única miniatura antes das demais ao voltar do player.
+    private final List<VideoGroup> loteAtualizacao=new ArrayList<>();
+    private Runnable finalizarLoteAtualizacao;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque;
     private ImageView imagemDestaque;
     private View primeiroCartao;
@@ -589,8 +594,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         estadoSecao.setGravity(Gravity.CENTER_VERTICAL);
         estadoSecao.setBackground(fundo(0xAA192330,0x303C4D,13));
         estadoSecao.setPadding(dp(25),dp(18),dp(25),dp(17));
-        LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,dp(136));
-        bloco.topMargin=dp(19);
+        LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,-2);
+        bloco.topMargin=dp(12);
+        bloco.bottomMargin=dp(8);
         pagina.addView(estadoSecao,bloco);
         TextView cabecalho=texto("HX TV  /  "+nome.toUpperCase(java.util.Locale.ROOT),12,GELO,true);
         estadoSecao.addView(cabecalho);
@@ -598,6 +604,42 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout.LayoutParams msg=new LinearLayout.LayoutParams(-1,-2);
         msg.topMargin=dp(9);
         estadoSecao.addView(mensagemEstadoSecao,msg);
+        // Skeleton de fileira: geometria estável, sem capas ou vídeos fictícios.
+        // Não recebe foco nem inicia animações, preservando a fluidez da TV.
+        esqueletosSecao=new HorizontalScrollView(getContext());
+        esqueletosSecao.setHorizontalScrollBarEnabled(false);
+        esqueletosSecao.setFocusable(false);
+        LinearLayout.LayoutParams eps=new LinearLayout.LayoutParams(-1,dp(137));
+        eps.topMargin=dp(15);
+        estadoSecao.addView(esqueletosSecao,eps);
+        LinearLayout trilhoEspera=new LinearLayout(getContext());
+        trilhoEspera.setOrientation(LinearLayout.HORIZONTAL);
+        esqueletosSecao.addView(trilhoEspera,
+                new HorizontalScrollView.LayoutParams(-2,-1));
+        for(int i=0;i<4;i++){
+            LinearLayout carta=new LinearLayout(getContext());
+            carta.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(174),-1);
+            cp.rightMargin=dp(12);
+            trilhoEspera.addView(carta,cp);
+            View imagem=new View(getContext());
+            imagem.setBackground(new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    new int[]{0xFF243448,0xFF1C2737,0xFF101926}));
+            carta.addView(imagem,new LinearLayout.LayoutParams(-1,dp(96)));
+            View tituloEspera=new View(getContext());
+            tituloEspera.setBackground(fundo(0xFF344357,0,4));
+            LinearLayout.LayoutParams linha1=new LinearLayout.LayoutParams(
+                    dp(i%2==0?128:148),dp(9));
+            linha1.topMargin=dp(9);
+            carta.addView(tituloEspera,linha1);
+            View subtituloEspera=new View(getContext());
+            subtituloEspera.setBackground(fundo(0xFF29374A,0,4));
+            LinearLayout.LayoutParams linha2=new LinearLayout.LayoutParams(
+                    dp(i%2==0?80:102),dp(7));
+            linha2.topMargin=dp(5);
+            carta.addView(subtituloEspera,linha2);
+        }
         tentarSecao=texto("↻  TENTAR NOVAMENTE",12,GELO,true);
         tentarSecao.setGravity(Gravity.CENTER_VERTICAL);
         tentarSecao.setBackground(fundo(0xFF273344,0xFF51647C,9));
@@ -621,6 +663,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             carregando.setVisibility(View.GONE);
             mensagemEstadoSecao.setText("Nenhum vídeo recebido nesta seção. "+
                     "Ela pode estar vazia ou ainda não sincronizada.");
+            if(esqueletosSecao!=null)esqueletosSecao.setVisibility(View.GONE);
             tentarSecao.setVisibility(View.VISIBLE);
         };
         postDelayed(checagemSecaoVazia,4700);
@@ -633,11 +676,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(estadoSecao!=null && estadoSecao.getParent()==pagina)
             pagina.removeView(estadoSecao);
         estadoSecao=null;
+        esqueletosSecao=null;
         mensagemEstadoSecao=null;
         tentarSecao=null;
     }
     private void limparConteudo(){
         limparEstadoSecao();
+        if(finalizarLoteAtualizacao!=null){
+            removeCallbacks(finalizarLoteAtualizacao);
+            finalizarLoteAtualizacao=null;
+        }
+        loteAtualizacao.clear();
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
@@ -1401,6 +1450,34 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     @Override public void updateSection(VideoGroup grupo){
         executar(()->{
+            if(grupo==null)return;
+            if(finalizarLoteAtualizacao!=null){
+                loteAtualizacao.add(grupo);
+                return;
+            }
+            // Quando o catálogo antigo ainda está na tela, espere um pequeno
+            // lote de resultados antes de substituí-lo. Isso evita o flash de
+            // uma fileira com um único card ao retornar da mini-janela.
+            if(grupo.getAction()==VideoGroup.ACTION_REPLACE
+                    && grupoPrincipalId!=null && !grupos.isEmpty()){
+                loteAtualizacao.add(grupo);
+                final int geracao=geracaoPagina;
+                final int categoria=secaoAtual;
+                finalizarLoteAtualizacao=()->{
+                    finalizarLoteAtualizacao=null;
+                    if(geracao!=geracaoPagina||categoria!=secaoAtual){
+                        loteAtualizacao.clear();
+                        return;
+                    }
+                    List<VideoGroup> entradas=new ArrayList<>(loteAtualizacao);
+                    loteAtualizacao.clear();
+                    for(VideoGroup entrada:entradas)desenharGrupo(entrada);
+                    carregando.setVisibility(View.GONE);
+                    if(focoPendente)post(this::tentarRestaurarFoco);
+                };
+                postDelayed(finalizarLoteAtualizacao,300);
+                return;
+            }
             desenharGrupo(grupo);
             carregando.setVisibility(View.GONE);
         });
