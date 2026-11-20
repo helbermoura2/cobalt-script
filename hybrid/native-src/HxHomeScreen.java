@@ -311,6 +311,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             deslizar.addView(faixa);
             fileiras.put(chave,faixa);
         }
+        // O catálogo pode atualizar enquanto o cursor está numa miniatura.
+        // A view antiga será removida; agendar foco para a nova view equivalente.
+        if(faixa.hasFocus()){
+            focoPendente=true;
+            ultimaSecaoFocada=secaoAtual;
+        }
         faixa.removeAllViews();
         int n=0;
         for(Video video:videos){
