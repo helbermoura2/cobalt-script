@@ -1,5 +1,11 @@
 name: HX Native Android TV (SmartTube source build)
 on:
+  push:
+    branches: [smart-cobalt-hybrid]
+    paths:
+      - .github/workflows/hx-smarttube-native.yml
+      - hybrid/patch_smarttube.py
+      - hybrid/patch_hx_design.py
   workflow_dispatch:
 permissions:
   contents: write
