@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.12-beta/HX-TV-Native-0.9.12-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.13-beta/HX-TV-Native-0.9.13-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.12-beta/HX-TV-Native-0.9.12-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.13-beta/HX-TV-Native-0.9.13-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -153,6 +153,18 @@
       "Faixa reservada ao miniplayer mais compacta, preservando espaço para o catálogo",
       "Preservados os controles do player, painel de sugestões, PiP, 28 assuntos e AO VIVO",
       "Atualização assinada sobre a versão 0.9.11 sem desinstalar"
+    ]
+  },
+  "0.9.13": {
+    "versionCode": 2491,
+    "changelog": [
+      "Categorias sem resultados deixam de aparecer como uma tela vazia: estado legível e opção Tentar novamente",
+      "Se uma atualização de seção ainda não trouxe vídeos, a Home informa que o conteúdo pode estar vazio ou sem sincronização",
+      "Ao trocar de categoria ou chegar resultado, o aviso temporário é cancelado para não esconder conteúdos reais",
+      "Miniaturas agora usam fundo HX TV grafite enquanto carregam e quando a imagem está indisponível, sem retângulos cinza sem identificação",
+      "Faixa informativa do miniplayer reduzida de 108dp para 76dp, liberando espaço na navegação",
+      "Preservado o player da 0.9.12, inclusive a correção do aviso de preparação e o controle de sugestões",
+      "Mantidas central AO VIVO, filtros, histórico, modos clássico e atualizado e assinatura persistente"
     ]
   }
 }
