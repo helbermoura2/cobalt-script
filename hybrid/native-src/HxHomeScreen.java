@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Looper;
@@ -43,6 +44,7 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +61,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
     private final LinkedHashMap<String,List<Video>> grupos=new LinkedHashMap<>();
     private final LinkedHashMap<String,Integer> limitesPorFileira=new LinkedHashMap<>();
+    // Registro da home: não repetir o mesmo vídeo em várias fileiras recomendadas.
+    private final LinkedHashMap<String,LinkedHashSet<String>> idsNaTela=new LinkedHashMap<>();
     private final LinearLayout menu;
     private final List<View> primeiraFileira=new ArrayList<>();
     private final LinearLayout pagina;
@@ -191,19 +195,19 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.setOrientation(LinearLayout.VERTICAL);
         lateral.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF1A202C,0xFF10151E,0xFF090D14}));
+                new int[]{0xFF1B2029,0xFF12171E,0xFF0B1017}));
         margem(lateral,11,20,11,14);
         painelLateral=lateral;
-        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(174),-1));
+        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(166),-1));
 
-        TextView marca=texto("HX  TV",29,TEXTO,true);
+        TextView marca=texto("HX  TV",26,TEXTO,true);
         marcaNav=marca;
         marca.setLetterSpacing(0.06f);
         margem(marca,9,0,0,0);
         lateral.addView(marca);
         TextView lema=texto("A SUA EXPERIÊNCIA",9,SECUNDARIO,true);
         subtituloNav=lema;
-        lema.setLetterSpacing(0.17f);
+        lema.setLetterSpacing(0.12f);
         margem(lema,9,3,0,22);
         lateral.addView(lema);
 
@@ -218,7 +222,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.addView(alternar,toggleLp);
 
         View linhaBronze=new View(contexto);
-        linhaBronze.setBackgroundColor(0xFF2A384A);
+        linhaBronze.setBackgroundColor(0xFF2C333E);
         LinearLayout.LayoutParams divisorMenu=new LinearLayout.LayoutParams(-1,dp(1));
         divisorMenu.bottomMargin=dp(11);
         lateral.addView(linhaBronze,divisorMenu);
@@ -269,17 +273,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         coluna.setOrientation(LinearLayout.VERTICAL);
         coluna.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF141B29,0xFF080C12,PRETO}));
+                new int[]{0xFF101822,0xFF080D14,PRETO}));
         estrutura.addView(coluna,new LinearLayout.LayoutParams(0,-1,1));
 
         // A faixa superior é informativa. Os controles reais ficam na lateral,
         // longe da área utilizada pelo miniplayer flutuante do Android TV.
         LinearLayout topo=new LinearLayout(contexto);
         topo.setGravity(Gravity.CENTER_VERTICAL);
-        margem(topo,24,10,23,8);
-        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(53)));
-        TextView assinatura=texto("HX TV  /  DESCUBRA",13,TEXTO,true);
-        assinatura.setLetterSpacing(0.10f);
+        margem(topo,22,7,18,5);
+        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(47)));
+        TextView assinatura=texto("DESCUBRA",14,TEXTO,true);
+        assinatura.setLetterSpacing(0.08f);
         topo.addView(assinatura);
         topo.addView(new View(contexto),new LinearLayout.LayoutParams(0,1,1));
         TextView ambiente=texto("",10,SECUNDARIO,true);
@@ -287,7 +291,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         topo.addView(ambiente);
 
         View separador=new View(contexto);
-        separador.setBackgroundColor(0xFF253344);
+        separador.setBackgroundColor(0xFF27313D);
         coluna.addView(separador,new LinearLayout.LayoutParams(-1,dp(1)));
 
         rolagem=new ScrollView(contexto);
@@ -297,7 +301,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         coluna.addView(rolagem,new LinearLayout.LayoutParams(-1,0,1));
         pagina=new LinearLayout(contexto);
         pagina.setOrientation(LinearLayout.VERTICAL);
-        margem(pagina,24,14,24,30);
+        margem(pagina,20,12,20,30);
         rolagem.addView(pagina,new ScrollView.LayoutParams(-1,-2));
         TextView inicio=texto("ESCOLHA UMA CATEGORIA À ESQUERDA",15,SECUNDARIO,true);
         margem(inicio,0,24,0,20);
@@ -333,13 +337,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(int i=0;i<itensMenu.size()&&i<secoes.size();i++){
             TextView aba=itensMenu.get(i);
             String nome=secoes.get(i).getTitle();
-            aba.setText(menuAberto?simbolo(nome)+"   "+nome:simbolo(nome));
+            boolean temIcone=secoes.get(i).getResId()>0
+                    && aba.getCompoundDrawables()[0]!=null;
+            aba.setText(temIcone?(menuAberto?nome:""):
+                    (menuAberto?simbolo(nome)+"  "+nome:simbolo(nome)));
             aba.setGravity(menuAberto?Gravity.CENTER_VERTICAL:Gravity.CENTER);
-            margem(aba,menuAberto?13:1,8,menuAberto?7:1,8);
+            margem(aba,menuAberto?12:1,8,menuAberto?5:1,8);
         }
         if(marcaNav!=null){
             marcaNav.setText(menuAberto?"HX  TV":"HX");
-            marcaNav.setTextSize(menuAberto?29:22);
+            marcaNav.setTextSize(menuAberto?26:21);
             margem(marcaNav,menuAberto?9:0,0,0,0);
         }
         if(subtituloNav!=null)subtituloNav.setVisibility(menuAberto?View.VISIBLE:View.GONE);
@@ -357,9 +364,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(animacaoNav!=null)animacaoNav.cancel();
         atualizarLegendasMenu();
         int de=painelLateral.getLayoutParams().width;
-        int ate=dp(abrir?174:68);
+        int ate=dp(abrir?166:64);
         animacaoNav=ValueAnimator.ofInt(de,ate);
-        animacaoNav.setDuration(180);
+        animacaoNav.setDuration(150);
         animacaoNav.addUpdateListener(a->{
             ViewGroup.LayoutParams p=painelLateral.getLayoutParams();
             p.width=(int)a.getAnimatedValue();
@@ -375,8 +382,18 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(int i=0;i<secoes.size();i++){
             final int indice=i;
             String nome=secoes.get(i).getTitle();
-            TextView aba=texto(nome,13,TEXTO,true);
+            TextView aba=texto(nome,12,TEXTO,true);
             aba.setContentDescription(nome);
+            int recurso=secoes.get(i).getResId();
+            if(recurso>0){
+                try{
+                    Drawable icone=getResources().getDrawable(recurso).mutate();
+                    icone.setBounds(0,0,dp(18),dp(18));
+                    icone.setTint(SECUNDARIO);
+                    aba.setCompoundDrawables(icone,null,null,null);
+                    aba.setCompoundDrawablePadding(dp(9));
+                }catch(android.content.res.Resources.NotFoundException ignorado){}
+            }
             itensMenu.add(aba);
             aba.setSingleLine(true);
             aba.setEllipsize(TextUtils.TruncateAt.MARQUEE);
@@ -414,7 +431,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
         aba.setBackground(fundo(focada?FOCO:atual?0xFF29313E:0xFF181D26,
                 focada?0xFFD7E7FF:0,10));
-        aba.setTextColor(focada?TEXTO:atual?0xFFE0ECFA:SECUNDARIO);
+        aba.setTextColor(focada?TEXTO:atual?0xFFE2EAF3:SECUNDARIO);
+        Drawable icone=aba.getCompoundDrawables()[0];
+        if(icone!=null)icone.setTint(focada?TEXTO:atual?GELO:SECUNDARIO);
     }
     private void marcarMenu(){
         for(int i=0;i<menu.getChildCount();i++){
@@ -744,10 +763,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout exterior=new LinearLayout(getContext());
         exterior.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams vertical=new LinearLayout.LayoutParams(-1,-2);
-        vertical.bottomMargin=dp(15);
+        vertical.bottomMargin=dp(11);
         pagina.addView(exterior,0,vertical);
 
-        TextView rotulo=texto("SEU PRÓXIMO VÍDEO",10,GELO,true);
+        TextView rotulo=texto("ESCOLHIDO PARA VOCÊ",10,GELO,true);
         rotulo.setLetterSpacing(0.15f);
         margem(rotulo,1,0,0,6);
         exterior.addView(rotulo);
@@ -757,7 +776,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         FrameLayout quadro=new FrameLayout(getContext());
         quadro.setBackground(fundo(0xFF101721,0,17));
         if(Build.VERSION.SDK_INT>=21)quadro.setClipToOutline(true);
-        exterior.addView(quadro,new LinearLayout.LayoutParams(-1,dp(158)));
+        exterior.addView(quadro,new LinearLayout.LayoutParams(-1,dp(142)));
         destaqueFocavel=quadro;
         quadro.setFocusable(true);
         quadro.setClickable(true);
@@ -803,11 +822,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         area.addView(lateralTexto,new LinearLayout.LayoutParams(0,-1,58));
         area.addView(new View(getContext()),new LinearLayout.LayoutParams(0,-1,42));
 
-        seloDestaque=texto("EM DESTAQUE",11,GELO,true);
+        seloDestaque=texto("HX TV",10,GELO,true);
         seloDestaque.setLetterSpacing(0.13f);
         lateralTexto.addView(seloDestaque);
 
-        tituloDestaque=texto("",20,TEXTO,true);
+        tituloDestaque=texto("",19,TEXTO,true);
         tituloDestaque.setMaxLines(2);
         tituloDestaque.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
@@ -835,7 +854,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         videoDestaque=video;
         tituloDestaque.setText(video.getTitle());
         detalhesDestaque.setText(video.getSecondTitle());
-        seloDestaque.setText(video.isLive?"●  AO VIVO":"EM DESTAQUE");
+        seloDestaque.setText(video.isLive?"●  AO VIVO":"HX TV  ·  DESTAQUE");
         Glide.with(getContext())
              .load(ClickbaitRemover.updateThumbnail(video,
                      MainUIData.instance(getContext()).getThumbQuality()))
@@ -849,12 +868,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             LinearLayout bloco=new LinearLayout(getContext());
             bloco.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-            bp.bottomMargin=dp(13);
+            bp.bottomMargin=dp(17);
             if(chave.startsWith("hx/live/")&&podeExibirHubAoVivo())
                 pagina.addView(bloco,Math.min(2,pagina.getChildCount()),bp);
             else pagina.addView(bloco,bp);
-            TextView cabecalho=texto(principal?"ESCOLHIDOS PARA VOCÊ":nome,16,TEXTO,true);
-            margem(cabecalho,0,0,0,8);bloco.addView(cabecalho);
+            TextView cabecalho=texto(principal?"PARA VOCÊ":nome,15,TEXTO,true);
+            margem(cabecalho,1,0,0,9);bloco.addView(cabecalho);
             HorizontalScrollView deslizar=new HorizontalScrollView(getContext());
             deslizar.setHorizontalScrollBarEnabled(false);
             deslizar.setClipToPadding(false);
@@ -941,7 +960,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
                         .translationY(selecionado?-dp(2):0)
-                        .setDuration(135).start();
+                        .setDuration(160).start();
                 if(Build.VERSION.SDK_INT>=21)
                     v.setElevation(dp(selecionado?4:0));
                 if(selecionado){
