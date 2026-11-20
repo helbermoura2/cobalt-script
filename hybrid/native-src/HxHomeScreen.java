@@ -40,6 +40,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +91,18 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private static final int ALTURA_CAPA_HOME=164;
     private final List<Disposable> buscasAssuntos=new ArrayList<>();
     private int geracaoPagina=0, proximoAssunto=0;
-    private boolean exploracaoPronta=false;
+    private boolean exploracaoPronta=false, hubAoVivoPronto=false;
+    private final LinkedHashMap<String,Video> transmissões=new LinkedHashMap<>();
+    private static final String[][] LIVE_ASSUNTOS={
+        {"Notícias","jornal notícias brasil ao vivo agora"},
+        {"Esportes","esportes futebol jogos ao vivo hoje"},
+        {"Games","live games gameplay streaming ao vivo agora"},
+        {"Música","rádio música show ao vivo transmissão"},
+        {"Podcasts","podcast entrevista ao vivo neste momento"},
+        {"Natureza","câmera ao vivo natureza animais"},
+        {"Tecnologia","tecnologia eventos ao vivo transmissão"},
+        {"Mundo","live news world streaming now"}
+    };
     private static final int MAX_VIDEOS_POR_FILEIRA=56; // compatibilidade do catálogo; crescimento é progressivo
     // Fontes reais: cada assunto pesquisa pelo próprio serviço de conteúdo
     // do aplicativo. Resultados, capas e autoria vêm da fonte, nunca são gerados.
@@ -507,6 +519,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
         exploracaoPronta=false;
+        hubAoVivoPronto=false;
+        transmissões.clear();
         proximoAssunto=0;
         pagina.removeAllViews();
         fileiras.clear();
@@ -544,6 +558,91 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         return secaoAtual>=0 && secaoAtual<secoes.size()
                 && secoes.get(secaoAtual).getId()==MediaGroup.TYPE_HOME;
     }
+    // Pesquisa transversal por vários temas, para não depender de um único
+    // grupo de transmissões ao vivo sugerido pelo algoritmo.
+    private void adicionarHubAoVivo(){
+        if(hubAoVivoPronto||!estaNaHome()||videoDestaque==null)return;
+        hubAoVivoPronto=true;
+        LinearLayout area=new LinearLayout(getContext());
+        area.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+        lp.bottomMargin=dp(10);
+        pagina.addView(area,Math.min(1,pagina.getChildCount()),lp);
+        TextView titulo=texto("●  AO VIVO AGORA",14,TEXTO,true);
+        area.addView(titulo);
+        TextView subtitulo=texto("Transmissões reais • escolha um tema para explorar mais",10,SECUNDARIO,false);
+        LinearLayout.LayoutParams t=new LinearLayout.LayoutParams(-1,-2);
+        t.topMargin=dp(2);t.bottomMargin=dp(8);
+        area.addView(subtitulo,t);
+        HorizontalScrollView scroll=new HorizontalScrollView(getContext());
+        scroll.setHorizontalScrollBarEnabled(false);
+        area.addView(scroll);
+        LinearLayout trilho=new LinearLayout(getContext());
+        trilho.setOrientation(LinearLayout.HORIZONTAL);
+        scroll.addView(trilho,new HorizontalScrollView.LayoutParams(-2,-2));
+        fileiras.put("hx/hub-ao-vivo",trilho);
+        for(String[] grupo:LIVE_ASSUNTOS){
+            TextView chip=texto(grupo[0],12,TEXTO,true);
+            chip.setGravity(Gravity.CENTER);
+            chip.setContentDescription("Pesquisar transmissões ao vivo de "+grupo[0]);
+            foco(chip);
+            chip.setBackground(fundo(0xFF1A2735,0,11));
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(103),dp(35));
+            p.rightMargin=dp(8);
+            trilho.addView(chip,p);
+            chip.setOnFocusChangeListener((v,ativo)->{
+                v.setBackground(fundo(ativo?FOCO:0xFF1A2735,ativo?0xFFEAF2FF:0,11));
+                if(ativo)setPainelAberto(false);
+            });
+            chip.setOnClickListener(v->
+                    SearchPresenter.instance(getContext()).startSearch(grupo[1]));
+        }
+        final int geracao=geracaoPagina;
+        for(int i=0;i<LIVE_ASSUNTOS.length;i++){
+            final int indice=i;
+            postDelayed(()->pesquisarLive(indice,geracao),300L+(long)i*650L);
+        }
+    }
+    private void pesquisarLive(int indice,int geracao){
+        if(geracao!=geracaoPagina||!estaNaHome()||!isAttachedToWindow())return;
+        final String consulta=LIVE_ASSUNTOS[indice][1];
+        try{
+            Disposable busca=YouTubeServiceManager.instance().getContentService()
+                .getSearchObserve(consulta,0).subscribe(resultado->{
+                    if(resultado==null)return;
+                    List<Video> validos=new ArrayList<>();
+                    for(MediaGroup grupo:resultado){
+                        if(grupo==null||grupo.isEmpty())continue;
+                        VideoGroup videos=VideoGroup.from(grupo);
+                        if(videos.getVideos()==null)continue;
+                        for(Video video:videos.getVideos()){
+                            if(video!=null&&video.isLive&&!video.isLiveEnd
+                                    &&!video.isUpcoming&&video.videoId!=null)
+                                validos.add(video);
+                        }
+                    }
+                    if(validos.isEmpty())return;
+                    post(()->{
+                        if(geracao!=geracaoPagina||!estaNaHome())return;
+                        for(Video v:validos){
+                            if(transmissões.size()>=56)break;
+                            transmissões.put(v.videoId,v);
+                        }
+                        if(!transmissões.isEmpty()){
+                            List<Video> playlist=new ArrayList<>(transmissões.values());
+                            desenharFileira("hx/live/multitemas",
+                                    "TRANSMISSÕES AO VIVO  •  "+playlist.size()+" DISPONÍVEIS",
+                                    playlist,false);
+                        }
+                    });
+                },erro->android.util.Log.w("HX-Live",
+                        "Falha isolada em "+LIVE_ASSUNTOS[indice][0],erro));
+            buscasAssuntos.add(busca);
+        }catch(RuntimeException e){
+            android.util.Log.w("HX-Live","Pesquisa indisponível",e);
+        }
+    }
+
     private void adicionarExplorar(){
         if(exploracaoPronta||!estaNaHome()||videoDestaque==null)return;
         exploracaoPronta=true;
@@ -551,7 +650,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         painel.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,-2);
         bloco.topMargin=dp(2);bloco.bottomMargin=dp(12);
-        pagina.addView(painel,Math.min(1,pagina.getChildCount()),bloco);
+        pagina.addView(painel,Math.min(2,pagina.getChildCount()),bloco);
         TextView titulo=texto("EXPLORE SEUS INTERESSES",14,TEXTO,true);
         titulo.setLetterSpacing(0.04f);
         painel.addView(titulo);
@@ -740,7 +839,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             LinearLayout bloco=new LinearLayout(getContext());
             bloco.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-            bp.bottomMargin=dp(13);pagina.addView(bloco,bp);
+            bp.bottomMargin=dp(13);
+            if(chave.startsWith("hx/live/")&&estaNaHome())
+                pagina.addView(bloco,Math.min(2,pagina.getChildCount()),bp);
+            else pagina.addView(bloco,bp);
             TextView cabecalho=texto(principal?"ESCOLHIDOS PARA VOCÊ":nome,16,TEXTO,true);
             margem(cabecalho,0,0,0,8);bloco.addView(cabecalho);
             HorizontalScrollView deslizar=new HorizontalScrollView(getContext());
@@ -875,6 +977,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(key==KeyEvent.KEYCODE_DPAD_DOWN
                         || (key==KeyEvent.KEYCODE_DPAD_UP && !principal)){
                     List<LinearLayout> linhas=new ArrayList<>(fileiras.values());
+                    // A ordem visual muda quando resultados ao vivo chegam.
+                    // Ordenar pelas posições reais em vez de ordem de download.
+                    Collections.sort(linhas,(x,y)->
+                            Integer.compare(posicaoFaixa(x),posicaoFaixa(y)));
                     int atualLinha=linhas.indexOf(faixaAtual);
                     int destino=atualLinha+(key==KeyEvent.KEYCODE_DPAD_DOWN?1:-1);
                     if(destino>=0 && destino<linhas.size()){
@@ -903,6 +1009,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(entrarNoConteudoPendente && (primeiroCartao!=null || destaqueFocavel!=null)){
             post(this::entrarNoConteudo);
         }
+    }
+    private int posicaoFaixa(LinearLayout faixa){
+        View bloco=faixa;
+        while(bloco.getParent() instanceof View
+                && bloco.getParent()!=pagina)bloco=(View)bloco.getParent();
+        if(bloco.getParent()!=pagina)return 100000;
+        return pagina.indexOfChild(bloco);
     }
     private void desenharGrupo(VideoGroup grupo){
         if(grupo==null)return;
@@ -933,11 +1046,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
         desenharFileira(id,grupo.getTitle()==null?"Para você":grupo.getTitle(),
                 videos,principal);
-        if(principal && estaNaHome() && !exploracaoPronta){
+        if(principal && estaNaHome()){
             final int geracao=geracaoPagina;
-            postDelayed(()->{
-                if(geracao==geracaoPagina && estaNaHome())adicionarExplorar();
-            },800);
+            if(!hubAoVivoPronto)
+                postDelayed(()->{
+                    if(geracao==geracaoPagina)adicionarHubAoVivo();
+                },170);
+            if(!exploracaoPronta)
+                postDelayed(()->{
+                    if(geracao==geracaoPagina)adicionarExplorar();
+                },400);
         }
     }
     private void desenharConfiguracoes(SettingsGroup grupo){
