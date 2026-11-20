@@ -120,7 +120,20 @@ import android.os.SystemClock;""")
         "    private SimpleExoPlayer mPlayer;",
         """    private SimpleExoPlayer mPlayer;
     private TextView mHxBufferStatus;
-    private long mHxVideoOpenedAt;""")
+    private long mHxVideoOpenedAt;
+    private boolean mHxFirstFrame;
+    private int mHxLoadingTicket;
+    private void hxShowLoadingLater() {
+        final TextView aviso = mHxBufferStatus;
+        final int ticket = ++mHxLoadingTicket;
+        if (aviso == null) return;
+        aviso.postDelayed(() -> {
+            if (ticket != mHxLoadingTicket || mHxBufferStatus != aviso
+                    || mHxFirstFrame || !isAdded()) return;
+            aviso.setText("PREPARANDO VÍDEO...");
+            aviso.setVisibility(View.VISIBLE);
+        }, 1700);
+    }""")
     substituir(playback,
         "        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);",
         """        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
@@ -145,11 +158,15 @@ import android.os.SystemClock;""")
             params.bottomMargin = Math.round(75f * getResources().getDisplayMetrics().density);
             ((FrameLayout) root).addView(aviso, params);
             mHxBufferStatus = aviso;
+            mHxFirstFrame = false;
+            hxShowLoadingLater();
         }""")
     substituir(playback,
         "    public void setVideo(Video video) {\n        mExoPlayerController.setVideo(video);",
         """    public void setVideo(Video video) {
         mHxVideoOpenedAt = SystemClock.elapsedRealtime();
+        mHxFirstFrame = false;
+        hxShowLoadingLater();
         mExoPlayerController.setVideo(video);""")
     substituir(playback,
         "        mExoPlayerController.setPlayer(mPlayer);",
@@ -168,7 +185,8 @@ import android.os.SystemClock;""")
                             aviso.setVisibility(View.VISIBLE);
                         }
                     }, 1800);
-                } else {
+                } else if (state == Player.STATE_ENDED ||
+                        (state == Player.STATE_READY && mHxFirstFrame)) {
                     aviso.setVisibility(View.GONE);
                 }
             }
@@ -176,6 +194,8 @@ import android.os.SystemClock;""")
         mPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
             @Override
             public void onRenderedFirstFrame() {
+                mHxFirstFrame = true;
+                mHxLoadingTicket++;
                 long tempo = SystemClock.elapsedRealtime() - mHxVideoOpenedAt;
                 Log.d(TAG, "HX first frame after " + tempo + " ms");
                 if (mHxBufferStatus != null)
