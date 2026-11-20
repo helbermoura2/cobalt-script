@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.10: sugestões discretas, sinalização de carregamento e PiP seguro.
+"""HX TV 0.9.11: PiP responsivo, carregamento desde o clique e painel de sugestões.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -120,7 +120,20 @@ import android.os.SystemClock;""")
         "    private SimpleExoPlayer mPlayer;",
         """    private SimpleExoPlayer mPlayer;
     private TextView mHxBufferStatus;
-    private long mHxVideoOpenedAt;""")
+    private long mHxVideoOpenedAt;
+    private boolean mHxFirstFrame;
+    private int mHxLoadingTicket;
+    private void hxShowLoadingLater() {
+        final TextView aviso = mHxBufferStatus;
+        final int ticket = ++mHxLoadingTicket;
+        if (aviso == null) return;
+        aviso.postDelayed(() -> {
+            if (ticket != mHxLoadingTicket || mHxBufferStatus != aviso
+                    || mHxFirstFrame || !isAdded()) return;
+            aviso.setText("PREPARANDO VÍDEO...");
+            aviso.setVisibility(View.VISIBLE);
+        }, 1700);
+    }""")
     substituir(playback,
         "        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);",
         """        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
@@ -145,11 +158,15 @@ import android.os.SystemClock;""")
             params.bottomMargin = Math.round(75f * getResources().getDisplayMetrics().density);
             ((FrameLayout) root).addView(aviso, params);
             mHxBufferStatus = aviso;
+            mHxFirstFrame = false;
+            hxShowLoadingLater();
         }""")
     substituir(playback,
         "    public void setVideo(Video video) {\n        mExoPlayerController.setVideo(video);",
         """    public void setVideo(Video video) {
         mHxVideoOpenedAt = SystemClock.elapsedRealtime();
+        mHxFirstFrame = false;
+        hxShowLoadingLater();
         mExoPlayerController.setVideo(video);""")
     substituir(playback,
         "        mExoPlayerController.setPlayer(mPlayer);",
@@ -168,7 +185,8 @@ import android.os.SystemClock;""")
                             aviso.setVisibility(View.VISIBLE);
                         }
                     }, 1800);
-                } else {
+                } else if (state == Player.STATE_ENDED ||
+                        (state == Player.STATE_READY && mHxFirstFrame)) {
                     aviso.setVisibility(View.GONE);
                 }
             }
@@ -176,12 +194,67 @@ import android.os.SystemClock;""")
         mPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
             @Override
             public void onRenderedFirstFrame() {
+                mHxFirstFrame = true;
+                mHxLoadingTicket++;
                 long tempo = SystemClock.elapsedRealtime() - mHxVideoOpenedAt;
                 Log.d(TAG, "HX first frame after " + tempo + " ms");
                 if (mHxBufferStatus != null)
                     mHxBufferStatus.post(() -> mHxBufferStatus.setVisibility(View.GONE));
             }
         });""")
+
+    # O painel de sugestões tem altura própria, sem ocupar a tela inteira.
+    # Playback permanece full-screen; apenas a área de recomendações é limitada.
+    substituir(playback,
+        """    private void updatePlayerBackground() {
+        if (isOverlayShown()) {
+            setBackgroundResource(isSuggestionsShown() ? R.drawable.player_background_suggestions : R.drawable.player_background_controls);
+        }
+    }""",
+        """    private void hxResizeSuggestionsViewport(boolean compact) {
+        View root = getView();
+        if (root == null) return;
+        View dock = root.findViewById(R.id.playback_controls_dock);
+        if (dock == null || !(dock.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) dock.getLayoutParams();
+        float density = getResources().getDisplayMetrics().density;
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+        int target = compact ? Math.max(Math.round(260f * density),
+                    Math.round(screenHeight * 0.46f))
+                : ViewGroup.LayoutParams.MATCH_PARENT;
+        if (params.height != target) {
+            params.height = target;
+            params.gravity = Gravity.BOTTOM;
+            dock.setLayoutParams(params);
+        }
+        if (dock instanceof ViewGroup) ((ViewGroup) dock).setClipChildren(compact);
+    }
+    private void updatePlayerBackground() {
+        if (isOverlayShown()) {
+            boolean compact = isSuggestionsShown();
+            setBackgroundResource(compact ? R.drawable.player_background_suggestions :
+                    R.drawable.player_background_controls);
+            hxResizeSuggestionsViewport(compact);
+        }
+    }""")
+    substituir(playback,
+        """        if (show && !isSuggestionsShown() && !isSuggestionsEmpty()) {
+            setPlayerRowIndex(1);
+        }""",
+        """        if (show && !isSuggestionsShown() && !isSuggestionsEmpty()) {
+            setPlayerRowIndex(1);
+            hxResizeSuggestionsViewport(true);
+        }""")
+    substituir(playback,
+        """        showOverlay(show);
+
+        setPlayerRowIndex(0);
+    }""",
+        """        showOverlay(show);
+
+        setPlayerRowIndex(0);
+        hxResizeSuggestionsViewport(false);
+    }""")
 
     # Camadas de vidro nativas ao redor das duas fileiras do SmartTube.
     # Preserva os IDs e listeners originais, incluindo ações de qualidade/live.
@@ -219,18 +292,31 @@ import android.os.SystemClock;""")
         "    private static final String TAG = PlaybackActivity.class.getSimpleName();",
         """    private static final String TAG = PlaybackActivity.class.getSimpleName();
     private static volatile boolean hxMiniPlayerActive = false;
+    public interface HxPipObserver { void onPipStateChanged(boolean active); }
+    private static java.lang.ref.WeakReference<HxPipObserver> hxPipObserver;
+    public static void setHxPipObserver(HxPipObserver observer) {
+        hxPipObserver = observer == null ? null :
+                new java.lang.ref.WeakReference<>(observer);
+        if (observer != null) observer.onPipStateChanged(hxMiniPlayerActive);
+    }
+    private static void notifyHxPiP() {
+        HxPipObserver observer = hxPipObserver == null ? null : hxPipObserver.get();
+        if (observer != null) observer.onPipStateChanged(hxMiniPlayerActive);
+    }
     public static boolean isHxMiniPlayerActive() {
         return hxMiniPlayerActive;
     }""")
     substituir(atividade,
         "        super.onPictureInPictureModeChanged(isInPictureInPictureMode);",
         """        super.onPictureInPictureModeChanged(isInPictureInPictureMode);
-        hxMiniPlayerActive = isInPictureInPictureMode;""")
+        hxMiniPlayerActive = isInPictureInPictureMode;
+        notifyHxPiP();""")
     substituir(atividade,
         "    @Override\n    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {",
         """    @Override
     protected void onDestroy() {
         hxMiniPlayerActive = false;
+        notifyHxPiP();
         super.onDestroy();
     }
 

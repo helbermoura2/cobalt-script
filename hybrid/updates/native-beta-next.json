@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.10-beta/HX-TV-Native-0.9.10-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.11-beta/HX-TV-Native-0.9.11-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.10-beta/HX-TV-Native-0.9.10-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.11-beta/HX-TV-Native-0.9.11-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -128,6 +128,19 @@
       "Buscas temáticas da Home distribuídas no tempo para priorizar navegação e reprodução",
       "Central AO VIVO preservada, com consultas mais espaçadas na Home e navegação inalterada",
       "Assinatura persistente para atualizar diretamente da 0.9.9"
+    ]
+  },
+  "0.9.11": {
+    "versionCode": 2489,
+    "changelog": [
+      "Correção estrutural: sugestões ocupam somente o painel inferior do player, sem encobrir toda a imagem",
+      "Controles completos continuam disponíveis ao retornar à barra principal",
+      "Carregamento visível após 1,7 segundo mesmo antes do início do buffering no ExoPlayer",
+      "A mensagem desaparece quando o primeiro quadro do vídeo é renderizado",
+      "A Home recebe eventos de entrada e saída do Picture-in-Picture para reservar espaço imediatamente",
+      "Corrigida a detecção tardia do miniplayer que ainda sobrepunha títulos e miniaturas",
+      "Mantidos 28 temas, filtros AO VIVO, histórico, conta, qualidade 4K e comandos originais",
+      "Mesma assinatura permanente para atualizar sem desinstalar"
     ]
   }
 }
