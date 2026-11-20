@@ -56,6 +56,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<BrowseSection> secoes=new ArrayList<>();
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
     private final LinkedHashMap<String,List<Video>> grupos=new LinkedHashMap<>();
+    private final LinkedHashMap<String,Integer> limitesPorFileira=new LinkedHashMap<>();
     private final LinearLayout menu;
     private final List<View> primeiraFileira=new ArrayList<>();
     private final LinearLayout pagina;
@@ -87,7 +88,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<Disposable> buscasAssuntos=new ArrayList<>();
     private int geracaoPagina=0, proximoAssunto=0;
     private boolean exploracaoPronta=false;
-    private static final int MAX_VIDEOS_POR_FILEIRA=56;
+    private static final int MAX_VIDEOS_POR_FILEIRA=56; // compatibilidade do catálogo; crescimento é progressivo
     // Fontes reais: cada assunto pesquisa pelo próprio serviço de conteúdo
     // do aplicativo. Resultados, capas e autoria vêm da fonte, nunca são gerados.
     private static final String[][] ASSUNTOS={
@@ -504,6 +505,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         pagina.removeAllViews();
         fileiras.clear();
         grupos.clear();
+        limitesPorFileira.clear();
         primeiroCartao=null;
         destaqueFocavel=null;
         grupoPrincipalId=null;
@@ -754,9 +756,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(principal)primeiraFileira.clear();
         final LinearLayout faixaAtual=faixa;
         faixa.removeAllViews();
+        final int limite=Math.min(videos.size(),
+                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):32);
         int n=0;
         for(Video video:videos){
-            if(n>=MAX_VIDEOS_POR_FILEIRA)break;
+            if(n>=limite)break;
             final int pos=n++;
             final String referencia=chave+"|"+(video.videoId==null?
                     "id:"+video.id:"vid:"+video.videoId);
@@ -857,13 +861,21 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(selecionado){
                     dados.onVideoItemSelected(video);
                     if(estaNaHome())atualizarDestaque(video);
-                    if(descoberto){
-                        // Descobertas adicionais são carregadas conforme o usuário
-                        // chega ao fim de uma fileira de resultados reais.
-                        if(pos>=Math.min(videos.size(),MAX_VIDEOS_POR_FILEIRA)-3)
-                            carregarProximosAssuntos(3);
-                    }else if(pos>=Math.min(videos.size(),MAX_VIDEOS_POR_FILEIRA)-1){
-                        dados.onScrollEnd(video);
+                    if(pos>=limite-3 && limite<videos.size()){
+                        // Carrega mais capas desta mesma fileira conforme necessário.
+                        // Redesenho adiado para preservar o vídeo focado pelo controle.
+                        int novo=Math.min(videos.size(),limite+18);
+                        Integer ja=limitesPorFileira.get(chave);
+                        if(ja==null||ja<novo){
+                            limitesPorFileira.put(chave,novo);
+                            postDelayed(()->{
+                                if(faixaAtual.isAttachedToWindow())
+                                    desenharFileira(chave,nome,videos,principal);
+                            },160);
+                        }
+                    }else if(pos>=limite-1){
+                        if(descoberto)carregarProximosAssuntos(3);
+                        else dados.onScrollEnd(video);
                     }
                 }
             });
@@ -988,6 +1000,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             renovarMenu();
         });
     }
+    @Override
+    protected void onDetachedFromWindow(){
+        geracaoPagina++;
+        for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
+        buscasAssuntos.clear();
+        if(animacaoNav!=null)animacaoNav.cancel();
+        super.onDetachedFromWindow();
+    }
+
     @Override public void removeAllSections(){
         executar(()->{secoes.clear();secaoAtual=-1;renovarMenu();});
     }
