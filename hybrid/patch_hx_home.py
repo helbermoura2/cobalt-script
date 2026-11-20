@@ -91,6 +91,14 @@ def main():
     }
 
     @Override
+    public void onWindowFocusChanged(boolean recebeuFoco) {
+        super.onWindowFocusChanged(recebeuFoco);
+        if (recebeuFoco && interfaceHx != null) {
+            interfaceHx.restaurarFocoAposReproducao();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         if (apresentadorHx != null) apresentadorHx.onViewDestroyed();
         super.onDestroy();
