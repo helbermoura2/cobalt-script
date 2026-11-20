@@ -661,6 +661,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         final int rodada=rodadaLives,geracao=geracaoPagina;
         transmissões.clear();
         livesPorTema.clear();
+        LinearLayout antiga=fileiras.get("hx/live/multitemas");
+        if(antiga!=null&&!antiga.hasFocus())antiga.removeAllViews();
         if(statusDeLive!=null)statusDeLive.setText("Procurando lives de 8 assuntos...");
         for(int i=0;i<LIVE_ASSUNTOS.length;i++){
             final int indice=i;
