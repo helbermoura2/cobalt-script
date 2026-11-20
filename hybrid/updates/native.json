@@ -1,20 +1,20 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.7.0/HX-TV-Native-0.7.0-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.8.0/HX-TV-Native-0.8.0-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.7.0/HX-TV-Native-0.7.0-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.8.0/HX-TV-Native-0.8.0-assinado-arm.apk"
   },
-  "0.7.0": {
-    "versionCode": 2476,
+  "0.8.0": {
+    "versionCode": 2477,
     "changelog": [
-      "Tela inicial com primeira fileira editorial EM DESTAQUE",
-      "Novos cards nativos cinematográficos com capa ocupando toda a área",
-      "Títulos, informações e AO VIVO sobre degradê escuro integrado à capa",
-      "Progresso de vídeos assistidos nos destaques",
-      "Menu compacto e identidade HX TV sem o emblema SmartTube",
-      "Letreiro rolante, D-pad e player preservados",
-      "Atualização com a mesma assinatura permanente e sem perder dados"
+      "Tela inicial HX realmente reorganizada: painel editorial largo",
+      "Imagem de destaque com texto separado e legível à esquerda",
+      "Miniaturas menores em uma faixa de seleção abaixo do destaque",
+      "Título e detalhes mudam com a miniatura selecionada",
+      "Indicação AO VIVO e comando ASSISTIR no painel editorial",
+      "Demais categorias, reprodução, controle remoto e letreiro preservados",
+      "Assinatura permanente compatível com instalação anterior"
     ]
   }
 }
