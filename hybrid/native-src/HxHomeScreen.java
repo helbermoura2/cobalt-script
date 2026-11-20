@@ -73,6 +73,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(isAttachedToWindow())post(this::atualizarReservaPiP);
     };
     private final ProgressBar carregando;
+    private LinearLayout estadoSecao;
+    private TextView mensagemEstadoSecao, tentarSecao;
+    private Runnable checagemSecaoVazia;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque;
     private ImageView imagemDestaque;
     private View primeiroCartao;
@@ -575,7 +578,66 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         return super.dispatchKeyEvent(evento);
     }
 
+    // Mensagem real para seções sem resultado, em vez de uma tela vazia.
+    // Nunca inventa vídeos, inscrições ou conteúdo de conta não sincronizada.
+    private void mostrarCarregamentoSecao(){
+        if(secaoAtual<0||secaoAtual>=secoes.size())return;
+        if(estadoSecao!=null && estadoSecao.getParent()==pagina)return;
+        String nome=secoes.get(secaoAtual).getTitle();
+        estadoSecao=new LinearLayout(getContext());
+        estadoSecao.setOrientation(LinearLayout.VERTICAL);
+        estadoSecao.setGravity(Gravity.CENTER_VERTICAL);
+        estadoSecao.setBackground(fundo(0xAA192330,0x303C4D,13));
+        estadoSecao.setPadding(dp(25),dp(18),dp(25),dp(17));
+        LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,dp(136));
+        bloco.topMargin=dp(19);
+        pagina.addView(estadoSecao,bloco);
+        TextView cabecalho=texto("HX TV  /  "+nome.toUpperCase(java.util.Locale.ROOT),12,GELO,true);
+        estadoSecao.addView(cabecalho);
+        mensagemEstadoSecao=texto("Buscando conteúdo disponível...",14,TEXTO,false);
+        LinearLayout.LayoutParams msg=new LinearLayout.LayoutParams(-1,-2);
+        msg.topMargin=dp(9);
+        estadoSecao.addView(mensagemEstadoSecao,msg);
+        tentarSecao=texto("↻  TENTAR NOVAMENTE",12,GELO,true);
+        tentarSecao.setGravity(Gravity.CENTER_VERTICAL);
+        tentarSecao.setBackground(fundo(0xFF273344,0xFF51647C,9));
+        tentarSecao.setPadding(dp(14),dp(6),dp(14),dp(6));
+        LinearLayout.LayoutParams retry=new LinearLayout.LayoutParams(dp(188),dp(35));
+        retry.topMargin=dp(12);
+        estadoSecao.addView(tentarSecao,retry);
+        tentarSecao.setVisibility(View.GONE);
+        tentarSecao.setFocusable(true);
+        tentarSecao.setOnClickListener(v->{
+            if(secaoAtual<0||secaoAtual>=secoes.size())return;
+            abrirSecao(secaoAtual);
+        });
+        if(checagemSecaoVazia!=null)removeCallbacks(checagemSecaoVazia);
+        final int geracao=geracaoPagina;
+        final LinearLayout quadro=estadoSecao;
+        checagemSecaoVazia=()->{
+            checagemSecaoVazia=null;
+            if(geracao!=geracaoPagina||quadro!=estadoSecao ||
+                    quadro.getParent()!=pagina || !grupos.isEmpty())return;
+            carregando.setVisibility(View.GONE);
+            mensagemEstadoSecao.setText("Nenhum vídeo recebido nesta seção. "+
+                    "Ela pode estar vazia ou ainda não sincronizada.");
+            tentarSecao.setVisibility(View.VISIBLE);
+        };
+        postDelayed(checagemSecaoVazia,4700);
+    }
+    private void limparEstadoSecao(){
+        if(checagemSecaoVazia!=null){
+            removeCallbacks(checagemSecaoVazia);
+            checagemSecaoVazia=null;
+        }
+        if(estadoSecao!=null && estadoSecao.getParent()==pagina)
+            pagina.removeView(estadoSecao);
+        estadoSecao=null;
+        mensagemEstadoSecao=null;
+        tentarSecao=null;
+    }
     private void limparConteudo(){
+        limparEstadoSecao();
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
@@ -621,8 +683,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         secaoAtual=indice;
         limparConteudo();
         marcarMenu();
-        TextView aviso=texto("CARREGANDO SEU CONTEÚDO...",15,SECUNDARIO,true);
-        margem(aviso,0,40,0,10);pagina.addView(aviso);
+        mostrarCarregamentoSecao();
         dados.onSectionFocused(secoes.get(indice).getId());
     }
     private boolean estaNaHome(){
@@ -1230,6 +1291,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(grupoPrincipalId==null)grupoPrincipalId=id;
         boolean principal=id.equals(grupoPrincipalId);
         if(principal&&videoDestaque==null){
+            limparEstadoSecao();
             pagina.removeAllViews();
             destaque(videos.get(0));
         }
@@ -1301,6 +1363,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     @Override
     protected void onDetachedFromWindow(){
         PlaybackActivity.setHxPipObserver(null);
+        limparEstadoSecao();
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
@@ -1337,7 +1400,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         });
     }
     @Override public void clearSection(BrowseSection secao){
-        executar(this::limparConteudo);
+        executar(()->{
+            limparConteudo();
+            if(secaoAtual>=0)mostrarCarregamentoSecao();
+        });
     }
     @Override public void selectSectionItem(int indice){focusOnContent();}
     @Override public void selectSectionItem(Video video){focusOnContent();}
