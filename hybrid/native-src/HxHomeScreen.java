@@ -506,7 +506,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     atual!=null && primeiraColunaDaFaixa(atual)){
                 if(focarCategoriaAtual())return true;
             }
-            if(tecla==KeyEvent.KEYCODE_DPAD_UP &&
+            if(!estaNaHome() && tecla==KeyEvent.KEYCODE_DPAD_UP &&
                     atual!=null && estaNaPrimeiraFileira(atual)){
                 if(focarCategoriaAtual())return true;
             }
@@ -631,7 +631,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                         if(!transmissões.isEmpty()){
                             List<Video> playlist=new ArrayList<>(transmissões.values());
                             desenharFileira("hx/live/multitemas",
-                                    "TRANSMISSÕES AO VIVO  •  "+playlist.size()+" DISPONÍVEIS",
+                                    "TRANSMISSÕES AO VIVO DE VÁRIOS ASSUNTOS",
                                     playlist,false);
                         }
                     });
@@ -961,7 +961,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                         }
                     }else if(pos>=limite-1){
                         if(descoberto)carregarProximosAssuntos(3);
-                        else dados.onScrollEnd(video);
+                        else if(!chave.startsWith("hx/live/"))
+                            dados.onScrollEnd(video);
                     }
                 }
             });
@@ -971,7 +972,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(event.getAction()!=KeyEvent.ACTION_DOWN)return false;
                 if(key==KeyEvent.KEYCODE_DPAD_LEFT && pos==0)
                     return focarCategoriaAtual();
-                if(key==KeyEvent.KEYCODE_DPAD_UP && principal)
+                if(key==KeyEvent.KEYCODE_DPAD_UP && principal && !estaNaHome())
                     return destaqueFocavel!=null
                             && destaqueFocavel.requestFocus();
                 if(key==KeyEvent.KEYCODE_DPAD_DOWN
@@ -990,6 +991,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                                     Math.min(pos,outra.getChildCount()-1));
                             if(proximo!=null&&proximo.requestFocus())return true;
                         }
+                    }else if(key==KeyEvent.KEYCODE_DPAD_UP
+                            &&destaqueFocavel!=null){
+                        return destaqueFocavel.requestFocus();
                     }
                 }
                 return false;
