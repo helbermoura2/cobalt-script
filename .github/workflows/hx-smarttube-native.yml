@@ -1,4 +1,4 @@
-name: HX TV Native 0.4.0 - build and signed OTA release
+name: HX TV Native 0.5.0 - build and signed OTA release
 on:
   push:
     branches: [smart-cobalt-hybrid]
@@ -65,13 +65,15 @@ jobs:
           python3 hybrid/patch_hx_shell.py upstream
           test -f upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/HxSpotlightCardPresenter.java
           grep -q 'R.drawable.hx_card_panel_active' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/presenter/VideoCardPresenter.java
+          grep -q 'getPackageArchiveInfo(' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java
+          ! grep -q 'apkPath.startsWith(' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/dialogs/AppUpdatePresenter.java
           python3 -m json.tool hybrid/updates/native.json >/dev/null
           test -z "$(find upstream -name keystore.properties -type f -print -quit)"
           grep -q 'br.com.hxnative.tvpreview' upstream/smarttubetv/build.gradle
           grep -q 'raw.githubusercontent.com/helbermoura2/cobalt-script/smart-cobalt-hybrid' upstream/common/src/stbeta/res/values/update_urls.xml
           grep -q 'hx_update_app' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java
           grep -q '#B68A56' upstream/smarttubetv/src/main/res/values/colors.xml
-          grep -q 'versionCode 2473' upstream/smarttubetv/build.gradle
+          grep -q 'versionCode 2474' upstream/smarttubetv/build.gradle
       - name: Supply optional Android library typedef metadata for old release plugin
         shell: bash
         run: |
@@ -100,33 +102,33 @@ jobs:
           apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*armeabi-v7a.apk' -type f | head -n 1)
           if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
           mkdir -p out
-          cp "$apk" out/HX-TV-Native-0.4.0-unsigned-arm.apk
+          cp "$apk" out/HX-TV-Native-0.5.0-unsigned-arm.apk
           sdk="$ANDROID_HOME/build-tools"
           bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
-          "$bt/aapt" dump badging out/HX-TV-Native-0.4.0-unsigned-arm.apk | head -n 15
-          "$bt/aapt" dump badging out/HX-TV-Native-0.4.0-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          "$bt/aapt" dump badging out/HX-TV-Native-0.5.0-unsigned-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.5.0-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
           # This is intentionally unsigned; it must be signed locally with
           # the persistent private HX key, never uploaded as a public release.
-          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.4.0-unsigned-arm.apk
-          if "$bt/aapt" dump badging out/HX-TV-Native-0.4.0-unsigned-arm.apk | grep -q '^application-debuggable'; then
+          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.5.0-unsigned-arm.apk
+          if "$bt/aapt" dump badging out/HX-TV-Native-0.5.0-unsigned-arm.apk | grep -q '^application-debuggable'; then
             echo 'ERROR: Release APK is debuggable'
             exit 1
           fi
-          sha256sum out/HX-TV-Native-0.4.0-unsigned-arm.apk
+          sha256sum out/HX-TV-Native-0.5.0-unsigned-arm.apk
       - name: Upload backup APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hx-native-androidtv-release-unsigned-0.4.0
-          path: out/HX-TV-Native-0.4.0-unsigned-arm.apk
+          name: hx-native-androidtv-release-unsigned-0.5.0
+          path: out/HX-TV-Native-0.5.0-unsigned-arm.apk
           if-no-files-found: error
-      - name: Sign HX 0.4.0 APK with persistent certificate
+      - name: Sign HX 0.5.0 APK with persistent certificate
         shell: bash
         env:
           HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
-          src="out/HX-TV-Native-0.4.0-unsigned-arm.apk"
-          dst="out/HX-TV-Native-0.4.0-assinado-arm.apk"
+          src="out/HX-TV-Native-0.5.0-unsigned-arm.apk"
+          dst="out/HX-TV-Native-0.5.0-assinado-arm.apk"
           bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           [[ -x "$bt/apksigner" && -x "$bt/aapt" && -x "$bt/zipalign" ]] || exit 1
           mkdir -p "$RUNNER_TEMP/hx-private"
@@ -159,33 +161,33 @@ jobs:
             echo "::error::Certificado diferente da HX TV 0.3.0. Abortando."
             exit 1
           }
-          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2473' versionName='0.4.0'"
+          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2474' versionName='0.5.0'"
           ! "$bt/aapt" dump badging "$dst" | grep -q '^application-debuggable' || {
             echo 'Release debuggable forbidden'; exit 1; }
           "$bt/zipalign" -c -v 4 "$dst" >/dev/null
-          sha256sum "$dst" > out/HX-TV-Native-0.4.0.sha256
-      - name: Publish verified signed HX TV 0.4.0 release
+          sha256sum "$dst" > out/HX-TV-Native-0.5.0.sha256
+      - name: Publish verified signed HX TV 0.5.0 release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag='hx-smarttube-signed-v0.4.0'
-          apk='HX-TV-Native-0.4.0-assinado-arm.apk'
+          tag='hx-smarttube-signed-v0.5.0'
+          apk='HX-TV-Native-0.5.0-assinado-arm.apk'
           test ! -z "$GH_TOKEN"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "::error::Version 0.4.0 already exists. Refuse overwrite."
+            echo "::error::Version 0.5.0 already exists. Refuse overwrite."
             exit 1
           fi
           gh release create "$tag" "out/$apk" --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title 'HX TV 0.4.0 — interface nativa cinematográfica' \
-            --notes 'HX Native TV: destaque cinematográfico na primeira fileira; cards com fundo escuro e moldura bronze; navegação lateral redesenhada; identidade HX no cabeçalho e Configurações. Letreiro rolante e player SmartTube preservados. APK release assinado com a chave permanente, atualizável por cima da 0.3.0. Motor Cobalt ainda não integrado.'
+            --title 'HX TV 0.5.0 — interface nativa cinematográfica' \
+            --notes 'HX Native TV: destaque cinematográfico na primeira fileira; cards com fundo escuro e moldura bronze; navegação lateral redesenhada; identidade HX no cabeçalho e Configurações. Letreiro rolante e player SmartTube preservados. APK release assinado com a chave permanente, atualizável por cima da 0.3.0. Atualizador corrigido: verifica assinatura do arquivo APK local baixado, não seu endereço remoto. A versão 0.3/0.4 precisa de instalação manual desta 0.5; após isso, atualizações automáticas futuras são possíveis. Motor Cobalt ainda não integrado.'
           mkdir -p check-release
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern "$apk" --dir check-release
           cmp "out/$apk" "check-release/$apk"
-      - name: Activate HX TV 0.4.0 signed in-app update
+      - name: Activate HX TV 0.5.0 signed in-app update
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -195,17 +197,18 @@ jobs:
           import json
           from pathlib import Path
           path=Path('hybrid/updates/native.json')
-          url='https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.4.0/HX-TV-Native-0.4.0-assinado-arm.apk'
+          url='https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.5.0/HX-TV-Native-0.5.0-assinado-arm.apk'
           data={
             "package":{"downloadUrlList":[url],"downloadUrl":url},
-            "0.4.0":{
-              "versionCode":2473,
+            "0.5.0":{
+              "versionCode":2474,
               "changelog":[
                 "HX TV: primeira fileira cinematográfica com vídeos em destaque",
                 "Cards escuros com moldura bronze e foco mais nítido",
                 "Menu lateral nativo redesenhado para controle remoto",
                 "Cabeçalho HX TV e cartões de Configurações próprios",
                 "Letreiro rolante e reprodução SmartTube preservados",
+                "Atualizador corrigido: verifica APK local, assinatura permanente e versão",
                 "Atualização assinada: mantém o aplicativo e os dados instalados"
               ]
             }
@@ -218,7 +221,7 @@ jobs:
           gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/hybrid/updates/native.json" \
             -f branch=smart-cobalt-hybrid \
             -f sha="$current_sha" \
-            -f message='Serve only verified same-key HX TV 0.4.0 OTA' \
+            -f message='Serve only verified same-key HX TV 0.5.0 OTA' \
             -f content="$payload" --jq '.commit.sha'
       - name: Clear temporary signing material
         if: always()
