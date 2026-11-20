@@ -1,6 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 
 import android.animation.ValueAnimator;
+import android.view.animation.DecelerateInterpolator;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -85,6 +86,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private boolean menuAberto=true;
     private ValueAnimator animacaoNav;
     private final List<TextView> itensMenu=new ArrayList<>();
+    private static final long DEMORA_EXPANSAO_MS=1100L;
+    private static final int LARGURA_STORY_COMPACTO=158;
+    private static final int LARGURA_STORY_EXPANDIDO=338;
+    private Runnable expansaoPendente;
+    private ValueAnimator animacaoStory;
+    private View storyExpandido;
     private final List<Disposable> buscasAssuntos=new ArrayList<>();
     private int geracaoPagina=0, proximoAssunto=0;
     private boolean exploracaoPronta=false;
@@ -496,7 +503,77 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
         return super.dispatchKeyEvent(evento);
     }
+
+    // Só expande o story se o foco continuar no mesmo vídeo por 1,1 segundo.
+    private void cancelarExpansaoStory(){
+        if(expansaoPendente!=null){
+            removeCallbacks(expansaoPendente);
+            expansaoPendente=null;
+        }
+    }
+    private void animarLarguraStory(View card,int largura,int duracao){
+        if(card==null||!card.isAttachedToWindow())return;
+        if(animacaoStory!=null)animacaoStory.cancel();
+        final int inicial=card.getLayoutParams().width;
+        final int destino=dp(largura);
+        if(inicial==destino)return;
+        animacaoStory=ValueAnimator.ofInt(inicial,destino);
+        animacaoStory.setDuration(duracao);
+        animacaoStory.setInterpolator(new DecelerateInterpolator(1.3f));
+        animacaoStory.addUpdateListener(a->{
+            if(!card.isAttachedToWindow())return;
+            ViewGroup.LayoutParams p=card.getLayoutParams();
+            p.width=(Integer)a.getAnimatedValue();
+            card.setLayoutParams(p);
+        });
+        animacaoStory.start();
+    }
+    private void focoStory(View card,boolean selecionado,ImageView imagem,
+                            ImageView original,TextView titulo,TextView subtitulo){
+        cancelarExpansaoStory();
+        if(!selecionado){
+            if(storyExpandido==card){
+                storyExpandido=null;
+                if(card.isAttachedToWindow())
+                    animarLarguraStory(card,LARGURA_STORY_COMPACTO,200);
+            }
+            imagem.animate().cancel();
+            imagem.animate().alpha(.50f).setDuration(160).start();
+            original.setVisibility(View.VISIBLE);
+            titulo.setTextSize(12);
+            subtitulo.setTextSize(9);
+            return;
+        }
+        expansaoPendente=()->{
+            expansaoPendente=null;
+            if(!card.isAttachedToWindow()||!card.isFocused()||!estaNaHome())return;
+            storyExpandido=card;
+            original.setVisibility(View.GONE);
+            imagem.animate().cancel();
+            imagem.animate().alpha(1f).setDuration(240).start();
+            titulo.setTextSize(15);
+            subtitulo.setTextSize(11);
+            card.setBackground(fundo(0xFF17283A,0xFFEBF4FF,15));
+            animarLarguraStory(card,LARGURA_STORY_EXPANDIDO,300);
+            postDelayed(()->{
+                if(!card.isAttachedToWindow()||!card.isFocused())return;
+                if(card.getParent() instanceof LinearLayout &&
+                        card.getParent().getParent() instanceof HorizontalScrollView){
+                    HorizontalScrollView horizontal=(HorizontalScrollView)
+                            card.getParent().getParent();
+                    int excesso=card.getRight()+dp(16)-horizontal.getWidth()
+                            -horizontal.getScrollX();
+                    if(excesso>0)horizontal.smoothScrollBy(excesso,0);
+                }
+            },320);
+        };
+        postDelayed(expansaoPendente,DEMORA_EXPANSAO_MS);
+    }
+
     private void limparConteudo(){
+        cancelarExpansaoStory();
+        if(animacaoStory!=null)animacaoStory.cancel();
+        storyExpandido=null;
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
@@ -741,9 +818,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             HorizontalScrollView deslizar=new HorizontalScrollView(getContext());
             deslizar.setHorizontalScrollBarEnabled(false);
             deslizar.setClipToPadding(false);
+            deslizar.setClipChildren(false);
             bloco.addView(deslizar);
             faixa=new LinearLayout(getContext());
             faixa.setOrientation(LinearLayout.HORIZONTAL);
+            faixa.setClipChildren(false);
             deslizar.addView(faixa);
             fileiras.put(chave,faixa);
         }
@@ -770,7 +849,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.setOrientation(LinearLayout.VERTICAL);
             foco(cartao);
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(
-                    dp(cartaz?158:224),dp(cartaz?248:187));
+                    dp(cartaz?LARGURA_STORY_COMPACTO:224),dp(cartaz?248:187));
             cp.rightMargin=dp(12);faixa.addView(cartao,cp);
             // Selo sobre a miniatura verdadeira, sem mascarar a interface.
             FrameLayout capa=new FrameLayout(getContext());
@@ -779,6 +858,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             ImageView miniatura=new ImageView(getContext());
             miniatura.setScaleType(ImageView.ScaleType.CENTER_CROP);
             capa.addView(miniatura,new FrameLayout.LayoutParams(-1,-1));
+            ImageView posterIntegral=null;
             if(cartaz){
                 // A fonte fornece imagem horizontal: usar composição editorial
                 // com capa de fundo e thumbnail integral ao centro, sem fingir
@@ -790,6 +870,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                         new int[]{0xDD090F18,0x00090F18}));
                 capa.addView(sombra,new FrameLayout.LayoutParams(-1,-1));
                 ImageView original=new ImageView(getContext());
+                posterIntegral=original;
                 original.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 FrameLayout.LayoutParams capaIntegral=new FrameLayout.LayoutParams(
                         -1,dp(91),Gravity.CENTER);
@@ -837,6 +918,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.addView(dadosCartao,new LinearLayout.LayoutParams(-1,dp(24)));
             cartoesPorId.put(referencia,cartao);
             if(principal)primeiraFileira.add(cartao);
+            final ImageView thumbIntegral=posterIntegral;
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 if(selecionado)setPainelAberto(false);
                 v.setBackground(fundo(selecionado?0xFF22364F:PAINEL,
@@ -847,7 +929,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                         .translationY(selecionado?-dp(3):0)
                         .setDuration(180).start();
                 if(Build.VERSION.SDK_INT>=21)
-                    v.setElevation(dp(selecionado?6:0));
+                    v.setElevation(dp(selecionado?8:0));
+                if(cartaz&&thumbIntegral!=null)
+                    focoStory(cartao,selecionado,miniatura,thumbIntegral,
+                              nomeCartao,dadosCartao);
                 if(selecionado){
                     ultimoVideoFocado=referencia;
                     ultimoControleFocado=v;
@@ -1002,6 +1087,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     @Override
     protected void onDetachedFromWindow(){
+        cancelarExpansaoStory();
+        if(animacaoStory!=null)animacaoStory.cancel();
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
