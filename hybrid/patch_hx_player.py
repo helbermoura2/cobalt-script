@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.12: corrigir aviso persistente ao iniciar reprodução e refinar HUD.
+"""HX TV 0.9.15 Glass Studio: botões translúcidos e sugestões completas, sem recortes.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -19,6 +19,29 @@ def main():
     root=args.parse_args().upstream.resolve()
 
     base=root/"smarttubetv/src/main"
+    # O tamanho anterior dos botões herdava os círculos antigos de Leanback.
+    # Substituir os próprios layouts mantém uma só fonte de geometria/touch target.
+    recursos=root/"leanback-1.0.0/src/main/res/layout"
+    for arquivo,botao,dimen in (
+        ("lb_control_button_primary.xml","54dp","lb_control_button_diameter"),
+        ("lb_control_button_secondary.xml","50dp","lb_control_button_secondary_diameter"),
+    ):
+        controle=recursos/arquivo
+        substituir(controle,
+            f'android:layout_width="@dimen/{dimen}"',
+            f'android:layout_width="{botao}"')
+        altura="lb_control_button_height" if "primary" in arquivo else "lb_control_button_secondary_height"
+        substituir(controle,
+            f'android:layout_height="@dimen/{altura}"',
+            f'android:layout_height="{botao}"')
+        substituir(controle,
+            'android:layout_width="@dimen/lb_control_icon_width"',
+            'android:layout_width="26dp"')
+        substituir(controle,
+            'android:layout_height="@dimen/lb_control_icon_height"',
+            'android:layout_height="26dp"')
+        ET.parse(controle)
+
     classe=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java"
     substituir(classe,
         "import android.text.TextUtils;",
@@ -39,41 +62,44 @@ import android.animation.StateListAnimator;""")
             // no foco, sem modificar a ação de cada botão. Mantém os ícones,
             // acessibilidade, cliques e todos os atalhos do player original.
             float density = parent.getResources().getDisplayMetrics().density;
-            int radius = Math.round(12 * density);
+            int radius = Math.round(16 * density);
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xEB475D72, 0xF0203142});
+                    new int[]{0xC47F93A8, 0xA43B526C});
             focus.setCornerRadius(radius);
-            focus.setStroke(stroke, 0xFFF0F5FD);
+            focus.setStroke(stroke, 0xFFF6FAFF);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xAC202B38, 0xC1121D2B});
+                    new int[]{0x763B4A5F, 0x6A192536});
             idle.setCornerRadius(radius);
-            idle.setStroke(Math.max(1, Math.round(density)), 0x246A7686);
+            idle.setStroke(Math.max(1, Math.round(density)), 0x547889A0);
             StateListDrawable states = new StateListDrawable();
             states.addState(new int[] {android.R.attr.state_focused}, focus);
             states.addState(new int[] {android.R.attr.state_pressed}, focus);
             states.addState(new int[] {}, idle);
             if (holder.mFocusableView != null) {
                 holder.mFocusableView.setBackground(states);
+                // Remove o círculo legado por trás do novo material de vidro.
+                if (holder.mFocusableView instanceof ImageView)
+                    ((ImageView) holder.mFocusableView).setImageDrawable(null);
                 // Microtransição nativa curta, sem dependências React e
                 // sem atrasar o foco, o clique nem o controle remoto.
                 if (android.os.Build.VERSION.SDK_INT >= 21) {
                     StateListAnimator motion = new StateListAnimator();
                     AnimatorSet selected = new AnimatorSet();
                     selected.playTogether(
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.035f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.035f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 0.86f, 1.0f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 8f * density));
-                    selected.setDuration(140);
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.045f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.045f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 0.92f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 2f * density));
+                    selected.setDuration(150);
                     AnimatorSet normal = new AnimatorSet();
                     normal.playTogether(
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.035f, 1.0f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.035f, 1.0f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 1.0f, 0.86f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 8f * density, 0f));
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.045f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.045f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 1.0f, 0.92f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 2f * density, 0f));
                     normal.setDuration(130);
                     motion.addState(new int[] {android.R.attr.state_focused}, selected);
                     motion.addState(new int[] {}, normal);
@@ -92,7 +118,7 @@ import android.animation.StateListAnimator;""")
                     android.content.Context context) {
                 float d = context.getResources().getDisplayMetrics().density;
                 return new android.util.Pair<>(
-                        Math.round(146f * d), Math.round(82f * d));
+                        Math.round(190f * d), Math.round(107f * d));
             }
             @Override
             protected boolean isCardMultilineTitleEnabled(
@@ -240,18 +266,27 @@ import android.os.SystemClock;""")
         if (root == null) return;
         View dock = root.findViewById(R.id.playback_controls_dock);
         if (dock == null || !(dock.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+        // O recorte de 46% escondia as capas acima da borda, deixando SÓ TÍTULOS.
+        // A grade volta a ter altura integral; Leanback posiciona a seleção
+        // na faixa inferior, mantendo o vídeo visível atrás da camada translúcida.
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) dock.getLayoutParams();
-        float density = getResources().getDisplayMetrics().density;
-        int screenHeight = getResources().getDisplayMetrics().heightPixels;
-        int target = compact ? Math.max(Math.round(260f * density),
-                    Math.round(screenHeight * 0.46f))
-                : ViewGroup.LayoutParams.MATCH_PARENT;
-        if (params.height != target) {
-            params.height = target;
+        if (params.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+            params.height = ViewGroup.LayoutParams.MATCH_PARENT;
             params.gravity = Gravity.BOTTOM;
             dock.setLayoutParams(params);
         }
-        if (dock instanceof ViewGroup) ((ViewGroup) dock).setClipChildren(compact);
+        if (dock instanceof ViewGroup) {
+            ((ViewGroup) dock).setClipChildren(false);
+            ((ViewGroup) dock).setClipToPadding(false);
+        }
+        if (mRowsSupportFragment != null &&
+                mRowsSupportFragment.getVerticalGridView() != null) {
+            androidx.leanback.widget.VerticalGridView grid =
+                    mRowsSupportFragment.getVerticalGridView();
+            grid.setWindowAlignment(androidx.leanback.widget.BaseGridView.WINDOW_ALIGN_NO_EDGE);
+            grid.setWindowAlignmentOffsetPercent(compact ? 70f : 86f);
+            grid.setItemAlignmentOffsetPercent(50f);
+        }
     }
     private void updatePlayerBackground() {
         if (isOverlayShown()) {
@@ -347,14 +382,14 @@ import android.os.SystemClock;""")
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {""")
     for arquivo,basecolor,borda in (
-        ("hx_player_primary_rail.xml","#69161E27","#33677383"),
-        ("hx_player_secondary_rail.xml","#41151D26","#23677383"),
+        ("hx_player_primary_rail.xml","#663E5268","#687A94AD"),
+        ("hx_player_secondary_rail.xml","#4A344657","#506C8198"),
     ):
         d=base/"res/drawable"/arquivo
         d.write_text(f'''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="{basecolor}"/>
-    <corners android:radius="15dp"/>
+    <corners android:radius="19dp"/>
     <stroke android:color="{borda}" android:width="1dp"/>
 </shape>
 ''',encoding="utf-8")
@@ -365,9 +400,9 @@ import android.os.SystemClock;""")
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#CD090E16"
-        android:centerColor="#A50A121F"
-        android:centerY="0.30"
+        android:startColor="#B80B101B"
+        android:centerColor="#90121C2C"
+        android:centerY="0.35"
         android:endColor="#00121C2A" />
 </shape>
 """,encoding="utf-8")
@@ -377,14 +412,14 @@ import android.os.SystemClock;""")
     suggestions.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#D80B121D"
-        android:centerColor="#AB0C1420"
-        android:centerY="0.42"
-        android:endColor="#190C1420" />
+        android:startColor="#C0121B2B"
+        android:centerColor="#76152030"
+        android:centerY="0.50"
+        android:endColor="#00152030" />
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER 0.9.10: sugestões 146x82dp, buffering legível, telemetria e estado PiP")
+    print("HX PLAYER GLASS STUDIO: thumbnails 190x107dp, full-height Leanback grid, translucent buttons")
 
 if __name__=="__main__":
     main()
