@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.13 Catalog Loading States (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.14 Stable Shelves (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -39,14 +39,19 @@ checks={
   "clear on arriving content": "limparEstadoSecao();" in home and "if(principal&&videoDestaque==null)" in home,
   "replace state with empty group": "VideoGroup.ACTION_REPLACE){" in home and "mostrarCarregamentoSecao();" in home,
   "dark branded cover fallback": 'texto("▶  HX TV",13' in home and ".error(android.R.color.transparent)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.13"' in native and "VERSION_CODE = 2491" in native,
-  "manifest next version": manifest.get("0.9.13",{}).get("versionCode")==2491,
+  "layout-consistent skeletons": "esqueletosSecao=new HorizontalScrollView" in home and "for(int i=0;i<4;i++)" in home,
+  "noninteractive skeleton cards": "esqueletosSecao.setFocusable(false)" in home and "sem capas ou vídeos fictícios" in home,
+  "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
+  "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
+  "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
+  "consistent app version": 'VERSION_NAME = "0.9.14"' in native and "VERSION_CODE = 2492" in native,
+  "manifest next version": manifest.get("0.9.14",{}).get("versionCode")==2492,
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
-  "OTA only after release check": "cmp out/HX-TV-Native-0.9.13-assinado-arm.apk test-release-final/HX-TV-Native-0.9.13-assinado-arm.apk" in workflow,
+  "OTA only after release check": "cmp out/HX-TV-Native-0.9.14-assinado-arm.apk test-release-final/HX-TV-Native-0.9.14-assinado-arm.apk" in workflow,
   "Java balanced braces":home.count("{")==home.count("}"),
 }
 for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.13: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.14: {len(checks)} regression gates passed")
