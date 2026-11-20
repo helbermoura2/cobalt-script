@@ -68,7 +68,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(contorno!=0)forma.setStroke(dp(1.4f),contorno);
         return forma;
     }
-    private TextView texto(String valor,int tamanho,int cor,boolean negrito){
+    private TextView texto(CharSequence valor,int tamanho,int cor,boolean negrito){
         TextView t=new TextView(getContext());
         t.setText(valor);
         t.setTextSize(tamanho);
