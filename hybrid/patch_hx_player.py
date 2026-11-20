@@ -24,7 +24,10 @@ def main():
         "import android.text.TextUtils;",
         """import android.text.TextUtils;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.StateListDrawable;""")
+import android.graphics.drawable.StateListDrawable;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.StateListAnimator;""")
     substituir(classe,
         """            View v = LayoutInflater.from(parent.getContext())
                     .inflate(mLayoutResourceId, parent, false);
@@ -52,6 +55,26 @@ import android.graphics.drawable.StateListDrawable;""")
             states.addState(new int[] {}, idle);
             if (holder.mFocusableView != null) {
                 holder.mFocusableView.setBackground(states);
+                // Foco Apple TV/React Bits adaptado para Android nativo:
+                // expansão mínima sem trocar o listener nem as ações originais.
+                if (android.os.Build.VERSION.SDK_INT >= 21) {
+                    StateListAnimator motion = new StateListAnimator();
+                    AnimatorSet selected = new AnimatorSet();
+                    selected.playTogether(
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.075f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.075f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 6f * density));
+                    selected.setDuration(140);
+                    AnimatorSet normal = new AnimatorSet();
+                    normal.playTogether(
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.075f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.075f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 6f * density, 0f));
+                    normal.setDuration(140);
+                    motion.addState(new int[] {android.R.attr.state_focused}, selected);
+                    motion.addState(new int[] {}, normal);
+                    holder.mFocusableView.setStateListAnimator(motion);
+                }
             }
             return holder;""")
     gradient=base/"res/drawable/player_background_controls.xml"
