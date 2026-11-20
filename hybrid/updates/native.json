@@ -1,17 +1,18 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-native-v0.1.0/HX-TV-Native-0.1.0-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.3.0/HX-TV-Native-0.3.0-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-native-v0.1.0/HX-TV-Native-0.1.0-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.3.0/HX-TV-Native-0.3.0-assinado-arm.apk"
   },
-  "0.1.0": {
-    "versionCode": 2470,
+  "0.3.0": {
+    "versionCode": 2472,
     "changelog": [
-      "Primeira prévia da nova base Android TV nativa (SmartTube)",
-      "Pacote e identidade exclusivos HX TV Preview",
-      "Prévia automática desativada",
-      "Configurações: atualizar aplicativo pelo canal do projeto"
+      "Tema HX TV OLED com detalhes Bronze Imperial",
+      "Identidade HX nos menus e cabeçalho",
+      "Letreiro rolante original mantido",
+      "Atualizador nativo com proteção de assinatura",
+      "Player SmartTube nativo; integração Cobalt ainda pendente"
     ]
   }
 }
