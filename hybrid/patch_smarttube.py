@@ -10,10 +10,10 @@ import re
 import sys
 
 PACKAGE_ID = "br.com.hxnative.tvpreview"
-LABEL = "HX TV Preview"
-VERSION_NAME = "0.9.4"
-VERSION_CODE = 2482
-RELEASE_TAG = "hx-tv-independent-v0.9.4-beta"
+LABEL = "HX TV"
+VERSION_NAME = "0.9.5"
+VERSION_CODE = 2483
+RELEASE_TAG = "hx-tv-independent-v0.9.5-beta"
 REPO = "helbermoura2/cobalt-script"
 
 
@@ -35,7 +35,7 @@ def make_icons(root: Path):
         ("app_logo.png", (512, 512), False),
         ("app_banner.png", (320, 180), True),
     ):
-        im = Image.new("RGB", size, "#0b0c0f")
+        im = Image.new("RGB", size, "#070D17")
         d = ImageDraw.Draw(im)
         w, h = size
         for i in range(h):
@@ -43,12 +43,12 @@ def make_icons(root: Path):
             c = (int(11+v*19), int(12+v*10), int(15+v*8))
             d.line((0, i, w, i), fill=c)
         inset=int(min(w,h)*0.10)
-        d.rounded_rectangle((inset,inset,w-inset,h-inset),radius=int(min(w,h)*.16),outline="#c59a67",width=max(3,w//100))
+        d.rounded_rectangle((inset,inset,w-inset,h-inset),radius=int(min(w,h)*.16),outline="#A8C5E5",width=max(3,w//100))
         font=ImageFont.truetype(font_path, int(min(w,h)*(.27 if not banner else .25)))
         label="HX"
         bbox=d.textbbox((0,0),label,font=font)
         tw=bbox[2]-bbox[0];th=bbox[3]-bbox[1]
-        d.text(((w-tw)/2,(h-th)/2-bbox[1]), label, fill="#f5d6a8", font=font)
+        d.text(((w-tw)/2,(h-th)/2-bbox[1]), label, fill="#F4F8FF", font=font)
         im.save(folder / name, "PNG", optimize=True)
         print("ICON", folder / name)
 
