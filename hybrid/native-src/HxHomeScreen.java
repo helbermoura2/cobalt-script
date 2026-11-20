@@ -23,6 +23,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
+import com.liskovsoft.mediaserviceinterfaces.data.SearchOptions;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 import io.reactivex.disposables.Disposable;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.BrowseSection;
@@ -608,7 +609,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         final String consulta=LIVE_ASSUNTOS[indice][1];
         try{
             Disposable busca=YouTubeServiceManager.instance().getContentService()
-                .getSearchObserve(consulta,0).subscribe(resultado->{
+                .getSearchObserve(consulta,
+                    SearchOptions.FEATURE_LIVE | SearchOptions.TYPE_VIDEO)
+                .subscribe(resultado->{
                     if(resultado==null)return;
                     List<Video> validos=new ArrayList<>();
                     for(MediaGroup grupo:resultado){
