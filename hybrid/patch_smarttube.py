@@ -80,7 +80,9 @@ def main():
     # SmartTube's release manifest must never offer its ORIGINAL package as an
     # update for our package. The app's built-in Settings > About > Check for updates
     # now points only at our manifest and uses the existing installer workflow.
-    url=f"https://raw.githubusercontent.com/{REPO}/smart-cobalt-hybrid/hybrid/updates/native.json"
+    # A interface HX experimental recebe atualizações assinadas num canal próprio.
+    # Não altera o canal estável (native.json) usado por versões anteriores.
+    url=f"https://raw.githubusercontent.com/{REPO}/smart-cobalt-hybrid/hybrid/updates/native-beta.json"
     updates=root/"common/src/stbeta/res/values/update_urls.xml"
     updates.write_text('<?xml version="1.0" encoding="utf-8"?>\n'
                        '<resources>\n    <string-array name="update_urls">\n'
