@@ -147,6 +147,11 @@ import android.os.SystemClock;""")
             mHxBufferStatus = aviso;
         }""")
     substituir(playback,
+        "    public void setVideo(Video video) {\n        mExoPlayerController.setVideo(video);",
+        """    public void setVideo(Video video) {
+        mHxVideoOpenedAt = SystemClock.elapsedRealtime();
+        mExoPlayerController.setVideo(video);""")
+    substituir(playback,
         "        mExoPlayerController.setPlayer(mPlayer);",
         """        mExoPlayerController.setPlayer(mPlayer);
         mHxVideoOpenedAt = SystemClock.elapsedRealtime();
@@ -221,6 +226,16 @@ import android.os.SystemClock;""")
         "        super.onPictureInPictureModeChanged(isInPictureInPictureMode);",
         """        super.onPictureInPictureModeChanged(isInPictureInPictureMode);
         hxMiniPlayerActive = isInPictureInPictureMode;""")
+    substituir(atividade,
+        "    @Override\n    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {",
+        """    @Override
+    protected void onDestroy() {
+        hxMiniPlayerActive = false;
+        super.onDestroy();
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {""")
     for arquivo,basecolor,borda in (
         ("hx_player_primary_rail.xml","#69161E27","#33677383"),
         ("hx_player_secondary_rail.xml","#41151D26","#23677383"),
