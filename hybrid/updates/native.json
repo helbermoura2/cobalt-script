@@ -1,20 +1,20 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.5.0/HX-TV-Native-0.5.0-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.6.0/HX-TV-Native-0.6.0-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.5.0/HX-TV-Native-0.5.0-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-smarttube-signed-v0.6.0/HX-TV-Native-0.6.0-assinado-arm.apk"
   },
-  "0.5.0": {
-    "versionCode": 2474,
+  "0.6.0": {
+    "versionCode": 2475,
     "changelog": [
-      "HX TV: primeira fileira cinematográfica com vídeos em destaque",
-      "Cards escuros com moldura bronze e foco mais nítido",
-      "Menu lateral nativo redesenhado para controle remoto",
-      "Cabeçalho HX TV e cartões de Configurações próprios",
-      "Letreiro rolante e reprodução SmartTube preservados",
-      "Atualizador corrigido: verifica APK local, assinatura permanente e versão",
-      "Atualização assinada: mantém o aplicativo e os dados instalados"
+      "Removido o símbolo SmartTube Beta do cabeçalho",
+      "Menu lateral compacto com navegação mais eficiente",
+      "Seleção mais discreta: moldura bronze fina e zoom reduzido",
+      "Primeira fileira mais compacta com mais vídeos visíveis",
+      "Cabeçalho HX TV menor e melhor aproveitamento da tela",
+      "Player, controle remoto e letreiro rolante preservados",
+      "Atualização assinada com o mesmo certificado permanente"
     ]
   }
 }
