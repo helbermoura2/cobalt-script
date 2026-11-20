@@ -559,10 +559,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         return secaoAtual>=0 && secaoAtual<secoes.size()
                 && secoes.get(secaoAtual).getId()==MediaGroup.TYPE_HOME;
     }
+    private boolean estaNaAreaAoVivo(){
+        return secaoAtual>=0 && secaoAtual<secoes.size()
+                && secoes.get(secaoAtual).getId()==MediaGroup.TYPE_LIVE;
+    }
+    private boolean podeExibirHubAoVivo(){
+        return estaNaHome()||estaNaAreaAoVivo();
+    }
     // Pesquisa transversal por vários temas, para não depender de um único
     // grupo de transmissões ao vivo sugerido pelo algoritmo.
     private void adicionarHubAoVivo(){
-        if(hubAoVivoPronto||!estaNaHome()||videoDestaque==null)return;
+        if(hubAoVivoPronto||!podeExibirHubAoVivo()||videoDestaque==null)return;
         hubAoVivoPronto=true;
         LinearLayout area=new LinearLayout(getContext());
         area.setOrientation(LinearLayout.VERTICAL);
@@ -605,7 +612,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
     }
     private void pesquisarLive(int indice,int geracao){
-        if(geracao!=geracaoPagina||!estaNaHome()||!isAttachedToWindow())return;
+        if(geracao!=geracaoPagina||!podeExibirHubAoVivo()||!isAttachedToWindow())return;
         final String consulta=LIVE_ASSUNTOS[indice][1];
         try{
             Disposable busca=YouTubeServiceManager.instance().getContentService()
@@ -626,7 +633,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     }
                     if(validos.isEmpty())return;
                     post(()->{
-                        if(geracao!=geracaoPagina||!estaNaHome())return;
+                        if(geracao!=geracaoPagina||!podeExibirHubAoVivo())return;
                         for(Video v:validos){
                             if(transmissões.size()>=56)break;
                             transmissões.put(v.videoId,v);
@@ -843,7 +850,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             bloco.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
             bp.bottomMargin=dp(13);
-            if(chave.startsWith("hx/live/")&&estaNaHome())
+            if(chave.startsWith("hx/live/")&&podeExibirHubAoVivo())
                 pagina.addView(bloco,Math.min(2,pagina.getChildCount()),bp);
             else pagina.addView(bloco,bp);
             TextView cabecalho=texto(principal?"ESCOLHIDOS PARA VOCÊ":nome,16,TEXTO,true);
@@ -1053,13 +1060,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
         desenharFileira(id,grupo.getTitle()==null?"Para você":grupo.getTitle(),
                 videos,principal);
-        if(principal && estaNaHome()){
+        if(principal && podeExibirHubAoVivo()){
             final int geracao=geracaoPagina;
             if(!hubAoVivoPronto)
                 postDelayed(()->{
                     if(geracao==geracaoPagina)adicionarHubAoVivo();
                 },170);
-            if(!exploracaoPronta)
+            if(estaNaHome()&&!exploracaoPronta)
                 postDelayed(()->{
                     if(geracao==geracaoPagina)adicionarExplorar();
                 },400);
