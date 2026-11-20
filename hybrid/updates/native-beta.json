@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.6-beta/HX-TV-Native-0.9.6-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.7-beta/HX-TV-Native-0.9.7-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.6-beta/HX-TV-Native-0.9.6-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.7-beta/HX-TV-Native-0.9.7-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -70,6 +70,20 @@
       "Miniaturas originais do YouTube preservadas dentro dos cards em estilo pôster",
       "Menu lateral retrátil, player e navegação funcional das versões anteriores mantidos",
       "Atualização interna assinada sobre a 0.9.5, sem desinstalar"
+    ]
+  },
+  "0.9.7": {
+    "versionCode": 2485,
+    "changelog": [
+      "Story cards compactos: expansão real para visual horizontal após 1,1 segundo de foco",
+      "Ao mudar a seleção, a expansão é cancelada e o card recolhe suavemente",
+      "Miniaturas verdadeiras do YouTube sem imagem duplicada dentro do card",
+      "Metadados adicionais surgem somente após expandir",
+      "Sugestões DURANTE O VÍDEO com miniaturas 16:9 menores e independentes da home",
+      "Botões do player mais discretos, com vidro grafite e foco suave",
+      "Fundo das sugestões mais leve para manter o vídeo em destaque",
+      "Menu lateral recolhido ao abrir, com expansão ao receber foco",
+      "Mantidos 28 temas, mais vídeos reais e instalação pelo botão ATUALIZAR"
     ]
   }
 }
