@@ -51,9 +51,9 @@ import java.util.Map;
  * Compartilha apenas os dados, contas e a reprodução do SmartTube.
  */
 public final class HxHomeScreen extends FrameLayout implements BrowseView {
-    private static final int PRETO=0xFF06080D, PAINEL=0xFF111824;
-    private static final int GELO=0xFFB5D7FF, TEXTO=0xFFF7F9FC, SECUNDARIO=0xFF9EACBF;
-    private static final int FOCO=0xFF213650;
+    private static final int PRETO=0xFF08090D, PAINEL=0xFF181B23;
+    private static final int GELO=0xFFD5E0EB, TEXTO=0xFFF7F8FA, SECUNDARIO=0xFF9DA6B2;
+    private static final int FOCO=0xFF313C4D;
     private final BrowsePresenter dados;
     private final List<BrowseSection> secoes=new ArrayList<>();
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
@@ -278,11 +278,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         topo.setGravity(Gravity.CENTER_VERTICAL);
         margem(topo,24,10,23,8);
         coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(53)));
-        TextView assinatura=texto("HX TV  /  SELEÇÃO PARA VOCÊ",13,TEXTO,true);
+        TextView assinatura=texto("HX TV  /  DESCUBRA",13,TEXTO,true);
         assinatura.setLetterSpacing(0.10f);
         topo.addView(assinatura);
         topo.addView(new View(contexto),new LinearLayout.LayoutParams(0,1,1));
-        TextView ambiente=texto("CINEMA  ·  SIGNATURE",10,GELO,true);
+        TextView ambiente=texto("",10,SECUNDARIO,true);
         ambiente.setLetterSpacing(0.1f);
         topo.addView(ambiente);
 
@@ -928,8 +928,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             if(principal)primeiraFileira.add(cartao);
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 if(selecionado)setPainelAberto(false);
-                v.setBackground(fundo(selecionado?0xFF22364F:PAINEL,
-                        selecionado?0xFFE4F3FF:0,14));
+                v.setBackground(fundo(selecionado?0xFF272D39:PAINEL,
+                        selecionado?0xFFF0F4F9:0,12));
                 v.animate().cancel();
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
