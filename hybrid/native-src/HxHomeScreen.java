@@ -101,7 +101,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final LinkedHashMap<Integer,LinkedHashMap<String,Video>> livesPorTema=new LinkedHashMap<>();
     private final List<TextView> filtrosDeLive=new ArrayList<>();
     private TextView statusDeLive;
-    private int filtroLiveSelecionado=-1;
+    private int filtroLiveSelecionado=-1, rodadaLives=0;
     private boolean livesPendentes;
     private Runnable destaquePendente;
     private String ultimoDestaqueId;
@@ -552,6 +552,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         filtrosDeLive.clear();
         statusDeLive=null;
         filtroLiveSelecionado=-1;
+        rodadaLives++;
         livesPendentes=false;
         if(destaquePendente!=null)removeCallbacks(destaquePendente);
         destaquePendente=null;
@@ -624,9 +625,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         trilho.setOrientation(LinearLayout.HORIZONTAL);
         scroll.addView(trilho,new HorizontalScrollView.LayoutParams(-2,-2));
         fileiras.put("hx/hub-ao-vivo",trilho);
-        for(int i=-1;i<LIVE_ASSUNTOS.length;i++){
+        for(int i=-1;i<=LIVE_ASSUNTOS.length;i++){
             final int indice=i;
-            String nome=i<0?"Todos":LIVE_ASSUNTOS[i][0];
+            String nome=i<0?"Todos":i==LIVE_ASSUNTOS.length?"↻ Atualizar":LIVE_ASSUNTOS[i][0];
             TextView chip=texto(nome,12,TEXTO,true);
             chip.setGravity(Gravity.CENTER);
             chip.setContentDescription("Filtrar transmissões: "+nome);
@@ -640,6 +641,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(ativo)setPainelAberto(false);
             });
             chip.setOnClickListener(v->{
+                if(indice==LIVE_ASSUNTOS.length){
+                    iniciarBuscaLives();
+                    return;
+                }
                 filtroLiveSelecionado=indice;
                 for(int j=0;j<filtrosDeLive.size();j++)
                     pintarFiltroLive(filtrosDeLive.get(j),
@@ -648,11 +653,26 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             });
             pintarFiltroLive(chip,false,i==-1);
         }
-        final int geracao=geracaoPagina;
+        iniciarBuscaLives();
+    }
+    private void iniciarBuscaLives(){
+        if(!podeExibirHubAoVivo())return;
+        rodadaLives++;
+        final int rodada=rodadaLives,geracao=geracaoPagina;
+        transmissões.clear();
+        livesPorTema.clear();
+        if(statusDeLive!=null)statusDeLive.setText("Procurando lives de 8 assuntos...");
         for(int i=0;i<LIVE_ASSUNTOS.length;i++){
             final int indice=i;
-            postDelayed(()->pesquisarLive(indice,geracao),300L+(long)i*650L);
+            postDelayed(()->pesquisarLive(indice,geracao,rodada),
+                    300L+(long)i*650L);
         }
+        postDelayed(()->{
+            if(geracao==geracaoPagina && rodada==rodadaLives
+                    && transmissões.isEmpty() && statusDeLive!=null)
+                statusDeLive.setText("Nenhuma transmissão ativa encontrada. "+
+                        "Use Atualizar ou experimente outro assunto.");
+        },12500);
     }
     private void pintarFiltroLive(TextView chip,boolean emFoco,boolean selecionado){
         chip.setBackground(fundo(emFoco?0xFF47566B:
@@ -685,8 +705,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         livesPendentes=false;
         desenharFileira("hx/live/multitemas","ASSISTA AO VIVO",lista,false);
     }
-    private void pesquisarLive(int indice,int geracao){
-        if(geracao!=geracaoPagina||!podeExibirHubAoVivo()||!isAttachedToWindow())return;
+    private void pesquisarLive(int indice,int geracao,int rodada){
+        if(geracao!=geracaoPagina||rodada!=rodadaLives
+                ||!podeExibirHubAoVivo()||!isAttachedToWindow())return;
         final String consulta=LIVE_ASSUNTOS[indice][1];
         try{
             Disposable busca=YouTubeServiceManager.instance().getContentService()
@@ -707,7 +728,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     }
                     if(validos.isEmpty())return;
                     post(()->{
-                        if(geracao!=geracaoPagina||!podeExibirHubAoVivo())return;
+                        if(geracao!=geracaoPagina||rodada!=rodadaLives
+                                ||!podeExibirHubAoVivo())return;
                         LinkedHashMap<String,Video> porTema=livesPorTema.get(indice);
                         if(porTema==null){
                             porTema=new LinkedHashMap<>();
