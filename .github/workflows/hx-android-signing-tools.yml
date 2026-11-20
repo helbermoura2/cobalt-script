@@ -1,0 +1,35 @@
+name: HX APK signing tools for local, private-key-preserving releases
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/hx-android-signing-tools.yml
+permissions:
+  contents: read
+jobs:
+  export-tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Package official Android APK tooling (no private key)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          echo "Selected SDK: $BUILD_TOOLS"
+          test -f "$BUILD_TOOLS/lib/apksigner.jar"
+          test -x "$BUILD_TOOLS/apksigner"
+          test -x "$BUILD_TOOLS/zipalign"
+          mkdir -p out/hx-tools/lib
+          cp "$BUILD_TOOLS/apksigner" "$BUILD_TOOLS/zipalign" out/hx-tools/
+          cp "$BUILD_TOOLS/lib/apksigner.jar" out/hx-tools/lib/
+          cp "$BUILD_TOOLS/source.properties" out/hx-tools/
+          chmod +x out/hx-tools/apksigner out/hx-tools/zipalign
+          tar -C out -czf out/hx-tools-official.tgz hx-tools
+          sha256sum out/hx-tools-official.tgz
+      - name: Export tools as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hx-android-apk-signing-tools
+          path: out/hx-tools-official.tgz
+          if-no-files-found: error
