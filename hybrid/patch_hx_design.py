@@ -52,20 +52,20 @@ def patch_theme(root: Path):
     common_strings = root / "common/src/main/res/values/strings.xml"
     replace_once(common_strings,
                  '<string name="check_for_updates">Check for updates</string>',
-                 '<string name="hx_theme_bronze">HX TV — Bronze Imperial (OLED)</string>\n'
+                 '<string name="hx_theme_bronze">HX TV — Signature Graphite (OLED)</string>\n'
                  '    <string name="hx_update_safe_wait">Não há uma atualização assinada compatível disponível.</string>\n'
                  '    <string name="check_for_updates">Check for updates</string>')
 
     colors = root / "smarttubetv/src/main/res/values/colors.xml"
     append_resources(colors, '''
-    <!-- HX theme: shared native TV resources, black OLED and warm bronze. -->
+    <!-- HX theme: shared native TV resources, black OLED, graphite and cool silver-blue. -->
     <color name="hx_black">#FF000000</color>
-    <color name="hx_panel">#FF12100F</color>
-    <color name="hx_card">#FF1F1C1A</color>
-    <color name="hx_bronze">#FFC99B64</color>
-    <color name="hx_bronze_dark">#FF5B4129</color>
-    <color name="hx_bronze_focus">#FFE0B985</color>
-    <color name="hx_text">#FFF8F2E8</color>''')
+    <color name="hx_panel">#FF101722</color>
+    <color name="hx_card">#FF1D2836</color>
+    <color name="hx_bronze">#FFB5D7FF</color>
+    <color name="hx_bronze_dark">#FF314860</color>
+    <color name="hx_bronze_focus">#FFF0F7FF</color>
+    <color name="hx_text">#FFF7F9FD</color>''')
 
     styles = root / "smarttubetv/src/main/res/values/styles.xml"
     append_resources(styles, '''
