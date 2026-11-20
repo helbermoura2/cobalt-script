@@ -11,9 +11,9 @@ import sys
 
 PACKAGE_ID = "br.com.hxnative.tvpreview"
 LABEL = "HX TV Preview"
-VERSION_NAME = "0.9.3"
-VERSION_CODE = 2481
-RELEASE_TAG = "hx-tv-independent-v0.9.3-beta"
+VERSION_NAME = "0.9.4"
+VERSION_CODE = 2482
+RELEASE_TAG = "hx-tv-independent-v0.9.4-beta"
 REPO = "helbermoura2/cobalt-script"
 
 
@@ -140,18 +140,18 @@ def main():
     # Keep card foreground bright for accessibility and do not touch the video decoder.
     colors=root/"smarttubetv/src/main/res/values/colors.xml"
     for old,new in (
-        ('<color name="fastlane_background">#0096a6</color>', '<color name="fastlane_background">#B68A56</color>'),
-        ('<color name="fastlane_background_dark">#004B53</color>', '<color name="fastlane_background_dark">#30241A</color>'),
-        ('<color name="search_opaque">#0096a6</color>', '<color name="search_opaque">#A67C4E</color>'),
-        ('<color name="card_default_background">#0096a6</color>', '<color name="card_default_background">#211A15</color>'),
-        ('<color name="card_default_background_dark">#004B53</color>', '<color name="card_default_background_dark">#191819</color>'),
+        ('<color name="fastlane_background">#0096a6</color>', '<color name="fastlane_background">#B5D7FF</color>'),
+        ('<color name="fastlane_background_dark">#004B53</color>', '<color name="fastlane_background_dark">#17283A</color>'),
+        ('<color name="search_opaque">#0096a6</color>', '<color name="search_opaque">#8EBFEF</color>'),
+        ('<color name="card_default_background">#0096a6</color>', '<color name="card_default_background">#17212F</color>'),
+        ('<color name="card_default_background_dark">#004B53</color>', '<color name="card_default_background_dark">#101722</color>'),
         ('<color name="shelf_background">#282828</color>', '<color name="shelf_background">#111112</color>'),
         ('<color name="shelf_background_dark">#131313</color>', '<color name="shelf_background_dark">#080809</color>'),
         ('<color name="scheme_grey_background">#181818</color>', '<color name="scheme_grey_background">#101011</color>'),
         ('<color name="scheme_grey_background_dark">#181818</color>', '<color name="scheme_grey_background_dark">#0A0A0B</color>'),
         ('<color name="scheme_grey_card_background_dark">#121212</color>', '<color name="scheme_grey_card_background_dark">#171719</color>'),
-        ('<color name="card_selected_background_yellow">#ffaa3f</color>', '<color name="card_selected_background_yellow">#DAB27D</color>'),
-        ('<color name="icon_background">#4A4F51</color>', '<color name="icon_background">#34271C</color>'),
+        ('<color name="card_selected_background_yellow">#ffaa3f</color>', '<color name="card_selected_background_yellow">#DBEBFF</color>'),
+        ('<color name="icon_background">#4A4F51</color>', '<color name="icon_background">#182637</color>'),
         ('<color name="orb_color">@color/grey</color>', '<color name="orb_color">@color/fastlane_background_dark</color>'),
         ('<color name="orb_bright_color">@color/grey</color>', '<color name="orb_bright_color">@color/fastlane_background</color>'),
     ):
@@ -159,7 +159,7 @@ def main():
     shared_colors=root/"common/src/main/res/values/colors.xml"
     replace_exact(shared_colors,
                   '<color name="leanback">#0096A6</color>',
-                  '<color name="leanback">#B68A56</color>')
+                  '<color name="leanback">#B5D7FF</color>')
 
     metrics=root/"smarttubetv/src/main/res/values/dimens.xml"
     replace_exact(metrics,'<dimen name="card_width">200dp</dimen>','<dimen name="card_width">218dp</dimen>')
@@ -181,7 +181,7 @@ def main():
     assert 'hx_update_app' in setting_items.read_text(encoding="utf-8")
     assert 'AppUpdatePresenter.instance(context).start(true)' in setting_items.read_text(encoding="utf-8")
     assert 'name="hx_update_app"' in common_strings.read_text(encoding="utf-8")
-    assert 'name="fastlane_background">#B68A56' in colors.read_text(encoding="utf-8")
+    assert 'name="fastlane_background">#B5D7FF' in colors.read_text(encoding="utf-8")
 
     # Disable upstream Google/Firebase tracking for our development preview.
     google=root/"smarttubetv/google-services.json"
