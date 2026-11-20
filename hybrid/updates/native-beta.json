@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.7-beta/HX-TV-Native-0.9.7-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.8-beta/HX-TV-Native-0.9.8-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.7-beta/HX-TV-Native-0.9.7-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.8-beta/HX-TV-Native-0.9.8-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -84,6 +84,21 @@
       "Fundo das sugestões mais leve para manter o vídeo em destaque",
       "Menu lateral recolhido ao abrir, com expansão ao receber foco",
       "Mantidos 28 temas, mais vídeos reais e instalação pelo botão ATUALIZAR"
+    ]
+  },
+  "0.9.8": {
+    "versionCode": 2486,
+    "changelog": [
+      "Nova home Horizon: capas 16:9 fixas e compactas, sem expansão de story",
+      "Destaque menor para mostrar mais vídeos já na primeira tela",
+      "Hub Ao Vivo Agora próximo ao topo, com notícias, esportes, games, músicas, podcasts, natureza e mais",
+      "Busca de verdade usando filtro oficial de transmissão AO VIVO, sem misturar vídeos gravados",
+      "Várias fontes temáticas de lives reunidas com remoção de duplicatas no hub",
+      "Mais variedade com 28 assuntos e recomendações reais preservadas",
+      "Navegação ajustada entre seções que carregam enquanto você usa o controle",
+      "Player com controles flutuantes mais discretos e sugestões 16:9 compactas",
+      "Visual grafite e prata neutra, sem o destaque azul intenso",
+      "Atualização assinada diretamente pelo aplicativo, sem desinstalar"
     ]
   }
 }
