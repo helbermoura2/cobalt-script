@@ -224,8 +224,8 @@ public final class HxSpotlightCardPresenter extends LongClickPresenter {
         HeroCard card = (HeroCard) viewHolder.view;
         Glide.with(card.getContext().getApplicationContext()).clear(card.art);
         card.art.setImageDrawable(null);
-        card.title.setText(null);
-        card.meta.setText(null);
+        card.title.setText("");
+        card.meta.setText("");
     }
 }
 """.replace('import android.graphics.Color;\n','')
