@@ -98,6 +98,9 @@ jobs:
               metadata_dir="$module_dir/build/intermediates/annotations_typedef_file/release"
               mkdir -p "$metadata_dir"
               : > "$metadata_dir/typedefs.txt"
+              flavor_metadata_dir="$module_dir/build/intermediates/annotations_typedef_file/stbetaRelease"
+              mkdir -p "$flavor_metadata_dir"
+              : > "$flavor_metadata_dir/typedefs.txt"
             done
           test -f upstream/exoplayer-amzn-2.10.6/library/ui/build/intermediates/annotations_typedef_file/release/typedefs.txt
           test -f upstream/doubletapplayerview/build/intermediates/annotations_typedef_file/release/typedefs.txt
@@ -105,7 +108,7 @@ jobs:
         working-directory: upstream
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaRelease -x extractReleaseAnnotations
+          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaRelease -x extractReleaseAnnotations -x extractStbetaReleaseAnnotations
       - name: Collect ARM build and validate package
         run: |
           set -euo pipefail
