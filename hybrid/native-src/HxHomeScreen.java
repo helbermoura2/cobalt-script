@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Looper;
@@ -43,6 +44,7 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +61,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
     private final LinkedHashMap<String,List<Video>> grupos=new LinkedHashMap<>();
     private final LinkedHashMap<String,Integer> limitesPorFileira=new LinkedHashMap<>();
+    // Registro da home: não repetir o mesmo vídeo em várias fileiras recomendadas.
+    private final LinkedHashMap<String,LinkedHashSet<String>> idsNaTela=new LinkedHashMap<>();
     private final LinearLayout menu;
     private final List<View> primeiraFileira=new ArrayList<>();
     private final LinearLayout pagina;
@@ -94,6 +98,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private int geracaoPagina=0, proximoAssunto=0;
     private boolean exploracaoPronta=false, hubAoVivoPronto=false;
     private final LinkedHashMap<String,Video> transmissões=new LinkedHashMap<>();
+    private final LinkedHashMap<Integer,LinkedHashMap<String,Video>> livesPorTema=new LinkedHashMap<>();
+    private final List<TextView> filtrosDeLive=new ArrayList<>();
+    private TextView statusDeLive;
+    private int filtroLiveSelecionado=-1, rodadaLives=0;
+    private boolean livesPendentes;
+    private Runnable destaquePendente;
+    private String ultimoDestaqueId;
     private static final String[][] LIVE_ASSUNTOS={
         {"Notícias","jornal notícias brasil ao vivo agora"},
         {"Esportes","esportes futebol jogos ao vivo hoje"},
@@ -191,19 +202,19 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.setOrientation(LinearLayout.VERTICAL);
         lateral.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF1A202C,0xFF10151E,0xFF090D14}));
+                new int[]{0xFF1B2029,0xFF12171E,0xFF0B1017}));
         margem(lateral,11,20,11,14);
         painelLateral=lateral;
-        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(174),-1));
+        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(166),-1));
 
-        TextView marca=texto("HX  TV",29,TEXTO,true);
+        TextView marca=texto("HX  TV",26,TEXTO,true);
         marcaNav=marca;
         marca.setLetterSpacing(0.06f);
         margem(marca,9,0,0,0);
         lateral.addView(marca);
         TextView lema=texto("A SUA EXPERIÊNCIA",9,SECUNDARIO,true);
         subtituloNav=lema;
-        lema.setLetterSpacing(0.17f);
+        lema.setLetterSpacing(0.12f);
         margem(lema,9,3,0,22);
         lateral.addView(lema);
 
@@ -218,7 +229,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.addView(alternar,toggleLp);
 
         View linhaBronze=new View(contexto);
-        linhaBronze.setBackgroundColor(0xFF2A384A);
+        linhaBronze.setBackgroundColor(0xFF2C333E);
         LinearLayout.LayoutParams divisorMenu=new LinearLayout.LayoutParams(-1,dp(1));
         divisorMenu.bottomMargin=dp(11);
         lateral.addView(linhaBronze,divisorMenu);
@@ -269,17 +280,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         coluna.setOrientation(LinearLayout.VERTICAL);
         coluna.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF141B29,0xFF080C12,PRETO}));
+                new int[]{0xFF101822,0xFF080D14,PRETO}));
         estrutura.addView(coluna,new LinearLayout.LayoutParams(0,-1,1));
 
         // A faixa superior é informativa. Os controles reais ficam na lateral,
         // longe da área utilizada pelo miniplayer flutuante do Android TV.
         LinearLayout topo=new LinearLayout(contexto);
         topo.setGravity(Gravity.CENTER_VERTICAL);
-        margem(topo,24,10,23,8);
-        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(53)));
-        TextView assinatura=texto("HX TV  /  DESCUBRA",13,TEXTO,true);
-        assinatura.setLetterSpacing(0.10f);
+        margem(topo,22,7,18,5);
+        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(47)));
+        TextView assinatura=texto("DESCUBRA",14,TEXTO,true);
+        assinatura.setLetterSpacing(0.08f);
         topo.addView(assinatura);
         topo.addView(new View(contexto),new LinearLayout.LayoutParams(0,1,1));
         TextView ambiente=texto("",10,SECUNDARIO,true);
@@ -287,7 +298,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         topo.addView(ambiente);
 
         View separador=new View(contexto);
-        separador.setBackgroundColor(0xFF253344);
+        separador.setBackgroundColor(0xFF27313D);
         coluna.addView(separador,new LinearLayout.LayoutParams(-1,dp(1)));
 
         rolagem=new ScrollView(contexto);
@@ -297,7 +308,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         coluna.addView(rolagem,new LinearLayout.LayoutParams(-1,0,1));
         pagina=new LinearLayout(contexto);
         pagina.setOrientation(LinearLayout.VERTICAL);
-        margem(pagina,24,14,24,30);
+        margem(pagina,20,12,20,30);
         rolagem.addView(pagina,new ScrollView.LayoutParams(-1,-2));
         TextView inicio=texto("ESCOLHA UMA CATEGORIA À ESQUERDA",15,SECUNDARIO,true);
         margem(inicio,0,24,0,20);
@@ -333,13 +344,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(int i=0;i<itensMenu.size()&&i<secoes.size();i++){
             TextView aba=itensMenu.get(i);
             String nome=secoes.get(i).getTitle();
-            aba.setText(menuAberto?simbolo(nome)+"   "+nome:simbolo(nome));
+            boolean temIcone=secoes.get(i).getResId()>0
+                    && aba.getCompoundDrawables()[0]!=null;
+            aba.setText(temIcone?(menuAberto?nome:""):
+                    (menuAberto?simbolo(nome)+"  "+nome:simbolo(nome)));
             aba.setGravity(menuAberto?Gravity.CENTER_VERTICAL:Gravity.CENTER);
-            margem(aba,menuAberto?13:1,8,menuAberto?7:1,8);
+            margem(aba,menuAberto?12:1,8,menuAberto?5:1,8);
         }
         if(marcaNav!=null){
             marcaNav.setText(menuAberto?"HX  TV":"HX");
-            marcaNav.setTextSize(menuAberto?29:22);
+            marcaNav.setTextSize(menuAberto?26:21);
             margem(marcaNav,menuAberto?9:0,0,0,0);
         }
         if(subtituloNav!=null)subtituloNav.setVisibility(menuAberto?View.VISIBLE:View.GONE);
@@ -357,9 +371,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(animacaoNav!=null)animacaoNav.cancel();
         atualizarLegendasMenu();
         int de=painelLateral.getLayoutParams().width;
-        int ate=dp(abrir?174:68);
+        int ate=dp(abrir?166:64);
         animacaoNav=ValueAnimator.ofInt(de,ate);
-        animacaoNav.setDuration(180);
+        animacaoNav.setDuration(150);
         animacaoNav.addUpdateListener(a->{
             ViewGroup.LayoutParams p=painelLateral.getLayoutParams();
             p.width=(int)a.getAnimatedValue();
@@ -375,8 +389,18 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(int i=0;i<secoes.size();i++){
             final int indice=i;
             String nome=secoes.get(i).getTitle();
-            TextView aba=texto(nome,13,TEXTO,true);
+            TextView aba=texto(nome,12,TEXTO,true);
             aba.setContentDescription(nome);
+            int recurso=secoes.get(i).getResId();
+            if(recurso>0){
+                try{
+                    Drawable icone=getResources().getDrawable(recurso).mutate();
+                    icone.setBounds(0,0,dp(18),dp(18));
+                    icone.setTint(SECUNDARIO);
+                    aba.setCompoundDrawables(icone,null,null,null);
+                    aba.setCompoundDrawablePadding(dp(9));
+                }catch(android.content.res.Resources.NotFoundException ignorado){}
+            }
             itensMenu.add(aba);
             aba.setSingleLine(true);
             aba.setEllipsize(TextUtils.TruncateAt.MARQUEE);
@@ -414,7 +438,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
         aba.setBackground(fundo(focada?FOCO:atual?0xFF29313E:0xFF181D26,
                 focada?0xFFD7E7FF:0,10));
-        aba.setTextColor(focada?TEXTO:atual?0xFFE0ECFA:SECUNDARIO);
+        aba.setTextColor(focada?TEXTO:atual?0xFFE2EAF3:SECUNDARIO);
+        Drawable icone=aba.getCompoundDrawables()[0];
+        if(icone!=null)icone.setTint(focada?TEXTO:atual?GELO:SECUNDARIO);
     }
     private void marcarMenu(){
         for(int i=0;i<menu.getChildCount();i++){
@@ -522,11 +548,21 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         exploracaoPronta=false;
         hubAoVivoPronto=false;
         transmissões.clear();
+        livesPorTema.clear();
+        filtrosDeLive.clear();
+        statusDeLive=null;
+        filtroLiveSelecionado=-1;
+        rodadaLives++;
+        livesPendentes=false;
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
+        destaquePendente=null;
+        ultimoDestaqueId=null;
         proximoAssunto=0;
         pagina.removeAllViews();
         fileiras.clear();
         grupos.clear();
         limitesPorFileira.clear();
+        idsNaTela.clear();
         primeiroCartao=null;
         destaqueFocavel=null;
         grupoPrincipalId=null;
@@ -575,13 +611,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         area.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
         lp.bottomMargin=dp(10);
-        pagina.addView(area,Math.min(1,pagina.getChildCount()),lp);
+        pagina.addView(area,Math.min(2,pagina.getChildCount()),lp);
         TextView titulo=texto("●  AO VIVO AGORA",14,TEXTO,true);
         area.addView(titulo);
-        TextView subtitulo=texto("Transmissões reais • escolha um tema para explorar mais",10,SECUNDARIO,false);
+        statusDeLive=texto("Buscando transmissões disponíveis...",10,SECUNDARIO,false);
         LinearLayout.LayoutParams t=new LinearLayout.LayoutParams(-1,-2);
-        t.topMargin=dp(2);t.bottomMargin=dp(8);
-        area.addView(subtitulo,t);
+        t.topMargin=dp(2);t.bottomMargin=dp(9);
+        area.addView(statusDeLive,t);
         HorizontalScrollView scroll=new HorizontalScrollView(getContext());
         scroll.setHorizontalScrollBarEnabled(false);
         area.addView(scroll);
@@ -589,30 +625,91 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         trilho.setOrientation(LinearLayout.HORIZONTAL);
         scroll.addView(trilho,new HorizontalScrollView.LayoutParams(-2,-2));
         fileiras.put("hx/hub-ao-vivo",trilho);
-        for(String[] grupo:LIVE_ASSUNTOS){
-            TextView chip=texto(grupo[0],12,TEXTO,true);
+        for(int i=-1;i<=LIVE_ASSUNTOS.length;i++){
+            final int indice=i;
+            String nome=i<0?"Todos":i==LIVE_ASSUNTOS.length?"↻ Atualizar":LIVE_ASSUNTOS[i][0];
+            TextView chip=texto(nome,12,TEXTO,true);
             chip.setGravity(Gravity.CENTER);
-            chip.setContentDescription("Pesquisar transmissões ao vivo de "+grupo[0]);
+            chip.setContentDescription("Filtrar transmissões: "+nome);
             foco(chip);
-            chip.setBackground(fundo(0xFF1A2735,0,11));
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(103),dp(35));
-            p.rightMargin=dp(8);
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(i<0?76:104),dp(37));
+            p.rightMargin=dp(7);
             trilho.addView(chip,p);
+            filtrosDeLive.add(chip);
             chip.setOnFocusChangeListener((v,ativo)->{
-                v.setBackground(fundo(ativo?FOCO:0xFF1A2735,ativo?0xFFEAF2FF:0,11));
+                pintarFiltroLive(chip,ativo,indice==filtroLiveSelecionado);
                 if(ativo)setPainelAberto(false);
             });
-            chip.setOnClickListener(v->
-                    SearchPresenter.instance(getContext()).startSearch(grupo[1]));
+            chip.setOnClickListener(v->{
+                if(indice==LIVE_ASSUNTOS.length){
+                    iniciarBuscaLives();
+                    return;
+                }
+                filtroLiveSelecionado=indice;
+                for(int j=0;j<filtrosDeLive.size();j++)
+                    pintarFiltroLive(filtrosDeLive.get(j),
+                            filtrosDeLive.get(j).isFocused(),j-1==indice);
+                atualizarFileiraLive();
+            });
+            pintarFiltroLive(chip,false,i==-1);
         }
-        final int geracao=geracaoPagina;
+        iniciarBuscaLives();
+    }
+    private void iniciarBuscaLives(){
+        if(!podeExibirHubAoVivo())return;
+        rodadaLives++;
+        final int rodada=rodadaLives,geracao=geracaoPagina;
+        transmissões.clear();
+        livesPorTema.clear();
+        LinearLayout antiga=fileiras.get("hx/live/multitemas");
+        if(antiga!=null&&!antiga.hasFocus())antiga.removeAllViews();
+        if(statusDeLive!=null)statusDeLive.setText("Procurando lives de 8 assuntos...");
         for(int i=0;i<LIVE_ASSUNTOS.length;i++){
             final int indice=i;
-            postDelayed(()->pesquisarLive(indice,geracao),300L+(long)i*650L);
+            postDelayed(()->pesquisarLive(indice,geracao,rodada),
+                    300L+(long)i*650L);
         }
+        postDelayed(()->{
+            if(geracao==geracaoPagina && rodada==rodadaLives
+                    && transmissões.isEmpty() && statusDeLive!=null)
+                statusDeLive.setText("Nenhuma transmissão ativa encontrada. "+
+                        "Use Atualizar ou experimente outro assunto.");
+        },12500);
     }
-    private void pesquisarLive(int indice,int geracao){
-        if(geracao!=geracaoPagina||!podeExibirHubAoVivo()||!isAttachedToWindow())return;
+    private void pintarFiltroLive(TextView chip,boolean emFoco,boolean selecionado){
+        chip.setBackground(fundo(emFoco?0xFF47566B:
+                selecionado?0xFF2D3848:0xFF19232E,
+                emFoco?0xFFF4F7FC:0,11));
+        chip.setTextColor(emFoco?TEXTO:selecionado?GELO:SECUNDARIO);
+    }
+    private void atualizarFileiraLive(){
+        if(!podeExibirHubAoVivo()||statusDeLive==null)return;
+        List<Video> lista=new ArrayList<>();
+        if(filtroLiveSelecionado<0)lista.addAll(transmissões.values());
+        else{
+            LinkedHashMap<String,Video> selecionadas=livesPorTema.get(filtroLiveSelecionado);
+            if(selecionadas!=null)lista.addAll(selecionadas.values());
+        }
+        String rotulo=filtroLiveSelecionado<0?"Todos":LIVE_ASSUNTOS[filtroLiveSelecionado][0];
+        if(lista.isEmpty()){
+            statusDeLive.setText("Nenhuma live encontrada em "+rotulo+". Escolha outro tema.");
+            LinearLayout anterior=fileiras.get("hx/live/multitemas");
+            if(anterior!=null&&!anterior.hasFocus())anterior.removeAllViews();
+            return;
+        }
+        statusDeLive.setText(lista.size()+" transmissões encontradas · "+rotulo);
+        LinearLayout faixaAnterior=fileiras.get("hx/live/multitemas");
+        if(faixaAnterior!=null && faixaAnterior.hasFocus()){
+            // Não destruir os cards sob o controle enquanto resultados chegam.
+            livesPendentes=true;
+            return;
+        }
+        livesPendentes=false;
+        desenharFileira("hx/live/multitemas","ASSISTA AO VIVO",lista,false);
+    }
+    private void pesquisarLive(int indice,int geracao,int rodada){
+        if(geracao!=geracaoPagina||rodada!=rodadaLives
+                ||!podeExibirHubAoVivo()||!isAttachedToWindow())return;
         final String consulta=LIVE_ASSUNTOS[indice][1];
         try{
             Disposable busca=YouTubeServiceManager.instance().getContentService()
@@ -633,17 +730,18 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     }
                     if(validos.isEmpty())return;
                     post(()->{
-                        if(geracao!=geracaoPagina||!podeExibirHubAoVivo())return;
+                        if(geracao!=geracaoPagina||rodada!=rodadaLives
+                                ||!podeExibirHubAoVivo())return;
+                        LinkedHashMap<String,Video> porTema=livesPorTema.get(indice);
+                        if(porTema==null){
+                            porTema=new LinkedHashMap<>();
+                            livesPorTema.put(indice,porTema);
+                        }
                         for(Video v:validos){
-                            if(transmissões.size()>=56)break;
-                            transmissões.put(v.videoId,v);
+                            if(porTema.size()<28)porTema.put(v.videoId,v);
+                            if(transmissões.size()<64)transmissões.put(v.videoId,v);
                         }
-                        if(!transmissões.isEmpty()){
-                            List<Video> playlist=new ArrayList<>(transmissões.values());
-                            desenharFileira("hx/live/multitemas",
-                                    "TRANSMISSÕES AO VIVO DE VÁRIOS ASSUNTOS",
-                                    playlist,false);
-                        }
+                        atualizarFileiraLive();
                     });
                 },erro->android.util.Log.w("HX-Live",
                         "Falha isolada em "+LIVE_ASSUNTOS[indice][0],erro));
@@ -660,7 +758,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         painel.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,-2);
         bloco.topMargin=dp(2);bloco.bottomMargin=dp(12);
-        pagina.addView(painel,Math.min(2,pagina.getChildCount()),bloco);
+        pagina.addView(painel,Math.min(4,pagina.getChildCount()),bloco);
         TextView titulo=texto("EXPLORE SEUS INTERESSES",14,TEXTO,true);
         titulo.setLetterSpacing(0.04f);
         painel.addView(titulo);
@@ -744,10 +842,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout exterior=new LinearLayout(getContext());
         exterior.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams vertical=new LinearLayout.LayoutParams(-1,-2);
-        vertical.bottomMargin=dp(15);
+        vertical.bottomMargin=dp(11);
         pagina.addView(exterior,0,vertical);
 
-        TextView rotulo=texto("SEU PRÓXIMO VÍDEO",10,GELO,true);
+        TextView rotulo=texto("ESCOLHIDO PARA VOCÊ",10,GELO,true);
         rotulo.setLetterSpacing(0.15f);
         margem(rotulo,1,0,0,6);
         exterior.addView(rotulo);
@@ -757,7 +855,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         FrameLayout quadro=new FrameLayout(getContext());
         quadro.setBackground(fundo(0xFF101721,0,17));
         if(Build.VERSION.SDK_INT>=21)quadro.setClipToOutline(true);
-        exterior.addView(quadro,new LinearLayout.LayoutParams(-1,dp(158)));
+        exterior.addView(quadro,new LinearLayout.LayoutParams(-1,dp(142)));
         destaqueFocavel=quadro;
         quadro.setFocusable(true);
         quadro.setClickable(true);
@@ -803,11 +901,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         area.addView(lateralTexto,new LinearLayout.LayoutParams(0,-1,58));
         area.addView(new View(getContext()),new LinearLayout.LayoutParams(0,-1,42));
 
-        seloDestaque=texto("EM DESTAQUE",11,GELO,true);
+        seloDestaque=texto("HX TV",10,GELO,true);
         seloDestaque.setLetterSpacing(0.13f);
         lateralTexto.addView(seloDestaque);
 
-        tituloDestaque=texto("",20,TEXTO,true);
+        tituloDestaque=texto("",19,TEXTO,true);
         tituloDestaque.setMaxLines(2);
         tituloDestaque.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
@@ -830,12 +928,25 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
         atualizarDestaque(primeiro);
     }
+    private void agendarDestaque(Video video){
+        if(video==null||video.videoId==null)return;
+        if(video.videoId.equals(ultimoDestaqueId))return;
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
+        final int geracao=geracaoPagina;
+        destaquePendente=()->{
+            destaquePendente=null;
+            if(geracao!=geracaoPagina||!isAttachedToWindow())return;
+            ultimoDestaqueId=video.videoId;
+            atualizarDestaque(video);
+        };
+        postDelayed(destaquePendente,170);
+    }
     private void atualizarDestaque(Video video){
         if(video==null||tituloDestaque==null)return;
         videoDestaque=video;
         tituloDestaque.setText(video.getTitle());
         detalhesDestaque.setText(video.getSecondTitle());
-        seloDestaque.setText(video.isLive?"●  AO VIVO":"EM DESTAQUE");
+        seloDestaque.setText(video.isLive?"●  AO VIVO":"HX TV  ·  DESTAQUE");
         Glide.with(getContext())
              .load(ClickbaitRemover.updateThumbnail(video,
                      MainUIData.instance(getContext()).getThumbQuality()))
@@ -843,18 +954,40 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
               .transition(DrawableTransitionOptions.withCrossFade(240))
              .error(R.drawable.card_placeholder).into(imagemDestaque);
     }
+    // Uma única aparição por vídeo entre fileiras da Home.
+    // Transmissões no hub são exceção: a prioridade é localizar lives ativas.
+    private List<Video> semDuplicarNaHome(String chave,List<Video> candidatos){
+        if(!estaNaHome()||chave.startsWith("hx/live/"))return candidatos;
+        LinkedHashSet<String> utilizados=new LinkedHashSet<>();
+        for(Map.Entry<String,LinkedHashSet<String>> registro:idsNaTela.entrySet()){
+            if(registro.getKey().equals(chave))break;
+            utilizados.addAll(registro.getValue());
+        }
+        LinkedHashSet<String> atuais=new LinkedHashSet<>();
+        List<Video> distintos=new ArrayList<>();
+        for(Video video:candidatos){
+            if(video==null)continue;
+            String id=video.videoId;
+            if(id==null||(!utilizados.contains(id)&&atuais.add(id)))
+                distintos.add(video);
+        }
+        idsNaTela.put(chave,atuais);
+        return distintos;
+    }
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
+        final List<Video> exibidos=semDuplicarNaHome(chave,videos);
+        if(exibidos==null||exibidos.isEmpty())return;
         LinearLayout faixa=fileiras.get(chave);
         if(faixa==null){
             LinearLayout bloco=new LinearLayout(getContext());
             bloco.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-            bp.bottomMargin=dp(13);
+            bp.bottomMargin=dp(17);
             if(chave.startsWith("hx/live/")&&podeExibirHubAoVivo())
-                pagina.addView(bloco,Math.min(2,pagina.getChildCount()),bp);
+                pagina.addView(bloco,Math.min(3,pagina.getChildCount()),bp);
             else pagina.addView(bloco,bp);
-            TextView cabecalho=texto(principal?"ESCOLHIDOS PARA VOCÊ":nome,16,TEXTO,true);
-            margem(cabecalho,0,0,0,8);bloco.addView(cabecalho);
+            TextView cabecalho=texto(principal?"PARA VOCÊ":nome,15,TEXTO,true);
+            margem(cabecalho,1,0,0,9);bloco.addView(cabecalho);
             HorizontalScrollView deslizar=new HorizontalScrollView(getContext());
             deslizar.setHorizontalScrollBarEnabled(false);
             deslizar.setClipToPadding(false);
@@ -875,10 +1008,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(principal)primeiraFileira.clear();
         final LinearLayout faixaAtual=faixa;
         faixa.removeAllViews();
-        final int limite=Math.min(videos.size(),
-                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):32);
+        final int limite=Math.min(exibidos.size(),
+                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):20);
         int n=0;
-        for(Video video:videos){
+        for(Video video:exibidos){
             if(n>=limite)break;
             final int pos=n++;
             final String referencia=chave+"|"+(video.videoId==null?
@@ -941,7 +1074,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
                         .translationY(selecionado?-dp(2):0)
-                        .setDuration(135).start();
+                        .setDuration(160).start();
                 if(Build.VERSION.SDK_INT>=21)
                     v.setElevation(dp(selecionado?4:0));
                 if(selecionado){
@@ -950,24 +1083,30 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     ultimaSecaoFocada=secaoAtual;
                     estavaNoMenu=false;
                 }
+                if(!selecionado && chave.startsWith("hx/live/") && livesPendentes){
+                    postDelayed(()->{
+                        if(!faixaAtual.hasFocus() && livesPendentes)
+                            atualizarFileiraLive();
+                    },250);
+                }
                 nomeCartao.setSelected(selecionado);
                 nomeCartao.setEllipsize(selecionado?
                         TextUtils.TruncateAt.MARQUEE:TextUtils.TruncateAt.END);
                 nomeCartao.setMarqueeRepeatLimit(-1);
                 if(selecionado){
                     dados.onVideoItemSelected(video);
-                    if(estaNaHome())atualizarDestaque(video);
-                    if(pos>=limite-3 && limite<videos.size()){
+                    if(estaNaHome())agendarDestaque(video);
+                    if(pos>=limite-3 && limite<exibidos.size()){
                         // Carrega mais capas desta mesma fileira conforme necessário.
                         // Redesenho adiado para preservar o vídeo focado pelo controle.
-                        int novo=Math.min(videos.size(),limite+18);
+                        int novo=Math.min(exibidos.size(),limite+12);
                         Integer ja=limitesPorFileira.get(chave);
                         if(ja==null||ja<novo){
                             limitesPorFileira.put(chave,novo);
                             postDelayed(()->{
                                 if(faixaAtual.isAttachedToWindow())
-                                    desenharFileira(chave,nome,videos,principal);
-                            },160);
+                                    desenharFileira(chave,nome,exibidos,principal);
+                            },220);
                         }
                     }else if(pos>=limite-1){
                         if(descoberto)carregarProximosAssuntos(3);
@@ -1037,6 +1176,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         String id=chave(grupo);
         if(grupo.getAction()==VideoGroup.ACTION_REMOVE){
             grupos.remove(id);
+            idsNaTela.remove(id);
             return;
         }
         List<Video> videos=grupos.get(id);
@@ -1122,6 +1262,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
         if(animacaoNav!=null)animacaoNav.cancel();
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
         super.onDetachedFromWindow();
     }
 
