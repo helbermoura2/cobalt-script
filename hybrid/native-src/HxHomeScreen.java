@@ -54,9 +54,9 @@ import java.util.Map;
  * Compartilha apenas os dados, contas e a reprodução do SmartTube.
  */
 public final class HxHomeScreen extends FrameLayout implements BrowseView {
-    private static final int PRETO=0xFF08090D, PAINEL=0xFF181B23;
-    private static final int GELO=0xFFD5E0EB, TEXTO=0xFFF7F8FA, SECUNDARIO=0xFF9DA6B2;
-    private static final int FOCO=0xFF313C4D;
+    private static final int PRETO=0xFF060910, PAINEL=0x99232D3C;
+    private static final int GELO=0xFFE0E9F4, TEXTO=0xFFF8FAFE, SECUNDARIO=0xFFB3BECE;
+    private static final int FOCO=0x80536C83;
     private final BrowsePresenter dados;
     private final List<BrowseSection> secoes=new ArrayList<>();
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
@@ -81,7 +81,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     // uma única miniatura antes das demais ao voltar do player.
     private final List<VideoGroup> loteAtualizacao=new ArrayList<>();
     private Runnable finalizarLoteAtualizacao;
-    private TextView tituloDestaque, detalhesDestaque, seloDestaque;
+    private TextView tituloDestaque, detalhesDestaque, seloDestaque, tituloSelecionado;
     private ImageView imagemDestaque;
     private View primeiroCartao;
     private Video videoDestaque;
@@ -106,7 +106,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<TextView> itensMenu=new ArrayList<>();
     // HOME Horizon: cards estáveis 16:9, foco rápido sem reflow de layout.
     private static final int LARGURA_CAPA_HOME=205;
-    private static final int ALTURA_CAPA_HOME=164;
+    private static final int ALTURA_CAPA_HOME=218;
     private final List<Disposable> buscasAssuntos=new ArrayList<>();
     private int geracaoPagina=0, proximoAssunto=0;
     private boolean exploracaoPronta=false, hubAoVivoPronto=false;
@@ -171,6 +171,23 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(contorno!=0)forma.setStroke(dp(1.4f),contorno);
         return forma;
     }
+    // Vidro translúcido de baixo custo: sem blur em tempo real na TCL.
+    // Superfícies com alfa, brilho discreto e borda, não blocos azulados opacos.
+    private GradientDrawable vidro(int cor, int borda, int raio){
+        GradientDrawable forma=new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xA83F4C60,cor,0x8B121925});
+        forma.setCornerRadius(dp(raio));
+        forma.setStroke(dp(1),borda);
+        return forma;
+    }
+    private boolean estaNasInscricoes(){
+        if(secaoAtual<0||secaoAtual>=secoes.size())return false;
+        String titulo=secoes.get(secaoAtual).getTitle();
+        if(titulo==null)return false;
+        String v=titulo.toLowerCase(java.util.Locale.ROOT);
+        return v.contains("inscri")||v.contains("subscription");
+    }
     private TextView texto(CharSequence valor,int tamanho,int cor,boolean negrito){
         TextView t=new TextView(getContext());
         t.setText(valor);
@@ -186,10 +203,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     private void foco(View v){
         v.setFocusable(true);
-        v.setBackground(fundo(PAINEL,0,13));
+        v.setBackground(vidro(0x65263343,0x356F8399,14));
         v.setOnFocusChangeListener((item,selecionado)->{
-            item.setBackground(fundo(selecionado?FOCO:PAINEL,
-                    selecionado?0xFFEAF5FF:0,13));
+            item.setBackground(vidro(selecionado?0xA44D6279:0x65263343,
+                    selecionado?0xFFF0F6FF:0x356F8399,14));
             if(Build.VERSION.SDK_INT>=21)item.setElevation(dp(selecionado?4:0));
         });
     }
@@ -214,11 +231,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout lateral=new LinearLayout(contexto);
         lateral.setOrientation(LinearLayout.VERTICAL);
         lateral.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF1B2029,0xFF12171E,0xFF0B1017}));
-        margem(lateral,11,20,11,14);
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xE0313D4F,0xC8182433,0xD20A111E}));
+        margem(lateral,10,17,10,10);
         painelLateral=lateral;
-        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(166),-1));
+        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(186),-1));
 
         TextView marca=texto("HX  TV",26,TEXTO,true);
         marcaNav=marca;
@@ -292,8 +309,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout coluna=new LinearLayout(contexto);
         coluna.setOrientation(LinearLayout.VERTICAL);
         coluna.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xFF101822,0xFF080D14,PRETO}));
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF101B2B,0xFF080D18,PRETO}));
         estrutura.addView(coluna,new LinearLayout.LayoutParams(0,-1,1));
 
         // A faixa superior é informativa. Os controles reais ficam na lateral,
@@ -302,7 +319,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         topo.setGravity(Gravity.CENTER_VERTICAL);
         margem(topo,22,7,18,5);
         coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(47)));
-        TextView assinatura=texto("DESCUBRA",14,TEXTO,true);
+        TextView assinatura=texto("DESCUBRA  ·  HX TV",13,TEXTO,true);
+        tituloSelecionado=assinatura;
+        assinatura.setSingleLine(true);
+        assinatura.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        assinatura.setMarqueeRepeatLimit(-1);
+        assinatura.setSelected(true);
         assinatura.setLetterSpacing(0.08f);
         topo.addView(assinatura);
         topo.addView(new View(contexto),new LinearLayout.LayoutParams(0,1,1));
@@ -413,9 +435,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(animacaoNav!=null)animacaoNav.cancel();
         atualizarLegendasMenu();
         int de=painelLateral.getLayoutParams().width;
-        int ate=dp(abrir?166:64);
+        int ate=dp(abrir?186:68);
         animacaoNav=ValueAnimator.ofInt(de,ate);
-        animacaoNav.setDuration(150);
+        animacaoNav.setDuration(190);
         animacaoNav.addUpdateListener(a->{
             ViewGroup.LayoutParams p=painelLateral.getLayoutParams();
             p.width=(int)a.getAnimatedValue();
@@ -575,7 +597,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     atual!=null && primeiraColunaDaFaixa(atual)){
                 if(focarCategoriaAtual())return true;
             }
-            if(!estaNaHome() && tecla==KeyEvent.KEYCODE_DPAD_UP &&
+            if(!estaNaHome() && !estaNasInscricoes()
+                    && tecla==KeyEvent.KEYCODE_DPAD_UP &&
                     atual!=null && estaNaPrimeiraFileira(atual)){
                 if(focarCategoriaAtual())return true;
             }
