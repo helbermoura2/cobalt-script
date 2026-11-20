@@ -203,6 +203,59 @@ import android.os.SystemClock;""")
             }
         });""")
 
+    # O painel de sugestões tem altura própria, sem ocupar a tela inteira.
+    # Playback permanece full-screen; apenas a área de recomendações é limitada.
+    substituir(playback,
+        """    private void updatePlayerBackground() {
+        if (isOverlayShown()) {
+            setBackgroundResource(isSuggestionsShown() ? R.drawable.player_background_suggestions : R.drawable.player_background_controls);
+        }
+    }""",
+        """    private void hxResizeSuggestionsViewport(boolean compact) {
+        View root = getView();
+        if (root == null) return;
+        View dock = root.findViewById(R.id.playback_controls_dock);
+        if (dock == null || !(dock.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) dock.getLayoutParams();
+        float density = getResources().getDisplayMetrics().density;
+        int screenHeight = getResources().getDisplayMetrics().heightPixels;
+        int target = compact ? Math.max(Math.round(260f * density),
+                    Math.round(screenHeight * 0.46f))
+                : ViewGroup.LayoutParams.MATCH_PARENT;
+        if (params.height != target) {
+            params.height = target;
+            params.gravity = Gravity.BOTTOM;
+            dock.setLayoutParams(params);
+        }
+        dock.setClipChildren(compact);
+    }
+    private void updatePlayerBackground() {
+        if (isOverlayShown()) {
+            boolean compact = isSuggestionsShown();
+            setBackgroundResource(compact ? R.drawable.player_background_suggestions :
+                    R.drawable.player_background_controls);
+            hxResizeSuggestionsViewport(compact);
+        }
+    }""")
+    substituir(playback,
+        """        if (show && !isSuggestionsShown() && !isSuggestionsEmpty()) {
+            setPlayerRowIndex(1);
+        }""",
+        """        if (show && !isSuggestionsShown() && !isSuggestionsEmpty()) {
+            setPlayerRowIndex(1);
+            hxResizeSuggestionsViewport(true);
+        }""")
+    substituir(playback,
+        """        showOverlay(show);
+
+        setPlayerRowIndex(0);
+    }""",
+        """        showOverlay(show);
+
+        setPlayerRowIndex(0);
+        hxResizeSuggestionsViewport(false);
+    }""")
+
     # Camadas de vidro nativas ao redor das duas fileiras do SmartTube.
     # Preserva os IDs e listeners originais, incluindo ações de qualidade/live.
     controls=base/"res/layout/lb_playback_transport_controls_row.xml"
