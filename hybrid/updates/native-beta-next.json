@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.8-beta/HX-TV-Native-0.9.8-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.9-beta/HX-TV-Native-0.9.9-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.8-beta/HX-TV-Native-0.9.8-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.9-beta/HX-TV-Native-0.9.9-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -99,6 +99,21 @@
       "Player com controles flutuantes mais discretos e sugestões 16:9 compactas",
       "Visual grafite e prata neutra, sem o destaque azul intenso",
       "Atualização assinada diretamente pelo aplicativo, sem desinstalar"
+    ]
+  },
+  "0.9.9": {
+    "versionCode": 2487,
+    "changelog": [
+      "Interface Studio com visual grafite, ícones nativos e tipografia padronizada",
+      "Home com conteúdo recomendado na frente e vídeos repetidos removidos entre fileiras",
+      "Destaque mais compacto e troca de imagens suavizada para navegação rápida",
+      "Central AO VIVO com filtros interativos por oito assuntos e botão Atualizar",
+      "As transmissões são verificadas como ativas e reunidas sem duplicações",
+      "Atualizações de lives não desmontam a fileira enquanto você está navegando",
+      "Player nativo com controles de vidro mais discretos, sugestões menores e textos auxiliares menos dominantes",
+      "Picture-in-Picture em proporção 16:9 quando o sistema permitir; posicionamento depende do Android TV",
+      "Carregamento progressivo de mais capas para manter a fluidez da TCL",
+      "Histórico, pesquisa, modo clássico, contas e atualização direta preservados"
     ]
   }
 }
