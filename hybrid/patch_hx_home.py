@@ -78,6 +78,7 @@ def main():
 
     @Override
     protected void onPause() {
+        if (interfaceHx != null) interfaceHx.guardarFocoAntesDeSair();
         if (apresentadorHx != null) apresentadorHx.onViewPaused();
         super.onPause();
     }
@@ -86,6 +87,7 @@ def main():
     protected void onResume() {
         super.onResume();
         if (apresentadorHx != null) apresentadorHx.onViewResumed();
+        if (interfaceHx != null) interfaceHx.restaurarFocoAposReproducao();
     }
 
     @Override
