@@ -16,13 +16,11 @@ jobs:
       - name: Verify private signing secrets are configured
         shell: bash
         env:
-          HX_KEYSTORE_B64: ${{ secrets.HX_KEYSTORE_B64 }}
-          HX_KEYSTORE_PASSWORD: ${{ secrets.HX_KEYSTORE_PASSWORD }}
-          HX_KEY_ALIAS: ${{ secrets.HX_KEY_ALIAS }}
+          HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
-          if [[ -z "$HX_KEYSTORE_B64" || -z "$HX_KEYSTORE_PASSWORD" || -z "$HX_KEY_ALIAS" ]]; then
-            echo "::error::Set repository Actions secrets HX_KEYSTORE_B64, HX_KEYSTORE_PASSWORD and HX_KEY_ALIAS. Do not publish the private key."
+          if [[ -z "$HX_SIGNING_BUNDLE_B64" ]]; then
+            echo "::error::Add private Actions secret HX_SIGNING_BUNDLE_B64. Do not publish the key."
             exit 1
           fi
       - name: Checkout update manifest and source
@@ -41,9 +39,7 @@ jobs:
       - name: Sign with permanent key, verify version and fingerprint
         shell: bash
         env:
-          HX_KEYSTORE_B64: ${{ secrets.HX_KEYSTORE_B64 }}
-          HX_KEYSTORE_PASSWORD: ${{ secrets.HX_KEYSTORE_PASSWORD }}
-          HX_KEY_ALIAS: ${{ secrets.HX_KEY_ALIAS }}
+          HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
           src=unsigned/HX-TV-Native-0.3.0-unsigned-arm.apk
@@ -56,8 +52,19 @@ jobs:
           "$bt/zipalign" -c -v 4 "$src" >/dev/null
           mkdir -p release "$RUNNER_TEMP/hx-private"
           trap 'rm -rf "$RUNNER_TEMP/hx-private"' EXIT
-          printf '%s' "$HX_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/hx-private/key.p12"
-          chmod 600 "$RUNNER_TEMP/hx-private/key.p12"
+          python3 - <<'PY'
+          import base64, json, os
+          from pathlib import Path
+          payload=json.loads(base64.b64decode(os.environ["HX_SIGNING_BUNDLE_B64"]))
+          folder=Path(os.environ["RUNNER_TEMP"]) / "hx-private"
+          (folder / "key.p12").write_bytes(base64.b64decode(payload["key_b64"]))
+          (folder / "password.txt").write_text(payload["password"], encoding="utf-8")
+          (folder / "alias.txt").write_text(payload["alias"], encoding="utf-8")
+          for name in ("key.p12","password.txt","alias.txt"):
+              (folder/name).chmod(0o600)
+          PY
+          export HX_KEYSTORE_PASSWORD="$(cat "$RUNNER_TEMP/hx-private/password.txt")"
+          export HX_KEY_ALIAS="$(cat "$RUNNER_TEMP/hx-private/alias.txt")"
           keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/hx-private/key.p12" \
             -storepass "$HX_KEYSTORE_PASSWORD" -alias "$HX_KEY_ALIAS" >/dev/null
           "$bt/apksigner" sign \
