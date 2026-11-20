@@ -227,7 +227,7 @@ import android.os.SystemClock;""")
             params.gravity = Gravity.BOTTOM;
             dock.setLayoutParams(params);
         }
-        dock.setClipChildren(compact);
+        if (dock instanceof ViewGroup) ((ViewGroup) dock).setClipChildren(compact);
     }
     private void updatePlayerBackground() {
         if (isOverlayShown()) {
