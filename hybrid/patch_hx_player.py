@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV Premium Motion: player refinado e sugestões compactas.
+"""HX TV Horizon: player de controles flutuantes discretos e sugestões compactas.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -39,18 +39,18 @@ import android.animation.StateListAnimator;""")
             // no foco, sem modificar a ação de cada botão. Mantém os ícones,
             // acessibilidade, cliques e todos os atalhos do player original.
             float density = parent.getResources().getDisplayMetrics().density;
-            int radius = Math.round(13 * density);
+            int radius = Math.round(10 * density);
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xE33C5A79, 0xEC1C2B41});
+                    new int[]{0xE235506E, 0xE516263A});
             focus.setCornerRadius(radius);
             focus.setStroke(stroke, 0xFFE7F1FF);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xC91A2532, 0xDA0A121D});
+                    new int[]{0xB9172535, 0xC80A1421});
             idle.setCornerRadius(radius);
-            idle.setStroke(Math.max(1, Math.round(density)), 0x405F748E);
+            idle.setStroke(Math.max(1, Math.round(density)), 0x2D5F748E);
             StateListDrawable states = new StateListDrawable();
             states.addState(new int[] {android.R.attr.state_focused}, focus);
             states.addState(new int[] {android.R.attr.state_pressed}, focus);
@@ -63,18 +63,18 @@ import android.animation.StateListAnimator;""")
                     StateListAnimator motion = new StateListAnimator();
                     AnimatorSet selected = new AnimatorSet();
                     selected.playTogether(
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.025f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.025f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.04f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.04f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 0.86f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 8f * density));
-                    selected.setDuration(190);
+                    selected.setDuration(150);
                     AnimatorSet normal = new AnimatorSet();
                     normal.playTogether(
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.025f, 1.0f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.025f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.04f, 1.0f),
+                        ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.04f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 1.0f, 0.86f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 8f * density, 0f));
-                    normal.setDuration(175);
+                    normal.setDuration(130);
                     motion.addState(new int[] {android.R.attr.state_focused}, selected);
                     motion.addState(new int[] {}, normal);
                     holder.mFocusableView.setStateListAnimator(motion);
@@ -92,7 +92,7 @@ import android.animation.StateListAnimator;""")
                     android.content.Context context) {
                 float d = context.getResources().getDisplayMetrics().density;
                 return new android.util.Pair<>(
-                        Math.round(164f * d), Math.round(92f * d));
+                        Math.round(154f * d), Math.round(87f * d));
             }
             @Override
             protected boolean isCardMultilineTitleEnabled(
@@ -114,17 +114,17 @@ import android.animation.StateListAnimator;""")
         'android:id="@+id/controls_dock"\n                android:background="@drawable/hx_player_primary_rail"\n                android:padding="2dp"\n                android:layout_width="wrap_content"')
     substituir(controls,
         'android:id="@+id/secondary_controls_dock"\n                android:layout_width="wrap_content"',
-        'android:id="@+id/secondary_controls_dock"\n                android:background="@drawable/hx_player_secondary_rail"\n                android:padding="2dp"\n                android:layout_marginTop="5dp"\n                android:layout_width="wrap_content"')
+        'android:id="@+id/secondary_controls_dock"\n                android:background="@drawable/hx_player_secondary_rail"\n                android:padding="2dp"\n                android:layout_marginTop="3dp"\n                android:layout_width="wrap_content"')
     ET.parse(controls)
     for arquivo,basecolor,borda in (
-        ("hx_player_primary_rail.xml","#BE0C1725","#80AAC9E6"),
-        ("hx_player_secondary_rail.xml","#A30A111B","#5F748DA7"),
+        ("hx_player_primary_rail.xml","#5109121F","#23465B75"),
+        ("hx_player_secondary_rail.xml","#3909121F","#1A465B75"),
     ):
         d=base/"res/drawable"/arquivo
         d.write_text(f'''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="{basecolor}"/>
-    <corners android:radius="16dp"/>
+    <corners android:radius="12dp"/>
     <stroke android:color="{borda}" android:width="1dp"/>
 </shape>
 ''',encoding="utf-8")
@@ -135,9 +135,9 @@ import android.animation.StateListAnimator;""")
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#FA04080F"
-        android:centerColor="#EC080E1C"
-        android:centerY="0.18"
+        android:startColor="#DD050A11"
+        android:centerColor="#C4081020"
+        android:centerY="0.24"
         android:endColor="#00121C2A" />
 </shape>
 """,encoding="utf-8")
@@ -154,7 +154,7 @@ import android.animation.StateListAnimator;""")
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER PREMIUM MOTION: controle OLED refinado e sugestões 164x92px em dp, funções preservadas")
+    print("HX PLAYER HORIZON: controles flutuantes e sugestões 154x87dp, funções preservadas")
 
 if __name__=="__main__":
     main()
