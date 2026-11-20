@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.5-beta/HX-TV-Native-0.9.5-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.6-beta/HX-TV-Native-0.9.6-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.5-beta/HX-TV-Native-0.9.5-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.6-beta/HX-TV-Native-0.9.6-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -58,6 +58,18 @@
       "Player com controles arredondados e trilhos de vidro grafite",
       "Foco visível para o controle da TCL, sem perder as funções existentes",
       "Atualização assinada sobre a 0.9.4, sem precisar reinstalar"
+    ]
+  },
+  "0.9.6": {
+    "versionCode": 2484,
+    "changelog": [
+      "Tela inicial inspirada na referência cinematográfica com capas verticais e destaque dinâmico",
+      "Expansão progressiva do catálogo: mais vídeos reais por fileira ao navegar",
+      "28 novos assuntos acessíveis na home, com buscas temáticas reais e sem conteúdos fictícios",
+      "Fileiras adicionais de cinema, séries, ciência, esportes, tecnologia e outros temas, carregadas sob demanda",
+      "Miniaturas originais do YouTube preservadas dentro dos cards em estilo pôster",
+      "Menu lateral retrátil, player e navegação funcional das versões anteriores mantidos",
+      "Atualização interna assinada sobre a 0.9.5, sem desinstalar"
     ]
   }
 }
