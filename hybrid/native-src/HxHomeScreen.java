@@ -299,6 +299,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 dp(42),dp(42),Gravity.CENTER);
         addView(carregando,progresso);
         carregando.setVisibility(View.GONE);
+        // O menu já nasce recolhido; o foco nele abre os nomes automaticamente.
+        post(()->{if(!menu.hasFocus())setPainelAberto(false);});
     }
 
 
