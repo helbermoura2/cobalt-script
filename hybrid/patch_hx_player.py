@@ -36,15 +36,16 @@ import android.graphics.drawable.StateListDrawable;""")
             // quando ele recebe foco pelo controle remoto. Mantém os ícones,
             // acessibilidade, cliques e todos os atalhos do player original.
             float density = parent.getResources().getDisplayMetrics().density;
-            int radius = Math.round(16 * density);
-            int stroke = Math.max(1, Math.round(1.5f * density));
+            int radius = Math.round(999 * density);
+            int stroke = Math.max(1, Math.round(2f * density));
             GradientDrawable focus = new GradientDrawable();
-            focus.setColor(0xF0372A1E);
+            focus.setColor(0xFF49321D);
             focus.setCornerRadius(radius);
-            focus.setStroke(stroke, 0xFFD9AF78);
+            focus.setStroke(stroke, 0xFFFFD397);
             GradientDrawable idle = new GradientDrawable();
-            idle.setColor(0xCC11151B);
+            idle.setColor(0xF0131A23);
             idle.setCornerRadius(radius);
+            idle.setStroke(Math.max(1, Math.round(density)), 0x665F6771);
             StateListDrawable states = new StateListDrawable();
             states.addState(new int[] {android.R.attr.state_focused}, focus);
             states.addState(new int[] {android.R.attr.state_pressed}, focus);
@@ -65,7 +66,7 @@ import android.graphics.drawable.StateListDrawable;""")
 </shape>
 """,encoding="utf-8")
     ET.parse(gradient)
-    print("HX PLAYER: botões bronze no foco, fundo OLED suave; comandos preservados")
+    print("HX PLAYER: botões redondos OLED, foco bronze com contorno luminoso; comandos preservados")
 
 if __name__=="__main__":
     main()
