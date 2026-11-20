@@ -112,10 +112,9 @@ def patch_theme(root: Path):
 
 
 def patch_updater(root: Path):
-    # The upstream generic updater can receive an arbitrary APK URL.
-    # Never invite the TV to install upstream/debug builds. Only permit our
-    # signed-release channel and only from the established HX TV certificate.
-    # Android's package installer remains responsible for final verification.
+    # The SmartTube update callback receives a local file path, not a remote URL.
+    # Verify installed and downloaded APKs with the permanent HX certificate.
+    # The Android package installer independently verifies the final APK.
     presenter = root / ("common/src/main/java/com/liskovsoft/"
                         "smartyoutubetv2/common/app/presenters/dialogs/"
                         "AppUpdatePresenter.java")
@@ -129,8 +128,7 @@ def patch_updater(root: Path):
     replace_once(presenter, '''    public void onUpdateFound(String versionName, List<String> changelog, String apkPath) {
         if (mIsForceCheck) {''',
                  '''    public void onUpdateFound(String versionName, List<String> changelog, String apkPath) {
-        // HX: never offer an upstream SmartTube/debug APK or an APK to an
-        // install not signed with our persistent key.
+        // HX: validate the downloaded APK bytes before presenting Install.
         if (!isCompatibleHxRelease(apkPath)) {
             if (mIsForceCheck) {
                 LoadingManager.showLoading(getContext(), false);
@@ -142,34 +140,60 @@ def patch_updater(root: Path):
         if (mIsForceCheck) {''')
     marker = '    private void showUpdateDialog(String versionName, List<String> changelog, String apkPath) {'
     method = '''
+    // The upstream AppUpdateChecker downloads the APK FIRST and invokes
+    // onUpdateFound(..., apkPath) with a LOCAL FILE PATH, not the release URL.
+    // Hence validate the actual downloaded APK signature and package, never
+    // require a GitHub URL here.
     private boolean isCompatibleHxRelease(String apkPath) {
-        if (apkPath == null ||
-                !apkPath.startsWith("''' + ALLOWED_RELEASE_PREFIX + '''") ||
-                !apkPath.endsWith(".apk") || getContext() == null) {
+        if (apkPath == null || getContext() == null ||
+                !new java.io.File(apkPath).isFile() ||
+                new java.io.File(apkPath).length() < 1_000_000L) {
             return false;
         }
-
         try {
-            PackageInfo packageInfo = getContext().getPackageManager().getPackageInfo(
+            PackageManager pm = getContext().getPackageManager();
+            PackageInfo installed = pm.getPackageInfo(
                     getContext().getPackageName(), PackageManager.GET_SIGNATURES);
-            if (packageInfo.signatures == null || packageInfo.signatures.length != 1) {
+            PackageInfo downloaded = pm.getPackageArchiveInfo(
+                    apkPath, PackageManager.GET_SIGNATURES);
+
+            if (downloaded == null || installed == null ||
+                    !getContext().getPackageName().equals(downloaded.packageName) ||
+                    !installed.packageName.equals(downloaded.packageName) ||
+                    downloaded.versionCode <= installed.versionCode) {
                 return false;
             }
-            Signature signature = packageInfo.signatures[0];
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray());
-            StringBuilder hex = new StringBuilder();
-            for (byte part : digest) {
-                hex.append(String.format(java.util.Locale.ROOT, "%02x", part & 0xff));
-            }
-            return "''' + HX_CERT_SHA256 + '''".equals(hex.toString());
+
+            // Fail closed unless both installed AND downloaded packages use
+            // exactly our persistent HX TV signing certificate. Android's
+            // PackageInstaller will independently verify the final update.
+            return hasHxSigningCertificate(installed) &&
+                    hasHxSigningCertificate(downloaded);
         } catch (Exception exception) {
+            android.util.Log.w("HX-TV-Updater", "Rejecting incompatible update: " +
+                    exception.getClass().getSimpleName());
             return false;
         }
+    }
+
+    private boolean hasHxSigningCertificate(PackageInfo packageInfo) throws Exception {
+        if (packageInfo.signatures == null || packageInfo.signatures.length != 1) {
+            return false;
+        }
+        Signature signature = packageInfo.signatures[0];
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(signature.toByteArray());
+        StringBuilder hex = new StringBuilder();
+        for (byte part : digest) {
+            hex.append(String.format(java.util.Locale.ROOT, "%02x", part & 0xff));
+        }
+        return "''' + HX_CERT_SHA256 + '''".equals(hex.toString());
     }
 
 '''
     replace_once(presenter, marker, method + marker)
     assert "isCompatibleHxRelease(apkPath)" in presenter.read_text(encoding="utf-8")
+    assert "getPackageArchiveInfo(" in presenter.read_text(encoding="utf-8")
+    assert 'apkPath.startsWith(' not in presenter.read_text(encoding="utf-8")
 
 
 def main():
