@@ -81,14 +81,14 @@ def compact_menu(root: Path):
 
 def restrained_video_cards(root: Path):
     shapes = root / RES / "drawable"
-    drawable(shapes / "hx_card_shell.xml", "#FF0D0D0E", "#FF201B17", 1, 13)
-    drawable(shapes / "hx_card_outline.xml", "#00000000", "#B0C99B64", 1, 13)
+    drawable(shapes / "hx_card_shell.xml", "#FF0D0D0E", "#FF203249", 1, 13)
+    drawable(shapes / "hx_card_outline.xml", "#00000000", "#B0B5D7FF", 1, 13)
     drawable(shapes / "hx_card_panel_idle.xml", "#FF151518", "#00000000", 0, 0)
     drawable(shapes / "hx_card_panel_active.xml", "#FF262228", "#00000000", 0, 0)
     drawable(shapes / "hx_nav_idle.xml", "#00000000", "#00000000", 0, 10)
-    drawable(shapes / "hx_nav_active.xml", "#FF241D17", "#8CC99B64", 1, 10)
+    drawable(shapes / "hx_nav_active.xml", "#FF1B2C42", "#8CB5D7FF", 1, 10)
     drawable(shapes / "hx_settings_idle.xml", "#FF181819", "#44332E29", 1, 12)
-    drawable(shapes / "hx_settings_active.xml", "#FF292320", "#A9C99B64", 1, 12)
+    drawable(shapes / "hx_settings_active.xml", "#FF20334C", "#A9B5D7FF", 1, 12)
 
     # FocusHighlight.ZOOM_FACTOR_XSMALL is supported by the pinned Leanback
     # implementation; keep focus animation but avoid huge cards on TCL P7K.
