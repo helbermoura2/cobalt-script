@@ -60,6 +60,21 @@ jobs:
           grep -q 'hx_update_app' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java
           grep -q '#B68A56' upstream/smarttubetv/src/main/res/values/colors.xml
           grep -q 'versionCode 2472' upstream/smarttubetv/build.gradle
+      - name: Supply optional ExoPlayer typedef metadata for old release plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The legacy Android plugin expects this file even when the
+          # optional extractReleaseAnnotations task is disabled. The recipe
+          # is metadata only; empty means no typedef annotations to package.
+          find upstream/exoplayer-amzn-2.10.6 -name build.gradle -type f -print0 |
+            while IFS= read -r -d '' gradlefile; do
+              module_dir="$(dirname "$gradlefile")"
+              metadata_dir="$module_dir/build/intermediates/annotations_typedef_file/release"
+              mkdir -p "$metadata_dir"
+              : > "$metadata_dir/typedefs.txt"
+            done
+          test -f upstream/exoplayer-amzn-2.10.6/library/ui/build/intermediates/annotations_typedef_file/release/typedefs.txt
       - name: Build real native Android TV APK from SmartTube source
         working-directory: upstream
         run: |
