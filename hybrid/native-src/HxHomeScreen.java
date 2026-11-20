@@ -253,6 +253,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         alternar.setContentDescription("Recolher ou expandir menu lateral");
         margem(alternar,10,9,6,9);
         foco(alternar);
+        iconeNativo(alternar,android.R.drawable.ic_menu_sort_by_size);
         alternar.setOnClickListener(v->setPainelAberto(!menuAberto));
         LinearLayout.LayoutParams toggleLp=new LinearLayout.LayoutParams(-1,dp(36));
         toggleLp.bottomMargin=dp(12);
@@ -277,31 +278,38 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         pesquisaNav=pesquisa;
         margem(pesquisa,13,10,9,10);
         foco(pesquisa);
+        iconeNativo(pesquisa,android.R.drawable.ic_menu_search);
         pesquisa.setOnClickListener(v->
                 SearchPresenter.instance(getContext()).startSearch(null));
-        lateral.addView(pesquisa,new LinearLayout.LayoutParams(-1,dp(42)));
+        // Pesquisa, Atualizar e Modo clássico entram no MESMO ScrollView das categorias.
 
         TextView atualizar=texto("↻  ATUALIZAR",12,GELO,true);
         atualizarNav=atualizar;
         margem(atualizar,13,10,9,10);
         foco(atualizar);
+        iconeNativo(atualizar,android.R.drawable.ic_popup_sync);
         atualizar.setContentDescription("Verificar atualizações do HX TV");
         atualizar.setOnClickListener(v->
                 AppDataSourceManager.verificarAtualizacaoHx(getContext()));
-        lateral.addView(atualizar,new LinearLayout.LayoutParams(-1,dp(42)));
+        // Sem rodapé fixo: rolagem contínua.
 
         TextView antigo=texto("▤  MODO CLÁSSICO",11,SECUNDARIO,true);
         classicoNav=antigo;
         margem(antigo,11,10,3,10);
         foco(antigo);
+        iconeNativo(antigo,android.R.drawable.ic_menu_view);
         antigo.setOnClickListener(v->{
             if(getContext() instanceof BrowseActivity)
                 ((BrowseActivity)getContext()).abrirModoClassico();
         });
-        lateral.addView(antigo,new LinearLayout.LayoutParams(-1,dp(42)));
+        // Modo clássico acompanha a rolagem.
         for(TextView item:new TextView[]{pesquisa,atualizar,antigo}){
             item.setOnFocusChangeListener((v,ativo)->{
-                v.setBackground(fundo(ativo?FOCO:PAINEL,ativo?0xFFEAF5FF:0,13));
+                v.setBackground(vidro(ativo?0x9B57748B:0x562B3C50,
+                        ativo?0xFFF3F8FF:0x346B8198,15));
+                Drawable d=item.getCompoundDrawables()[0];
+                if(d==null)d=item.getCompoundDrawables()[1];
+                if(d!=null)d.setTint(ativo?TEXTO:GELO);
                 if(ativo)setPainelAberto(true);
             });
         }
@@ -389,6 +397,33 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
 
     /** Os símbolos são tipográficos; o nome integral permanece acessível. */
+    private void iconeNativo(TextView alvo,int recurso){
+        try{
+            Drawable desenho=getResources().getDrawable(recurso).mutate();
+            desenho.setBounds(0,0,dp(21),dp(21));
+            desenho.setTint(GELO);
+            alvo.setCompoundDrawables(desenho,null,null,null);
+            alvo.setCompoundDrawablePadding(dp(10));
+        }catch(android.content.res.Resources.NotFoundException ignorado){}
+    }
+    private void posicionarNav(TextView alvo,String rotulo){
+        if(alvo==null)return;
+        Drawable icone=alvo.getCompoundDrawables()[0];
+        if(icone==null)icone=alvo.getCompoundDrawables()[1];
+        if(menuAberto){
+            alvo.setText(rotulo);
+            alvo.setGravity(Gravity.CENTER_VERTICAL);
+            margem(alvo,12,5,5,5);
+            if(icone!=null)alvo.setCompoundDrawables(icone,null,null,null);
+            alvo.setCompoundDrawablePadding(dp(10));
+        }else{
+            alvo.setText(icone==null?"•":"");
+            alvo.setGravity(Gravity.CENTER);
+            margem(alvo,0,3,0,3);
+            if(icone!=null)alvo.setCompoundDrawables(null,icone,null,null);
+            alvo.setCompoundDrawablePadding(0);
+        }
+    }
     private String simbolo(String texto){
         String t=texto==null?"":texto.toLowerCase(java.util.Locale.ROOT);
         if(t.contains("iníc")||t.contains("inicio"))return "⌂";
@@ -407,13 +442,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private void atualizarLegendasMenu(){
         for(int i=0;i<itensMenu.size()&&i<secoes.size();i++){
             TextView aba=itensMenu.get(i);
-            String nome=secoes.get(i).getTitle();
-            boolean temIcone=secoes.get(i).getResId()>0
-                    && aba.getCompoundDrawables()[0]!=null;
-            aba.setText(temIcone?(menuAberto?nome:""):
-                    (menuAberto?simbolo(nome)+"  "+nome:simbolo(nome)));
-            aba.setGravity(menuAberto?Gravity.CENTER_VERTICAL:Gravity.CENTER);
-            margem(aba,menuAberto?12:1,8,menuAberto?5:1,8);
+            posicionarNav(aba,secoes.get(i).getTitle());
         }
         if(marcaNav!=null){
             marcaNav.setText(menuAberto?"HX  TV":"HX");
@@ -421,13 +450,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             margem(marcaNav,menuAberto?9:0,0,0,0);
         }
         if(subtituloNav!=null)subtituloNav.setVisibility(menuAberto?View.VISIBLE:View.GONE);
-        if(alternarNav!=null)alternarNav.setText(menuAberto?"‹  RECOLHER MENU":"≡");
-        if(pesquisaNav!=null)pesquisaNav.setText(menuAberto?"⌕  PESQUISAR":"⌕");
-        if(atualizarNav!=null)atualizarNav.setText(menuAberto?"↻  ATUALIZAR":"↻");
-        if(classicoNav!=null)classicoNav.setText(menuAberto?"▤  MODO CLÁSSICO":"▤");
-        for(TextView item:new TextView[]{alternarNav,pesquisaNav,atualizarNav,classicoNav}){
-            if(item!=null)item.setGravity(menuAberto?Gravity.CENTER_VERTICAL:Gravity.CENTER);
-        }
+        posicionarNav(alternarNav,menuAberto?"RECOLHER":"MENU");
+        posicionarNav(pesquisaNav,"PESQUISAR");
+        posicionarNav(atualizarNav,"ATUALIZAR");
+        posicionarNav(classicoNav,"MODO CLÁSSICO");
     }
     private void setPainelAberto(boolean abrir){
         if(painelLateral==null||menuAberto==abrir)return;
@@ -456,15 +482,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             TextView aba=texto(nome,12,TEXTO,true);
             aba.setContentDescription(nome);
             int recurso=secoes.get(i).getResId();
-            if(recurso>0){
-                try{
-                    Drawable icone=getResources().getDrawable(recurso).mutate();
-                    icone.setBounds(0,0,dp(18),dp(18));
-                    icone.setTint(SECUNDARIO);
-                    aba.setCompoundDrawables(icone,null,null,null);
-                    aba.setCompoundDrawablePadding(dp(9));
-                }catch(android.content.res.Resources.NotFoundException ignorado){}
-            }
+            iconeNativo(aba,recurso>0?recurso:android.R.drawable.ic_menu_view);
             itensMenu.add(aba);
             aba.setSingleLine(true);
             aba.setEllipsize(TextUtils.TruncateAt.MARQUEE);
@@ -487,9 +505,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 }
                 return false;
             });
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(43));
-            lp.bottomMargin=dp(5);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(45));
+            lp.bottomMargin=dp(6);
             menu.addView(aba,lp);
+        }
+        for(TextView acao:new TextView[]{pesquisaNav,atualizarNav,classicoNav}){
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(45));
+            lp.topMargin=dp(acao==pesquisaNav?17:2);
+            lp.bottomMargin=dp(6);
+            menu.addView(acao,lp);
         }
         atualizarLegendasMenu();
         marcarMenu();
@@ -500,15 +524,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     /** Apenas o item com foco ganha CONTORNO. Categoria atual usa preenchimento discreto. */
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
-        aba.setBackground(fundo(focada?FOCO:atual?0xFF29313E:0xFF181D26,
-                focada?0xFFD7E7FF:0,10));
+        aba.setBackground(vidro(focada?0xA458738C:
+                atual?0x80415267:0x52263444,
+                focada?0xFFF0F6FF:atual?0x708DAAC4:0x355C7186,14));
         aba.setTextColor(focada?TEXTO:atual?0xFFE2EAF3:SECUNDARIO);
         Drawable icone=aba.getCompoundDrawables()[0];
+        if(icone==null)icone=aba.getCompoundDrawables()[1];
         if(icone!=null)icone.setTint(focada?TEXTO:atual?GELO:SECUNDARIO);
     }
     private void marcarMenu(){
-        for(int i=0;i<menu.getChildCount();i++){
-            TextView aba=(TextView)menu.getChildAt(i);
+        for(int i=0;i<itensMenu.size();i++){
+            TextView aba=itensMenu.get(i);
             pintarCategoria(aba,aba.isFocused(),i==secaoAtual);
         }
     }
