@@ -109,10 +109,10 @@ def restrained_video_cards(root: Path):
          '<dimen name="hx_spotlight_height">161dp</dimen>'),
         ('<dimen name="lb_basic_card_info_padding">6dp</dimen>',
          '<dimen name="lb_basic_card_info_padding">5dp</dimen>'),
-        ('<dimen name="lb_basic_card_title_text_size">16sp</dimen>',
-         '<dimen name="lb_basic_card_title_text_size">15sp</dimen>'),
-        ('<dimen name="lb_basic_card_content_text_size">12sp</dimen>',
-         '<dimen name="lb_basic_card_content_text_size">11sp</dimen>'),
+        ('<dimen name="lb_basic_card_title_text_size">18sp</dimen>',
+         '<dimen name="lb_basic_card_title_text_size">16sp</dimen>'),
+        ('<dimen name="lb_basic_card_content_text_size">13sp</dimen>',
+         '<dimen name="lb_basic_card_content_text_size">12sp</dimen>'),
     ):
         replace_once(dims,old,new)
 
