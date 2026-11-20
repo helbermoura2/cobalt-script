@@ -1,4 +1,4 @@
-name: HX Native Android TV (SmartTube source build)
+name: HX Native Android TV (unsigned release for local signing)
 on:
   push:
     branches: [smart-cobalt-hybrid]
@@ -64,32 +64,30 @@ jobs:
         working-directory: upstream
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaDebug
+          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaRelease
       - name: Collect ARM build and validate package
         run: |
           set -euo pipefail
-          find upstream/smarttubetv/build/outputs/apk/stbeta/debug -name '*.apk' -maxdepth 1 -type f
-          apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/debug -name '*armeabi-v7a.apk' -type f | head -n 1)
+          find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*.apk' -maxdepth 1 -type f
+          apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*armeabi-v7a.apk' -type f | head -n 1)
           if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
           mkdir -p out
-          cp "$apk" out/HX-TV-Native-0.3.0-arm.apk
+          cp "$apk" out/HX-TV-Native-0.3.0-unsigned-arm.apk
           sdk="$ANDROID_HOME/build-tools"
           bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
-          "$bt/aapt" dump badging out/HX-TV-Native-0.3.0-arm.apk | head -n 15
-          "$bt/aapt" dump badging out/HX-TV-Native-0.3.0-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
-          "$bt/apksigner" verify --verbose out/HX-TV-Native-0.3.0-arm.apk
-          sha256sum out/HX-TV-Native-0.3.0-arm.apk
+          "$bt/aapt" dump badging out/HX-TV-Native-0.3.0-unsigned-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.3.0-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          # This is intentionally unsigned; it must be signed locally with
+          # the persistent private HX key, never uploaded as a public release.
+          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.3.0-unsigned-arm.apk
+          if "$bt/aapt" dump badging out/HX-TV-Native-0.3.0-unsigned-arm.apk | grep -q '^application-debuggable'; then
+            echo 'ERROR: Release APK is debuggable'
+            exit 1
+          fi
+          sha256sum out/HX-TV-Native-0.3.0-unsigned-arm.apk
       - name: Upload backup APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hx-native-androidtv-test-0.3.0
-          path: out/HX-TV-Native-0.3.0-arm.apk
+          name: hx-native-androidtv-release-unsigned-0.3.0
+          path: out/HX-TV-Native-0.3.0-unsigned-arm.apk
           if-no-files-found: error
-      - name: Publish test APK direct link to Downloader
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create hx-smarttube-native-v0.3.0 ./out/HX-TV-Native-0.3.0-arm.apk \
-            --target "$GITHUB_SHA" \
-            --title "HX TV Native 0.3.0 — prévia Android TV" \
-            --notes "HX TV Native 0.3.0 experimental. Alterações nativas reais: paleta Bronze Imperial/OLED, cards e tipografia mais legíveis, atualizar aplicativo diretamente no menu Configurações, menu Sobre completo, prévias automáticas desativadas. Reproduz usando SmartTube, sem motor Cobalt integrado. IMPORTANTE: APK de teste ainda usa chave debug efêmera, portanto NÃO atualiza por cima de 0.1.0; exige instalação limpa se quiser testar 0.2.0. O manifesto de atualização permanece em 0.1.0 até assinatura persistente segura. Não remover Cobalt HX; CazéTV e 4K exigem validação na TCL P7K."
