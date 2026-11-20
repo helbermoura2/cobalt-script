@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.1-beta/HX-TV-Native-0.9.1-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.2-beta/HX-TV-Native-0.9.2-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.1-beta/HX-TV-Native-0.9.1-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.2-beta/HX-TV-Native-0.9.2-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -11,6 +11,17 @@
       "Correção do foco ao voltar do player",
       "Selo AO VIVO e EM BREVE nos vídeos",
       "Controles com identidade visual HX TV"
+    ]
+  },
+  "0.9.2": {
+    "versionCode": 2480,
+    "changelog": [
+      "Agora é possível voltar do Histórico às categorias com o direcional para cima a partir de qualquer vídeo da primeira fileira",
+      "A categoria ativa não apresenta borda extra: só o elemento com foco recebe contorno bronze",
+      "Botão Atualizar disponível no cabeçalho e também em Configurações",
+      "Canal próprio de atualização das versões experimentais com instalador assinado",
+      "Controles redondos, fundo OLED e foco bronze no player",
+      "Reprodução, Modo clássico e selos AO VIVO preservados"
     ]
   }
 }
