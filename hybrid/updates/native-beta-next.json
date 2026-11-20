@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.9-beta/HX-TV-Native-0.9.9-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.10-beta/HX-TV-Native-0.9.10-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.9-beta/HX-TV-Native-0.9.9-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.10-beta/HX-TV-Native-0.9.10-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -114,6 +114,20 @@
       "Picture-in-Picture em proporção 16:9 quando o sistema permitir; posicionamento depende do Android TV",
       "Carregamento progressivo de mais capas para manter a fluidez da TCL",
       "Histórico, pesquisa, modo clássico, contas e atualização direta preservados"
+    ]
+  },
+  "0.9.10": {
+    "versionCode": 2488,
+    "changelog": [
+      "Player com mensagem de carregamento quando a espera ultrapassa 1,8 segundo",
+      "Medição técnica do tempo até o primeiro quadro para investigar atrasos sem mexer nas fontes de vídeo",
+      "Sugestões de reprodução mais compactas em formato 16:9",
+      "Controles de player com foco e contraste aprimorados, mantendo todos os atalhos originais",
+      "Área de segurança do catálogo quando o Android TV mostra vídeo em mini-janela",
+      "Estado de PiP sincronizado com a interface, sem tentar mover a janela controlada pelo sistema",
+      "Buscas temáticas da Home distribuídas no tempo para priorizar navegação e reprodução",
+      "Central AO VIVO preservada, com consultas mais espaçadas na Home e navegação inalterada",
+      "Assinatura persistente para atualizar diretamente da 0.9.9"
     ]
   }
 }
