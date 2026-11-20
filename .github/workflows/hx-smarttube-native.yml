@@ -231,6 +231,7 @@ jobs:
           set -euo pipefail
           python3 -m json.tool hybrid/updates/native-beta-next.json >/dev/null
           gh release view hx-tv-independent-v0.9.3-beta --repo "$GITHUB_REPOSITORY" >/dev/null
+          mkdir -p test-release-final
           gh release download hx-tv-independent-v0.9.3-beta --repo "$GITHUB_REPOSITORY" \
             --pattern 'HX-TV-Native-0.9.3-assinado-arm.apk' --dir test-release-final
           cmp out/HX-TV-Native-0.9.3-assinado-arm.apk test-release-final/HX-TV-Native-0.9.3-assinado-arm.apk
