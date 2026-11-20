@@ -40,6 +40,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.liskovsoft.smartyoutubetv2.tv.ui.playback.PlaybackActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,6 +68,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<View> primeiraFileira=new ArrayList<>();
     private final LinearLayout pagina;
     private final ScrollView rolagem;
+    private LinearLayout reservaPiP;
     private final ProgressBar carregando;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque;
     private ImageView imagemDestaque;
@@ -301,6 +303,21 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         separador.setBackgroundColor(0xFF27313D);
         coluna.addView(separador,new LinearLayout.LayoutParams(-1,dp(1)));
 
+        // Quando há vídeo em mini-janela, reservar a zona superior direita.
+        // A TV decide a posição real do PiP: esta faixa é apenas proteção do catálogo.
+        reservaPiP=new LinearLayout(contexto);
+        reservaPiP.setOrientation(LinearLayout.VERTICAL);
+        reservaPiP.setGravity(Gravity.CENTER_VERTICAL);
+        reservaPiP.setPadding(dp(22),dp(10),dp(250),dp(10));
+        reservaPiP.setBackground(fundo(0xFF101722,0,12));
+        TextView tituloMini=texto("REPRODUÇÃO EM MINI-JANELA",12,TEXTO,true);
+        reservaPiP.addView(tituloMini);
+        TextView notaMini=texto("Continue navegando enquanto assiste",10,SECUNDARIO,false);
+        margem(notaMini,0,8,0,0);
+        reservaPiP.addView(notaMini);
+        reservaPiP.setVisibility(View.GONE);
+        coluna.addView(reservaPiP,new LinearLayout.LayoutParams(-1,dp(126)));
+
         rolagem=new ScrollView(contexto);
         rolagem.setFillViewport(false);
         rolagem.setVerticalScrollBarEnabled(false);
@@ -321,8 +338,22 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         carregando.setVisibility(View.GONE);
         // O menu já nasce recolhido; o foco nele abre os nomes automaticamente.
         post(()->{if(!menu.hasFocus())setPainelAberto(false);});
+        post(this::atualizarReservaPiP);
     }
 
+    private void atualizarReservaPiP(){
+        if(reservaPiP==null)return;
+        boolean emMini=PlaybackActivity.isHxMiniPlayerActive();
+        reservaPiP.setVisibility(emMini?View.VISIBLE:View.GONE);
+    }
+
+    @Override public void onWindowFocusChanged(boolean possuiFoco){
+        super.onWindowFocusChanged(possuiFoco);
+        if(possuiFoco){
+            atualizarReservaPiP();
+            postDelayed(this::atualizarReservaPiP,350);
+        }
+    }
 
     /** Os símbolos são tipográficos; o nome integral permanece acessível. */
     private String simbolo(String texto){
@@ -664,10 +695,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout antiga=fileiras.get("hx/live/multitemas");
         if(antiga!=null&&!antiga.hasFocus())antiga.removeAllViews();
         if(statusDeLive!=null)statusDeLive.setText("Procurando lives de 8 assuntos...");
+        long intervalo=estaNaHome()?900L:580L;
         for(int i=0;i<LIVE_ASSUNTOS.length;i++){
             final int indice=i;
             postDelayed(()->pesquisarLive(indice,geracao,rodada),
-                    300L+(long)i*650L);
+                    350L+(long)i*intervalo);
         }
         postDelayed(()->{
             if(geracao==geracaoPagina && rodada==rodadaLives
@@ -790,7 +822,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             chip.setOnClickListener(v->
                     SearchPresenter.instance(getContext()).startSearch(assunto[1]));
         }
-        carregarProximosAssuntos(4);
+        carregarProximosAssuntos(2);
     }
     private void carregarProximosAssuntos(int quantidade){
         if(!estaNaHome()||!exploracaoPronta)return;
@@ -802,7 +834,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(int i=inicio;i<ate;i++){
             final int assuntoIndex=i;
             postDelayed(()->pesquisarAssunto(assuntoIndex,geracao),
-                    (long)(i-inicio)*550L);
+                    1200L+(long)(i-inicio)*1100L);
         }
     }
     private void pesquisarAssunto(int index,int geracao){
@@ -1338,6 +1370,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
     /** Recupera o foco quando a janela da TCL volta após a reprodução. */
     public void restaurarFocoAposReproducao(){
+        atualizarReservaPiP();
+        postDelayed(this::atualizarReservaPiP,450);
         if(!voltarDaReproducao)return;
         focoPendente=true;
         postDelayed(this::tentarRestaurarFoco,100);
