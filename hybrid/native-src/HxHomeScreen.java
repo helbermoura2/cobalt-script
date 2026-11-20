@@ -909,7 +909,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(!estaNaHome()||chave.startsWith("hx/live/"))return candidatos;
         LinkedHashSet<String> utilizados=new LinkedHashSet<>();
         for(Map.Entry<String,LinkedHashSet<String>> registro:idsNaTela.entrySet()){
-            if(!registro.getKey().equals(chave))utilizados.addAll(registro.getValue());
+            if(registro.getKey().equals(chave))break;
+            utilizados.addAll(registro.getValue());
         }
         LinkedHashSet<String> atuais=new LinkedHashSet<>();
         List<Video> distintos=new ArrayList<>();
