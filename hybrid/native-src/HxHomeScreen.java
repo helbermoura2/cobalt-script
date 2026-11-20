@@ -102,6 +102,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<TextView> filtrosDeLive=new ArrayList<>();
     private TextView statusDeLive;
     private int filtroLiveSelecionado=-1;
+    private boolean livesPendentes;
+    private Runnable destaquePendente;
+    private String ultimoDestaqueId;
     private static final String[][] LIVE_ASSUNTOS={
         {"Notícias","jornal notícias brasil ao vivo agora"},
         {"Esportes","esportes futebol jogos ao vivo hoje"},
@@ -549,6 +552,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         filtrosDeLive.clear();
         statusDeLive=null;
         filtroLiveSelecionado=-1;
+        livesPendentes=false;
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
+        destaquePendente=null;
+        ultimoDestaqueId=null;
         proximoAssunto=0;
         pagina.removeAllViews();
         fileiras.clear();
@@ -669,6 +676,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             return;
         }
         statusDeLive.setText(lista.size()+" transmissões encontradas · "+rotulo);
+        LinearLayout faixaAnterior=fileiras.get("hx/live/multitemas");
+        if(faixaAnterior!=null && faixaAnterior.hasFocus()){
+            // Não destruir os cards sob o controle enquanto resultados chegam.
+            livesPendentes=true;
+            return;
+        }
+        livesPendentes=false;
         desenharFileira("hx/live/multitemas","ASSISTA AO VIVO",lista,false);
     }
     private void pesquisarLive(int indice,int geracao){
@@ -890,6 +904,19 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
         atualizarDestaque(primeiro);
     }
+    private void agendarDestaque(Video video){
+        if(video==null||video.videoId==null)return;
+        if(video.videoId.equals(ultimoDestaqueId))return;
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
+        final int geracao=geracaoPagina;
+        destaquePendente=()->{
+            destaquePendente=null;
+            if(geracao!=geracaoPagina||!isAttachedToWindow())return;
+            ultimoDestaqueId=video.videoId;
+            atualizarDestaque(video);
+        };
+        postDelayed(destaquePendente,170);
+    }
     private void atualizarDestaque(Video video){
         if(video==null||tituloDestaque==null)return;
         videoDestaque=video;
@@ -958,7 +985,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         final LinearLayout faixaAtual=faixa;
         faixa.removeAllViews();
         final int limite=Math.min(exibidos.size(),
-                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):32);
+                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):20);
         int n=0;
         for(Video video:exibidos){
             if(n>=limite)break;
@@ -1032,24 +1059,30 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     ultimaSecaoFocada=secaoAtual;
                     estavaNoMenu=false;
                 }
+                if(!selecionado && chave.startsWith("hx/live/") && livesPendentes){
+                    postDelayed(()->{
+                        if(!faixaAtual.hasFocus() && livesPendentes)
+                            atualizarFileiraLive();
+                    },250);
+                }
                 nomeCartao.setSelected(selecionado);
                 nomeCartao.setEllipsize(selecionado?
                         TextUtils.TruncateAt.MARQUEE:TextUtils.TruncateAt.END);
                 nomeCartao.setMarqueeRepeatLimit(-1);
                 if(selecionado){
                     dados.onVideoItemSelected(video);
-                    if(estaNaHome())atualizarDestaque(video);
+                    if(estaNaHome())agendarDestaque(video);
                     if(pos>=limite-3 && limite<exibidos.size()){
                         // Carrega mais capas desta mesma fileira conforme necessário.
                         // Redesenho adiado para preservar o vídeo focado pelo controle.
-                        int novo=Math.min(exibidos.size(),limite+18);
+                        int novo=Math.min(exibidos.size(),limite+12);
                         Integer ja=limitesPorFileira.get(chave);
                         if(ja==null||ja<novo){
                             limitesPorFileira.put(chave,novo);
                             postDelayed(()->{
                                 if(faixaAtual.isAttachedToWindow())
                                     desenharFileira(chave,nome,exibidos,principal);
-                            },160);
+                            },220);
                         }
                     }else if(pos>=limite-1){
                         if(descoberto)carregarProximosAssuntos(3);
@@ -1205,6 +1238,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
         if(animacaoNav!=null)animacaoNav.cancel();
+        if(destaquePendente!=null)removeCallbacks(destaquePendente);
         super.onDetachedFromWindow();
     }
 
