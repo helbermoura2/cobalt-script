@@ -71,6 +71,8 @@ jobs:
           python3 -m py_compile hybrid/patch_hx_editorial.py
           python3 -m py_compile hybrid/patch_hx_home.py
           python3 -m py_compile hybrid/patch_hx_player.py
+          python3 -m py_compile hybrid/qa_hx_099.py
+          python3 hybrid/qa_hx_099.py
           python3 hybrid/patch_smarttube.py upstream
           python3 hybrid/patch_hx_design.py upstream
           python3 hybrid/patch_hx_shell.py upstream
