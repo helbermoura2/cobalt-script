@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.10: sugestões discretas, sinalização de carregamento e PiP seguro.
+"""HX TV 0.9.11: PiP responsivo, carregamento desde o clique e painel de sugestões.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -219,18 +219,31 @@ import android.os.SystemClock;""")
         "    private static final String TAG = PlaybackActivity.class.getSimpleName();",
         """    private static final String TAG = PlaybackActivity.class.getSimpleName();
     private static volatile boolean hxMiniPlayerActive = false;
+    public interface HxPipObserver { void onPipStateChanged(boolean active); }
+    private static java.lang.ref.WeakReference<HxPipObserver> hxPipObserver;
+    public static void setHxPipObserver(HxPipObserver observer) {
+        hxPipObserver = observer == null ? null :
+                new java.lang.ref.WeakReference<>(observer);
+        if (observer != null) observer.onPipStateChanged(hxMiniPlayerActive);
+    }
+    private static void notifyHxPiP() {
+        HxPipObserver observer = hxPipObserver == null ? null : hxPipObserver.get();
+        if (observer != null) observer.onPipStateChanged(hxMiniPlayerActive);
+    }
     public static boolean isHxMiniPlayerActive() {
         return hxMiniPlayerActive;
     }""")
     substituir(atividade,
         "        super.onPictureInPictureModeChanged(isInPictureInPictureMode);",
         """        super.onPictureInPictureModeChanged(isInPictureInPictureMode);
-        hxMiniPlayerActive = isInPictureInPictureMode;""")
+        hxMiniPlayerActive = isInPictureInPictureMode;
+        notifyHxPiP();""")
     substituir(atividade,
         "    @Override\n    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {",
         """    @Override
     protected void onDestroy() {
         hxMiniPlayerActive = false;
+        notifyHxPiP();
         super.onDestroy();
     }
 
