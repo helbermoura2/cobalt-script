@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.14 Stable Shelves (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.15 Glass Studio (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -30,10 +30,10 @@ checks={
   "cancel loading when ready": "private void hxHideLoading()" in player and "state == Player.STATE_READY" in player,
   "no stale timer after playback ready": "mPlayer.getPlaybackState() == Player.STATE_READY" in player and "ticket != mHxLoadingTicket" in player,
   "PiP dock more compact": "new LinearLayout.LayoutParams(-1,dp(76))" in home,
-  "suggestions viewport": "hxResizeSuggestionsViewport(boolean compact)" in player and "screenHeight * 0.46f" in player,
+  "suggestions viewport": "hxResizeSuggestionsViewport(boolean compact)" in player and "grid.setWindowAlignmentOffsetPercent(compact ? 70f : 86f)" in player and "setClipChildren(false)" in player,
   "first frame telemetry": "onRenderedFirstFrame()" in player and "SystemClock.elapsedRealtime()" in player,
   "discovery pacing": "long intervalo=estaNaHome()?900L:580L" in home and "carregarProximosAssuntos(2)" in home,
-  "compact player suggestions": "Math.round(146f * d), Math.round(82f * d)" in player,
+  "compact player suggestions": "Math.round(190f * d), Math.round(107f * d)" in player,
   "visible blank section state": "private void mostrarCarregamentoSecao()" in home and "Nenhum vídeo recebido nesta seção." in home,
   "retry no-results section": "TENTAR NOVAMENTE" in home and "abrirSecao(secaoAtual)" in home,
   "clear on arriving content": "limparEstadoSecao();" in home and "if(principal&&videoDestaque==null)" in home,
@@ -44,14 +44,22 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.14"' in native and "VERSION_CODE = 2492" in native,
-  "manifest next version": manifest.get("0.9.14",{}).get("versionCode")==2492,
+  "consistent app version": 'VERSION_NAME = "0.9.15"' in native and "VERSION_CODE = 2493" in native,
+  "manifest next version": manifest.get("0.9.15",{}).get("versionCode")==2493,
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
-  "OTA only after release check": "cmp out/HX-TV-Native-0.9.14-assinado-arm.apk test-release-final/HX-TV-Native-0.9.14-assinado-arm.apk" in workflow,
+  "OTA only after release check": "cmp out/HX-TV-Native-0.9.15-assinado-arm.apk test-release-final/HX-TV-Native-0.9.15-assinado-arm.apk" in workflow,
+  "glass panels and buttons": "private GradientDrawable vidro(int cor, int borda, int raio)" in home and "setImageDrawable(null)" in player,
+  "unified scrolling actions": "menu.addView(acao,lp)" in home and "lateral.addView(pesquisa,new" not in home and "lateral.addView(atualizar,new" not in home,
+  "nav icon alignment": "private void posicionarNav(TextView alvo,String rotulo)" in home and "alvo.setCompoundDrawables(null,icone,null,null)" in home,
+  "titles not crushed": "ALTURA_CAPA_HOME=218" in home and "nomeCartao.setMaxLines(3)" in home and "tituloSelecionado.setText(video.getTitle())" in home,
+  "subscriptions vertical": "private void desenharInscricoesEmLista" in home and "coluna.setOrientation(LinearLayout.VERTICAL)" in home,
+  "subscriptions remote": "if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1<lista.getChildCount())" in home,
+  "suggestions images unclipped": "params.height = ViewGroup.LayoutParams.MATCH_PARENT" in player and "setClipChildren(false)" in player,
+  "real icon geometry": '("lb_control_button_primary.xml","54dp"' in player and '("lb_control_button_secondary.xml","50dp"' in player,
   "Java balanced braces":home.count("{")==home.count("}"),
 }
 for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.14: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.15: {len(checks)} regression gates passed")
