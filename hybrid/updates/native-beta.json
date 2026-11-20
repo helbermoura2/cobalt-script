@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.11-beta/HX-TV-Native-0.9.11-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.12-beta/HX-TV-Native-0.9.12-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.11-beta/HX-TV-Native-0.9.11-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.12-beta/HX-TV-Native-0.9.12-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -141,6 +141,18 @@
       "Corrigida a detecção tardia do miniplayer que ainda sobrepunha títulos e miniaturas",
       "Mantidos 28 temas, filtros AO VIVO, histórico, conta, qualidade 4K e comandos originais",
       "Mesma assinatura permanente para atualizar sem desinstalar"
+    ]
+  },
+  "0.9.12": {
+    "versionCode": 2490,
+    "changelog": [
+      "Corrige aviso PREPARANDO VÍDEO que continuava sobre a reprodução e aparecia dentro do miniplayer",
+      "O aviso é encerrado quando o player fica pronto (READY) ou apresenta o primeiro quadro",
+      "Mensagens antigas e tarefas atrasadas de carregamento são canceladas entre vídeos",
+      "Entrada do aviso com fade discreto, inspirada em transições leves de interface",
+      "Faixa reservada ao miniplayer mais compacta, preservando espaço para o catálogo",
+      "Preservados os controles do player, painel de sugestões, PiP, 28 assuntos e AO VIVO",
+      "Atualização assinada sobre a versão 0.9.11 sem desinstalar"
     ]
   }
 }
