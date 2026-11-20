@@ -19,6 +19,29 @@ def main():
     root=args.parse_args().upstream.resolve()
 
     base=root/"smarttubetv/src/main"
+    # O tamanho anterior dos botões herdava os círculos antigos de Leanback.
+    # Substituir os próprios layouts mantém uma só fonte de geometria/touch target.
+    recursos=root/"leanback-1.0.0/src/main/res/layout"
+    for arquivo,botao,dimen in (
+        ("lb_control_button_primary.xml","54dp","lb_control_button_diameter"),
+        ("lb_control_button_secondary.xml","50dp","lb_control_button_secondary_diameter"),
+    ):
+        controle=recursos/arquivo
+        substituir(controle,
+            f'android:layout_width="@dimen/{dimen}"',
+            f'android:layout_width="{botao}"')
+        altura="lb_control_button_height" if "primary" in arquivo else "lb_control_button_secondary_height"
+        substituir(controle,
+            f'android:layout_height="@dimen/{altura}"',
+            f'android:layout_height="{botao}"')
+        substituir(controle,
+            'android:layout_width="@dimen/lb_control_icon_width"',
+            'android:layout_width="26dp"')
+        substituir(controle,
+            'android:layout_height="@dimen/lb_control_icon_height"',
+            'android:layout_height="26dp"')
+        ET.parse(controle)
+
     classe=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java"
     substituir(classe,
         "import android.text.TextUtils;",
