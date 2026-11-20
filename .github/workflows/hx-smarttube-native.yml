@@ -64,7 +64,7 @@ jobs:
         working-directory: upstream
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaRelease
+          ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStbetaRelease -x extractReleaseAnnotations
       - name: Collect ARM build and validate package
         run: |
           set -euo pipefail
