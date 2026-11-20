@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.13-beta/HX-TV-Native-0.9.13-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.14-beta/HX-TV-Native-0.9.14-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.13-beta/HX-TV-Native-0.9.13-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.14-beta/HX-TV-Native-0.9.14-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -165,6 +165,18 @@
       "Faixa informativa do miniplayer reduzida de 108dp para 76dp, liberando espaço na navegação",
       "Preservado o player da 0.9.12, inclusive a correção do aviso de preparação e o controle de sugestões",
       "Mantidas central AO VIVO, filtros, histórico, modos clássico e atualizado e assinatura persistente"
+    ]
+  },
+  "0.9.14": {
+    "versionCode": 2492,
+    "changelog": [
+      "Durante o carregamento de categorias, o HX TV mostra fileiras de cards-esqueleto sem imagens falsas e sem animações pesadas",
+      "Se não houver resultados após a espera, os placeholders desaparecem para mostrar mensagem e Tentar novamente",
+      "Atualizações parciais do catálogo são agrupadas por um instante para evitar fileiras de apenas um card ao voltar do player",
+      "Atualizações antigas são descartadas quando a categoria muda, evitando resultados na tela errada",
+      "Preservado o player estável da 0.9.13, incluindo sugestões compactas e aviso de carregamento que desaparece ao iniciar",
+      "Miniplayer, menu lateral, 28 assuntos, AO VIVO, histórico, qualidade e assinatura persistente preservados",
+      "Atualização interna sem desinstalar o aplicativo, ativada somente após validar APK assinado"
     ]
   }
 }
