@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.4-beta/HX-TV-Native-0.9.4-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.5-beta/HX-TV-Native-0.9.5-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.4-beta/HX-TV-Native-0.9.4-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.5-beta/HX-TV-Native-0.9.5-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -46,6 +46,18 @@
       "Interface Signature em grafite, preto OLED e azul-gelo, sem bronze",
       "Controles nativos do player com vidro grafite, foco iluminado e animações suaves",
       "Atualização assinada sobre a versão 0.9.3, sem desinstalar"
+    ]
+  },
+  "0.9.5": {
+    "versionCode": 2483,
+    "changelog": [
+      "Menu lateral HX TV recolhe sozinho nos vídeos e abre ao voltar às categorias",
+      "Botão próprio para expandir ou recolher a navegação",
+      "Mais espaço para as capas, com novos tamanhos e transições suaves",
+      "Imagem cinematográfica com reprodução em destaque",
+      "Player com controles arredondados e trilhos de vidro grafite",
+      "Foco visível para o controle da TCL, sem perder as funções existentes",
+      "Atualização assinada sobre a 0.9.4, sem precisar reinstalar"
     ]
   }
 }
