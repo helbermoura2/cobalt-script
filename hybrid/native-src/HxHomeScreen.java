@@ -311,15 +311,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         reservaPiP=new LinearLayout(contexto);
         reservaPiP.setOrientation(LinearLayout.VERTICAL);
         reservaPiP.setGravity(Gravity.CENTER_VERTICAL);
-        reservaPiP.setPadding(dp(22),dp(10),dp(250),dp(10));
+        reservaPiP.setPadding(dp(22),dp(8),dp(230),dp(8));
         reservaPiP.setBackground(fundo(0xFF101722,0,12));
-        TextView tituloMini=texto("REPRODUÇÃO EM MINI-JANELA",12,TEXTO,true);
+        TextView tituloMini=texto("REPRODUÇÃO CONTINUA",12,TEXTO,true);
         reservaPiP.addView(tituloMini);
-        TextView notaMini=texto("Continue navegando enquanto assiste",10,SECUNDARIO,false);
+        TextView notaMini=texto("Acesse outros vídeos sem interromper",10,SECUNDARIO,false);
         margem(notaMini,0,8,0,0);
         reservaPiP.addView(notaMini);
         reservaPiP.setVisibility(View.GONE);
-        coluna.addView(reservaPiP,new LinearLayout.LayoutParams(-1,dp(126)));
+        coluna.addView(reservaPiP,new LinearLayout.LayoutParams(-1,dp(108)));
 
         rolagem=new ScrollView(contexto);
         rolagem.setFillViewport(false);
