@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.11: PiP responsivo, carregamento desde o clique e painel de sugestões.
+"""HX TV 0.9.12: corrigir aviso persistente ao iniciar reprodução e refinar HUD.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -123,6 +123,15 @@ import android.os.SystemClock;""")
     private long mHxVideoOpenedAt;
     private boolean mHxFirstFrame;
     private int mHxLoadingTicket;
+    private void hxHideLoading() {
+        mHxFirstFrame = true;
+        ++mHxLoadingTicket;
+        if (mHxBufferStatus != null) {
+            mHxBufferStatus.animate().cancel();
+            mHxBufferStatus.setVisibility(View.GONE);
+            mHxBufferStatus.setAlpha(1f);
+        }
+    }
     private void hxShowLoadingLater() {
         final TextView aviso = mHxBufferStatus;
         final int ticket = ++mHxLoadingTicket;
@@ -130,8 +139,15 @@ import android.os.SystemClock;""")
         aviso.postDelayed(() -> {
             if (ticket != mHxLoadingTicket || mHxBufferStatus != aviso
                     || mHxFirstFrame || !isAdded()) return;
+            if (mPlayer != null && mPlayer.getPlaybackState() == Player.STATE_READY)
+                return;
+            aviso.animate().cancel();
             aviso.setText("PREPARANDO VÍDEO...");
-            aviso.setVisibility(View.VISIBLE);
+            if (aviso.getVisibility() != View.VISIBLE) {
+                aviso.setAlpha(0f);
+                aviso.setVisibility(View.VISIBLE);
+                aviso.animate().alpha(1f).setDuration(160).start();
+            }
         }, 1700);
     }""")
     substituir(playback,
@@ -166,6 +182,10 @@ import android.os.SystemClock;""")
         """    public void setVideo(Video video) {
         mHxVideoOpenedAt = SystemClock.elapsedRealtime();
         mHxFirstFrame = false;
+        if (mHxBufferStatus != null) {
+            mHxBufferStatus.animate().cancel();
+            mHxBufferStatus.setVisibility(View.GONE);
+        }
         hxShowLoadingLater();
         mExoPlayerController.setVideo(video);""")
     substituir(playback,
@@ -177,29 +197,33 @@ import android.os.SystemClock;""")
             public void onPlayerStateChanged(boolean playWhenReady, int state) {
                 final TextView aviso = mHxBufferStatus;
                 if (aviso == null) return;
-                if (state == Player.STATE_BUFFERING) {
+                if (state == Player.STATE_READY || state == Player.STATE_ENDED) {
+                    // READY chega mesmo em aparelhos que não notificam primeiro frame.
+                    hxHideLoading();
+                } else if (state == Player.STATE_BUFFERING && !mHxFirstFrame) {
+                    final int ticket = mHxLoadingTicket;
                     aviso.postDelayed(() -> {
-                        if (mHxBufferStatus == aviso && mPlayer != null
-                                && mPlayer.getPlaybackState() == Player.STATE_BUFFERING) {
-                            aviso.setText("CARREGANDO VÍDEO...  •  CONEXÃO OU FONTE");
-                            aviso.setVisibility(View.VISIBLE);
-                        }
+                        if (ticket != mHxLoadingTicket || mHxFirstFrame
+                                || mHxBufferStatus != aviso || mPlayer == null
+                                || mPlayer.getPlaybackState() != Player.STATE_BUFFERING)
+                            return;
+                        aviso.animate().cancel();
+                        aviso.setText("CARREGANDO VÍDEO...");
+                        aviso.setAlpha(0f);
+                        aviso.setVisibility(View.VISIBLE);
+                        aviso.animate().alpha(1f).setDuration(160).start();
                     }, 1800);
-                } else if (state == Player.STATE_ENDED ||
-                        (state == Player.STATE_READY && mHxFirstFrame)) {
-                    aviso.setVisibility(View.GONE);
                 }
             }
         });
         mPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
             @Override
             public void onRenderedFirstFrame() {
-                mHxFirstFrame = true;
-                mHxLoadingTicket++;
                 long tempo = SystemClock.elapsedRealtime() - mHxVideoOpenedAt;
                 Log.d(TAG, "HX first frame after " + tempo + " ms");
                 if (mHxBufferStatus != null)
-                    mHxBufferStatus.post(() -> mHxBufferStatus.setVisibility(View.GONE));
+                    mHxBufferStatus.post(() -> hxHideLoading());
+                else hxHideLoading();
             }
         });""")
 
