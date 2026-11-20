@@ -11,9 +11,9 @@ import sys
 
 PACKAGE_ID = "br.com.hxnative.tvpreview"
 LABEL = "HX TV Preview"
-VERSION_NAME = "0.5.0"
-VERSION_CODE = 2474
-RELEASE_TAG = "hx-smarttube-signed-v0.5.0"
+VERSION_NAME = "0.6.0"
+VERSION_CODE = 2475
+RELEASE_TAG = "hx-smarttube-signed-v0.6.0"
 REPO = "helbermoura2/cobalt-script"
 
 
