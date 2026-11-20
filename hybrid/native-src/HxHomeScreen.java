@@ -69,6 +69,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final LinearLayout pagina;
     private final ScrollView rolagem;
     private LinearLayout reservaPiP;
+    private final PlaybackActivity.HxPipObserver hxPipObserver=ativo->{
+        if(isAttachedToWindow())post(this::atualizarReservaPiP);
+    };
     private final ProgressBar carregando;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque;
     private ImageView imagemDestaque;
@@ -1289,7 +1292,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         });
     }
     @Override
+    protected void onAttachedToWindow(){
+        super.onAttachedToWindow();
+        PlaybackActivity.setHxPipObserver(hxPipObserver);
+        post(this::atualizarReservaPiP);
+    }
+
+    @Override
     protected void onDetachedFromWindow(){
+        PlaybackActivity.setHxPipObserver(null);
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
