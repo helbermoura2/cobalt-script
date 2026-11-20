@@ -142,6 +142,18 @@ import android.animation.StateListAnimator;""")
 </shape>
 """,encoding="utf-8")
     ET.parse(gradient)
+    # Backdrop mais leve para que o vídeo permaneça visível atrás das sugestões.
+    suggestions=base/"res/drawable/player_background_suggestions.xml"
+    suggestions.write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient android:angle="90"
+        android:startColor="#EA08121F"
+        android:centerColor="#C3091421"
+        android:centerY="0.34"
+        android:endColor="#23091421" />
+</shape>
+""",encoding="utf-8")
+    ET.parse(suggestions)
     print("HX PLAYER PREMIUM MOTION: controle OLED refinado e sugestões 164x92px em dp, funções preservadas")
 
 if __name__=="__main__":
