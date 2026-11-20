@@ -77,6 +77,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private HorizontalScrollView esqueletosSecao;
     private TextView mensagemEstadoSecao, tentarSecao;
     private Runnable checagemSecaoVazia;
+    // Agrupa mudanças de catálogo durante refresh para não mostrar
+    // uma única miniatura antes das demais ao voltar do player.
+    private final List<VideoGroup> loteAtualizacao=new ArrayList<>();
+    private Runnable finalizarLoteAtualizacao;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque;
     private ImageView imagemDestaque;
     private View primeiroCartao;
@@ -678,6 +682,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     private void limparConteudo(){
         limparEstadoSecao();
+        if(finalizarLoteAtualizacao!=null){
+            removeCallbacks(finalizarLoteAtualizacao);
+            finalizarLoteAtualizacao=null;
+        }
+        loteAtualizacao.clear();
         geracaoPagina++;
         for(Disposable d:buscasAssuntos)if(d!=null&&!d.isDisposed())d.dispose();
         buscasAssuntos.clear();
@@ -1441,6 +1450,34 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     @Override public void updateSection(VideoGroup grupo){
         executar(()->{
+            if(grupo==null)return;
+            if(finalizarLoteAtualizacao!=null){
+                loteAtualizacao.add(grupo);
+                return;
+            }
+            // Quando o catálogo antigo ainda está na tela, espere um pequeno
+            // lote de resultados antes de substituí-lo. Isso evita o flash de
+            // uma fileira com um único card ao retornar da mini-janela.
+            if(grupo.getAction()==VideoGroup.ACTION_REPLACE
+                    && grupoPrincipalId!=null && !grupos.isEmpty()){
+                loteAtualizacao.add(grupo);
+                final int geracao=geracaoPagina;
+                final int categoria=secaoAtual;
+                finalizarLoteAtualizacao=()->{
+                    finalizarLoteAtualizacao=null;
+                    if(geracao!=geracaoPagina||categoria!=secaoAtual){
+                        loteAtualizacao.clear();
+                        return;
+                    }
+                    List<VideoGroup> entradas=new ArrayList<>(loteAtualizacao);
+                    loteAtualizacao.clear();
+                    for(VideoGroup entrada:entradas)desenharGrupo(entrada);
+                    carregando.setVisibility(View.GONE);
+                    if(focoPendente)post(this::tentarRestaurarFoco);
+                };
+                postDelayed(finalizarLoteAtualizacao,300);
+                return;
+            }
             desenharGrupo(grupo);
             carregando.setVisibility(View.GONE);
         });
