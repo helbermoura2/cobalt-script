@@ -21,6 +21,7 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.BrowseSection;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
@@ -278,7 +279,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             aba.setGravity(menuAberto?Gravity.CENTER_VERTICAL:Gravity.CENTER);
             margem(aba,menuAberto?13:1,8,menuAberto?7:1,8);
         }
-        if(marcaNav!=null)marcaNav.setText(menuAberto?"HX  TV":"HX");
+        if(marcaNav!=null){
+            marcaNav.setText(menuAberto?"HX  TV":"HX");
+            marcaNav.setTextSize(menuAberto?29:22);
+            margem(marcaNav,menuAberto?9:0,0,0,0);
+        }
         if(subtituloNav!=null)subtituloNav.setVisibility(menuAberto?View.VISIBLE:View.GONE);
         if(alternarNav!=null)alternarNav.setText(menuAberto?"‹  RECOLHER MENU":"≡");
         if(pesquisaNav!=null)pesquisaNav.setText(menuAberto?"⌕  PESQUISAR":"⌕");
@@ -567,7 +572,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         mp.topMargin=dp(11);
         lateralTexto.addView(detalhesDestaque,mp);
 
-        TextView indicacao=texto("▶  ASSISTIR AGORA   •   OK",12,TEXTO,true);
+        TextView indicacao=texto("▶  ASSISTIR AGORA",13,TEXTO,true);
+        indicacao.setBackground(fundo(0xDFEDF4FF,0,11));
+        indicacao.setTextColor(0xFF101928);
+        margem(indicacao,16,4,16,4);
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2);
         hp.topMargin=dp(15);
         lateralTexto.addView(indicacao,hp);
@@ -584,6 +592,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
              .load(ClickbaitRemover.updateThumbnail(video,
                      MainUIData.instance(getContext()).getThumbQuality()))
              .diskCacheStrategy(DiskCacheStrategy.ALL)
+              .transition(DrawableTransitionOptions.withCrossFade(240))
              .error(R.drawable.card_placeholder).into(imagemDestaque);
     }
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
