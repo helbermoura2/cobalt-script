@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.3-beta/HX-TV-Native-0.9.3-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.4-beta/HX-TV-Native-0.9.4-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.3-beta/HX-TV-Native-0.9.3-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.4-beta/HX-TV-Native-0.9.4-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -34,6 +34,18 @@
       "Destaque premium com imagem cinematográfica, vinheta e títulos protegidos",
       "Animações discretas de foco nas miniaturas e controles do player",
       "Preserva conta, histórico, reprodução, modo clássico e selos AO VIVO"
+    ]
+  },
+  "0.9.4": {
+    "versionCode": 2482,
+    "changelog": [
+      "Navegação do Início corrigida: menu lateral para o destaque e os vídeos",
+      "Botão OK abre diretamente o vídeo em destaque",
+      "Destaque cinematográfico não desaparece quando chegam grupos vazios",
+      "Setas explícitas entre menu, linhas de vídeos e Histórico",
+      "Interface Signature em grafite, preto OLED e azul-gelo, sem bronze",
+      "Controles nativos do player com vidro grafite, foco iluminado e animações suaves",
+      "Atualização assinada sobre a versão 0.9.3, sem desinstalar"
     ]
   }
 }
