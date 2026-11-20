@@ -314,15 +314,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         reservaPiP=new LinearLayout(contexto);
         reservaPiP.setOrientation(LinearLayout.VERTICAL);
         reservaPiP.setGravity(Gravity.CENTER_VERTICAL);
-        reservaPiP.setPadding(dp(22),dp(8),dp(230),dp(8));
+        reservaPiP.setPadding(dp(20),dp(4),dp(230),dp(4));
         reservaPiP.setBackground(fundo(0xFF101722,0,12));
-        TextView tituloMini=texto("REPRODUÇÃO CONTINUA",12,TEXTO,true);
+        TextView tituloMini=texto("▶  VÍDEO EM MINI-JANELA",11,TEXTO,true);
         reservaPiP.addView(tituloMini);
-        TextView notaMini=texto("Acesse outros vídeos sem interromper",10,SECUNDARIO,false);
-        margem(notaMini,0,8,0,0);
+        TextView notaMini=texto("Continue navegando",10,SECUNDARIO,false);
+        margem(notaMini,0,4,0,0);
         reservaPiP.addView(notaMini);
         reservaPiP.setVisibility(View.GONE);
-        coluna.addView(reservaPiP,new LinearLayout.LayoutParams(-1,dp(108)));
+        coluna.addView(reservaPiP,new LinearLayout.LayoutParams(-1,dp(76)));
 
         rolagem=new ScrollView(contexto);
         rolagem.setFillViewport(false);
@@ -617,7 +617,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         checagemSecaoVazia=()->{
             checagemSecaoVazia=null;
             if(geracao!=geracaoPagina||quadro!=estadoSecao ||
-                    quadro.getParent()!=pagina || !grupos.isEmpty())return;
+                    quadro.getParent()!=pagina || grupoPrincipalId!=null)return;
             carregando.setVisibility(View.GONE);
             mensagemEstadoSecao.setText("Nenhum vídeo recebido nesta seção. "+
                     "Ela pode estar vazia ou ainda não sincronizada.");
@@ -1124,6 +1124,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             FrameLayout capa=new FrameLayout(getContext());
             cartao.addView(capa,new LinearLayout.LayoutParams(-1,
                     dp(cartaz?115:123)));
+            // Fundo editorial de baixo custo até a imagem real chegar.
+            // Se a capa falhar, mostrar HX em vez de um retângulo cinza vazio.
+            capa.setBackground(new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    new int[]{0xFF182436,0xFF243446,0xFF111B2B}));
+            TextView seloEspera=texto("▶  HX TV",13,0xFF8DA4BB,true);
+            seloEspera.setGravity(Gravity.CENTER);
+            seloEspera.setLetterSpacing(.12f);
+            capa.addView(seloEspera,new FrameLayout.LayoutParams(-1,-1));
             ImageView miniatura=new ImageView(getContext());
             miniatura.setScaleType(ImageView.ScaleType.CENTER_CROP);
             capa.addView(miniatura,new FrameLayout.LayoutParams(-1,-1));
@@ -1148,7 +1157,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .load(ClickbaitRemover.updateThumbnail(video,
                             MainUIData.instance(getContext()).getThumbQuality()))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .error(R.drawable.card_placeholder)
+                    .error(android.R.color.transparent)
                     .into(miniatura);
             TextView nomeCartao=texto(video.getTitle(),12,TEXTO,true);
             nomeCartao.setMaxLines(2);
