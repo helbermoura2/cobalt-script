@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV Studio: controles nativos refinados, sugestões discretas e PiP 16:9.
+"""HX TV 0.9.10: sugestões discretas, sinalização de carregamento e PiP seguro.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -39,16 +39,16 @@ import android.animation.StateListAnimator;""")
             // no foco, sem modificar a ação de cada botão. Mantém os ícones,
             // acessibilidade, cliques e todos os atalhos do player original.
             float density = parent.getResources().getDisplayMetrics().density;
-            int radius = Math.round(11 * density);
+            int radius = Math.round(12 * density);
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xE94A5B6B, 0xF02B3644});
+                    new int[]{0xEB475D72, 0xF0203142});
             focus.setCornerRadius(radius);
             focus.setStroke(stroke, 0xFFF0F5FD);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xB625303C, 0xC6161E29});
+                    new int[]{0xAC202B38, 0xC1121D2B});
             idle.setCornerRadius(radius);
             idle.setStroke(Math.max(1, Math.round(density)), 0x246A7686);
             StateListDrawable states = new StateListDrawable();
@@ -67,14 +67,14 @@ import android.animation.StateListAnimator;""")
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.035f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 0.86f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 8f * density));
-                    selected.setDuration(160);
+                    selected.setDuration(140);
                     AnimatorSet normal = new AnimatorSet();
                     normal.playTogether(
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.035f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.035f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 1.0f, 0.86f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 8f * density, 0f));
-                    normal.setDuration(150);
+                    normal.setDuration(130);
                     motion.addState(new int[] {android.R.attr.state_focused}, selected);
                     motion.addState(new int[] {}, normal);
                     holder.mFocusableView.setStateListAnimator(motion);
@@ -92,7 +92,7 @@ import android.animation.StateListAnimator;""")
                     android.content.Context context) {
                 float d = context.getResources().getDisplayMetrics().density;
                 return new android.util.Pair<>(
-                        Math.round(168f * d), Math.round(95f * d));
+                        Math.round(146f * d), Math.round(82f * d));
             }
             @Override
             protected boolean isCardMultilineTitleEnabled(
@@ -105,6 +105,83 @@ import android.animation.StateListAnimator;""")
                 return false;
             }
         };""")
+
+    # Telemetria de tempo até o primeiro frame e estado legível em buffering.
+    # Não altera URLs, codecs, requisições nem o mecanismo original de reprodução.
+    substituir(playback,
+        "import android.view.ViewGroup;",
+        """import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.view.Gravity;
+import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;""")
+    substituir(playback,
+        "    private SimpleExoPlayer mPlayer;",
+        """    private SimpleExoPlayer mPlayer;
+    private TextView mHxBufferStatus;
+    private long mHxVideoOpenedAt;""")
+    substituir(playback,
+        "        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);",
+        """        ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
+        // Sem tela preta muda: informar ao usuário sobre buffering prolongado.
+        if (root instanceof FrameLayout) {
+            TextView aviso = new TextView(getContext());
+            aviso.setText("PREPARANDO REPRODUÇÃO...");
+            aviso.setTextColor(0xFFF1F6FD);
+            aviso.setTextSize(12);
+            aviso.setGravity(Gravity.CENTER);
+            aviso.setPadding(22, 10, 22, 10);
+            GradientDrawable fundo = new GradientDrawable();
+            fundo.setColor(0xDB101A26);
+            fundo.setCornerRadius(16f * getResources().getDisplayMetrics().density);
+            aviso.setBackground(fundo);
+            aviso.setFocusable(false);
+            aviso.setVisibility(View.GONE);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            params.bottomMargin = Math.round(75f * getResources().getDisplayMetrics().density);
+            ((FrameLayout) root).addView(aviso, params);
+            mHxBufferStatus = aviso;
+        }""")
+    substituir(playback,
+        "    public void setVideo(Video video) {\n        mExoPlayerController.setVideo(video);",
+        """    public void setVideo(Video video) {
+        mHxVideoOpenedAt = SystemClock.elapsedRealtime();
+        mExoPlayerController.setVideo(video);""")
+    substituir(playback,
+        "        mExoPlayerController.setPlayer(mPlayer);",
+        """        mExoPlayerController.setPlayer(mPlayer);
+        mHxVideoOpenedAt = SystemClock.elapsedRealtime();
+        mPlayer.addListener(new Player.EventListener() {
+            @Override
+            public void onPlayerStateChanged(boolean playWhenReady, int state) {
+                final TextView aviso = mHxBufferStatus;
+                if (aviso == null) return;
+                if (state == Player.STATE_BUFFERING) {
+                    aviso.postDelayed(() -> {
+                        if (mHxBufferStatus == aviso && mPlayer != null
+                                && mPlayer.getPlaybackState() == Player.STATE_BUFFERING) {
+                            aviso.setText("CARREGANDO VÍDEO...  •  CONEXÃO OU FONTE");
+                            aviso.setVisibility(View.VISIBLE);
+                        }
+                    }, 1800);
+                } else {
+                    aviso.setVisibility(View.GONE);
+                }
+            }
+        });
+        mPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
+            @Override
+            public void onRenderedFirstFrame() {
+                long tempo = SystemClock.elapsedRealtime() - mHxVideoOpenedAt;
+                Log.d(TAG, "HX first frame after " + tempo + " ms");
+                if (mHxBufferStatus != null)
+                    mHxBufferStatus.post(() -> mHxBufferStatus.setVisibility(View.GONE));
+            }
+        });""")
 
     # Camadas de vidro nativas ao redor das duas fileiras do SmartTube.
     # Preserva os IDs e listeners originais, incluindo ações de qualidade/live.
@@ -136,6 +213,29 @@ import android.animation.StateListAnimator;""")
         "PictureInPictureParams.Builder params = new PictureInPictureParams.Builder();",
         """PictureInPictureParams.Builder params = new PictureInPictureParams.Builder();
                         params.setAspectRatio(new Rational(16,9));""")
+    # Compartilhar apenas o estado booleano do PiP com a Home nativa.
+    # A posição da janela continua sob controle do sistema Android TV.
+    substituir(atividade,
+        "    private static final String TAG = PlaybackActivity.class.getSimpleName();",
+        """    private static final String TAG = PlaybackActivity.class.getSimpleName();
+    private static volatile boolean hxMiniPlayerActive = false;
+    public static boolean isHxMiniPlayerActive() {
+        return hxMiniPlayerActive;
+    }""")
+    substituir(atividade,
+        "        super.onPictureInPictureModeChanged(isInPictureInPictureMode);",
+        """        super.onPictureInPictureModeChanged(isInPictureInPictureMode);
+        hxMiniPlayerActive = isInPictureInPictureMode;""")
+    substituir(atividade,
+        "    @Override\n    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {",
+        """    @Override
+    protected void onDestroy() {
+        hxMiniPlayerActive = false;
+        super.onDestroy();
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {""")
     for arquivo,basecolor,borda in (
         ("hx_player_primary_rail.xml","#69161E27","#33677383"),
         ("hx_player_secondary_rail.xml","#41151D26","#23677383"),
@@ -174,7 +274,7 @@ import android.animation.StateListAnimator;""")
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER HORIZON: controles flutuantes e sugestões 154x87dp, funções preservadas")
+    print("HX PLAYER 0.9.10: sugestões 146x82dp, buffering legível, telemetria e estado PiP")
 
 if __name__=="__main__":
     main()
