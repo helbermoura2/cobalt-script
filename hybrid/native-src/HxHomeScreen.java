@@ -58,6 +58,14 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private View primeiroCartao;
     private Video videoDestaque;
     private int secaoAtual=-1;
+    // Guarda a posição real do cursor, inclusive ao abrir outro Activity de vídeo.
+    private final LinkedHashMap<String,View> cartoesPorId=new LinkedHashMap<>();
+    private String ultimoVideoFocado;
+    private View ultimoControleFocado;
+    private int ultimaSecaoFocada=-1;
+    private boolean focoPendente;
+    private boolean estavaNoMenu;
+    private boolean voltarDaReproducao;
 
     private int dp(float valor){ return Math.round(getResources().getDisplayMetrics().density*valor); }
 
@@ -197,6 +205,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         fileiras.clear();
         grupos.clear();
         primeiroCartao=null;
+        cartoesPorId.clear();
         videoDestaque=null;
         tituloDestaque=null;
         detalhesDestaque=null;
@@ -206,6 +215,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     private void abrirSecao(int indice){
         if(indice<0||indice>=secoes.size())return;
+        // Ao trocar de categoria, o foco deve seguir a nova categoria.
+        if(secaoAtual!=indice){
+            ultimoVideoFocado=null;
+            ultimoControleFocado=null;
+            focoPendente=false;
+        }
         secaoAtual=indice;
         limparConteudo();
         marcarMenu();
@@ -301,16 +316,38 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(Video video:videos){
             if(n>=24)break;
             final int pos=n++;
+            final String referencia=chave+"|"+(video.videoId==null?
+                    "id:"+video.id:"vid:"+video.videoId);
             LinearLayout cartao=new LinearLayout(getContext());
             cartao.setOrientation(LinearLayout.VERTICAL);
             foco(cartao);
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(
                     dp(principal?191:213),dp(principal?169:186));
             cp.rightMargin=dp(12);faixa.addView(cartao,cp);
+            // Selo sobre a miniatura verdadeira, sem mascarar a interface.
+            FrameLayout capa=new FrameLayout(getContext());
+            cartao.addView(capa,new LinearLayout.LayoutParams(-1,
+                    dp(principal?107:119)));
             ImageView miniatura=new ImageView(getContext());
             miniatura.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            cartao.addView(miniatura,new LinearLayout.LayoutParams(-1,
-                    dp(principal?107:119)));
+            capa.addView(miniatura,new FrameLayout.LayoutParams(-1,-1));
+            if(video.isLive && !video.isLiveEnd && !video.isUpcoming){
+                TextView aoVivo=texto("● AO VIVO",10,TEXTO,true);
+                margem(aoVivo,9,5,9,5);
+                aoVivo.setBackground(fundo(0xF2BB1E2D,0,7));
+                FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
+                        -2,-2,Gravity.TOP|Gravity.END);
+                selo.setMargins(0,dp(8),dp(8),0);
+                capa.addView(aoVivo,selo);
+            }else if(video.isUpcoming){
+                TextView emBreve=texto("EM BREVE",10,TEXTO,true);
+                margem(emBreve,9,5,9,5);
+                emBreve.setBackground(fundo(0xD6384958,0,7));
+                FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
+                        -2,-2,Gravity.TOP|Gravity.END);
+                selo.setMargins(0,dp(8),dp(8),0);
+                capa.addView(emBreve,selo);
+            }
             Glide.with(getContext())
                     .load(ClickbaitRemover.updateThumbnail(video,
                             MainUIData.instance(getContext()).getThumbQuality()))
@@ -327,9 +364,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             dadosCartao.setEllipsize(TextUtils.TruncateAt.END);
             margem(dadosCartao,8,0,8,7);
             cartao.addView(dadosCartao,new LinearLayout.LayoutParams(-1,dp(24)));
+            cartoesPorId.put(referencia,cartao);
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 v.setBackground(fundo(selecionado?FOCO:PAINEL,
                         selecionado?BRONZE:0,12));
+                if(selecionado){
+                    ultimoVideoFocado=referencia;
+                    ultimoControleFocado=v;
+                    ultimaSecaoFocada=secaoAtual;
+                    estavaNoMenu=false;
+                }
                 nomeCartao.setSelected(selecionado);
                 nomeCartao.setEllipsize(selecionado?
                         TextUtils.TruncateAt.MARQUEE:TextUtils.TruncateAt.END);
@@ -340,11 +384,17 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     if(pos>=videos.size()-1)dados.onScrollEnd(video);
                 }
             });
-            cartao.setOnClickListener(v->dados.onVideoItemClicked(video));
+            cartao.setOnClickListener(v->{
+                guardarFocoAntesDeSair();
+                dados.onVideoItemClicked(video);
+            });
             cartao.setOnLongClickListener(v->{
                 dados.onVideoItemLongClicked(video);return true;
             });
             if(primeiroCartao==null)primeiroCartao=cartao;
+        }
+        if(focoPendente && ultimaSecaoFocada==secaoAtual){
+            post(this::tentarRestaurarFoco);
         }
     }
     private void desenharGrupo(VideoGroup grupo){
@@ -388,6 +438,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             item.setOnClickListener(v->{if(opcao.onClick!=null)opcao.onClick.run();});
             if(primeiroCartao==null)primeiroCartao=item;
         }
+        if(focoPendente)post(this::tentarRestaurarFoco);
     }
 
     @Override public void addSection(int indice,BrowseSection secao){
@@ -461,11 +512,55 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     @Override public boolean isEmpty(){return grupos.isEmpty();}
     @Override public void updateBadge(){} // Marca HX já é nativa no cabeçalho.
 
+    /** Conserva a seleção antes do player tomar o foco da janela. */
+    public void guardarFocoAntesDeSair(){
+        View ativo=findFocus();
+        if(ativo!=null && ativo!=this){
+            ultimoControleFocado=ativo;
+            estavaNoMenu=menu.hasFocus();
+            ultimaSecaoFocada=secaoAtual;
+        }
+        voltarDaReproducao=true;
+        focoPendente=true;
+    }
+
+    /** Recupera o foco quando a janela da TCL volta após a reprodução. */
+    public void restaurarFocoAposReproducao(){
+        if(!voltarDaReproducao)return;
+        focoPendente=true;
+        postDelayed(this::tentarRestaurarFoco,100);
+        postDelayed(this::tentarRestaurarFoco,340);
+    }
+
+    private void tentarRestaurarFoco(){
+        if(!focoPendente || !isAttachedToWindow() || !hasWindowFocus())return;
+        View alvo=null;
+        if(ultimoControleFocado!=null && ultimoControleFocado.isAttachedToWindow()
+                && ultimoControleFocado.isShown() && ultimoControleFocado.isFocusable()){
+            alvo=ultimoControleFocado;
+        }else if(ultimaSecaoFocada==secaoAtual && ultimoVideoFocado!=null){
+            alvo=cartoesPorId.get(ultimoVideoFocado);
+        }
+        if(alvo==null && estavaNoMenu && menu.getChildCount()>0){
+            alvo=menu.getChildAt(Math.max(0,Math.min(secaoAtual,
+                    menu.getChildCount()-1)));
+        }
+        if(alvo==null)alvo=primeiroCartao;
+        if(alvo!=null && alvo.isShown() && alvo.requestFocus()){
+            focoPendente=false;
+            voltarDaReproducao=false;
+        }
+    }
+
     /** Voltar, quando dentro dos vídeos, retorna à navegação horizontal. */
     public boolean voltarAoMenu(){
         if(menu.getChildCount()>0&&!menu.hasFocus()){
-            menu.getChildAt(Math.max(0,Math.min(secaoAtual,
-                    menu.getChildCount()-1))).requestFocus();
+            View categoria=menu.getChildAt(Math.max(0,Math.min(secaoAtual,
+                    menu.getChildCount()-1)));
+            categoria.requestFocus();
+            ultimoControleFocado=categoria;
+            estavaNoMenu=true;
+            ultimaSecaoFocada=secaoAtual;
             return true;
         }
         return false;
