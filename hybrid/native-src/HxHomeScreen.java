@@ -1277,7 +1277,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     private void desenharGrupo(VideoGroup grupo){
         if(grupo==null)return;
-        if(grupo.getAction()==VideoGroup.ACTION_REPLACE)limparConteudo();
+        if(grupo.getAction()==VideoGroup.ACTION_REPLACE){
+            limparConteudo();
+            mostrarCarregamentoSecao();
+        }
         String id=chave(grupo);
         if(grupo.getAction()==VideoGroup.ACTION_REMOVE){
             grupos.remove(id);
