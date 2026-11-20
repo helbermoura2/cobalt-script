@@ -903,7 +903,28 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
               .transition(DrawableTransitionOptions.withCrossFade(240))
              .error(R.drawable.card_placeholder).into(imagemDestaque);
     }
+    // Uma única aparição por vídeo entre fileiras da Home.
+    // Transmissões no hub são exceção: a prioridade é localizar lives ativas.
+    private List<Video> semDuplicarNaHome(String chave,List<Video> candidatos){
+        if(!estaNaHome()||chave.startsWith("hx/live/"))return candidatos;
+        LinkedHashSet<String> utilizados=new LinkedHashSet<>();
+        for(Map.Entry<String,LinkedHashSet<String>> registro:idsNaTela.entrySet()){
+            if(!registro.getKey().equals(chave))utilizados.addAll(registro.getValue());
+        }
+        LinkedHashSet<String> atuais=new LinkedHashSet<>();
+        List<Video> distintos=new ArrayList<>();
+        for(Video video:candidatos){
+            if(video==null)continue;
+            String id=video.videoId;
+            if(id==null||(!utilizados.contains(id)&&atuais.add(id)))
+                distintos.add(video);
+        }
+        idsNaTela.put(chave,atuais);
+        return distintos;
+    }
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
+        final List<Video> exibidos=semDuplicarNaHome(chave,videos);
+        if(exibidos==null||exibidos.isEmpty())return;
         LinearLayout faixa=fileiras.get(chave);
         if(faixa==null){
             LinearLayout bloco=new LinearLayout(getContext());
@@ -935,10 +956,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(principal)primeiraFileira.clear();
         final LinearLayout faixaAtual=faixa;
         faixa.removeAllViews();
-        final int limite=Math.min(videos.size(),
+        final int limite=Math.min(exibidos.size(),
                 limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):32);
         int n=0;
-        for(Video video:videos){
+        for(Video video:exibidos){
             if(n>=limite)break;
             final int pos=n++;
             final String referencia=chave+"|"+(video.videoId==null?
@@ -1017,16 +1038,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(selecionado){
                     dados.onVideoItemSelected(video);
                     if(estaNaHome())atualizarDestaque(video);
-                    if(pos>=limite-3 && limite<videos.size()){
+                    if(pos>=limite-3 && limite<exibidos.size()){
                         // Carrega mais capas desta mesma fileira conforme necessário.
                         // Redesenho adiado para preservar o vídeo focado pelo controle.
-                        int novo=Math.min(videos.size(),limite+18);
+                        int novo=Math.min(exibidos.size(),limite+18);
                         Integer ja=limitesPorFileira.get(chave);
                         if(ja==null||ja<novo){
                             limitesPorFileira.put(chave,novo);
                             postDelayed(()->{
                                 if(faixaAtual.isAttachedToWindow())
-                                    desenharFileira(chave,nome,videos,principal);
+                                    desenharFileira(chave,nome,exibidos,principal);
                             },160);
                         }
                     }else if(pos>=limite-1){
@@ -1097,6 +1118,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         String id=chave(grupo);
         if(grupo.getAction()==VideoGroup.ACTION_REMOVE){
             grupos.remove(id);
+            idsNaTela.remove(id);
             return;
         }
         List<Video> videos=grupos.get(id);
