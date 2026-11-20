@@ -515,6 +515,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             ultimaSecaoFocada=secaoAtual;
         }
         if(principal)primeiraFileira.clear();
+        final LinearLayout faixaAtual=faixa;
         faixa.removeAllViews();
         int n=0;
         for(Video video:videos){
@@ -607,7 +608,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(key==KeyEvent.KEYCODE_DPAD_DOWN
                         || (key==KeyEvent.KEYCODE_DPAD_UP && !principal)){
                     List<LinearLayout> linhas=new ArrayList<>(fileiras.values());
-                    int atualLinha=linhas.indexOf(faixa);
+                    int atualLinha=linhas.indexOf(faixaAtual);
                     int destino=atualLinha+(key==KeyEvent.KEYCODE_DPAD_DOWN?1:-1);
                     if(destino>=0 && destino<linhas.size()){
                         LinearLayout outra=linhas.get(destino);
