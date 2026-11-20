@@ -28,7 +28,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
-import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AppUpdatePresenter;
+import com.liskovsoft.smartyoutubetv2.common.misc.AppDataSourceManager;
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
@@ -143,7 +143,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         margem(atualizar,12,9,12,9);foco(atualizar);
         atualizar.setContentDescription("Verificar atualizações do HX TV");
         atualizar.setOnClickListener(v->
-                AppUpdatePresenter.instance(getContext()).start(true));
+                AppDataSourceManager.verificarAtualizacaoHx(getContext()));
         topo.addView(atualizar);
 
         TextView antigo=texto("  MODO CLÁSSICO  ",11,SECUNDARIO,true);
@@ -505,7 +505,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         linhaAtualizacao.bottomMargin=dp(10);
         pagina.addView(atualizar,linhaAtualizacao);
         atualizar.setOnClickListener(v->
-                AppUpdatePresenter.instance(getContext()).start(true));
+                AppDataSourceManager.verificarAtualizacaoHx(getContext()));
         primeiroCartao=atualizar;
         if(grupo==null||grupo.getItems()==null)return;
         for(SettingsItem opcao:grupo.getItems()){

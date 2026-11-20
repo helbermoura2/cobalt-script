@@ -93,6 +93,15 @@ def main():
     # simplified "About" panel that hides AppUpdateChecker, so fix that route
     # and add our own updater entry prominently.
     setting_items=(root/"common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java")
+    # A tela HX pertence ao módulo smarttubetv e não pode acessar diretamente
+    # a classe AppUpdatePresenter (dependência appupdatechecker2 não transitiva).
+    # Expor uma ponte pública no módulo common sem alterar seu instalador.
+    replace_exact(setting_items,
+                  "public class AppDataSourceManager {",
+                  """public class AppDataSourceManager {
+    public static void verificarAtualizacaoHx(Context context) {
+        AppUpdatePresenter.instance(context).start(true);
+    }""")
     replace_exact(setting_items,
                   "import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;",
                   "import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;\n"
