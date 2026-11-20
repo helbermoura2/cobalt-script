@@ -1169,6 +1169,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         return distintos;
     }
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
+        if(estaNasInscricoes()){
+            desenharInscricoesEmLista(chave,nome,videos,principal);
+            return;
+        }
         final List<Video> exibidos=semDuplicarNaHome(chave,videos);
         if(exibidos==null||exibidos.isEmpty())return;
         LinearLayout faixa=fileiras.get(chave);
@@ -1216,7 +1220,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.setOrientation(LinearLayout.VERTICAL);
             foco(cartao);
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(
-                    dp(cartaz?LARGURA_CAPA_HOME:220),dp(cartaz?ALTURA_CAPA_HOME:174));
+                    dp(cartaz?LARGURA_CAPA_HOME:225),dp(cartaz?ALTURA_CAPA_HOME:226));
             cp.rightMargin=dp(11);faixa.addView(cartao,cp);
             // Selo sobre a miniatura verdadeira, sem mascarar a interface.
             FrameLayout capa=new FrameLayout(getContext());
@@ -1257,22 +1261,24 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .error(android.R.color.transparent)
                     .into(miniatura);
-            TextView nomeCartao=texto(video.getTitle(),12,TEXTO,true);
-            nomeCartao.setMaxLines(2);
+            TextView nomeCartao=texto(video.getTitle(),13,TEXTO,true);
+            nomeCartao.setMaxLines(3);
+            nomeCartao.setLineSpacing(dp(1),1.08f);
+            nomeCartao.setGravity(Gravity.TOP|Gravity.START);
             nomeCartao.setEllipsize(TextUtils.TruncateAt.END);
-            margem(nomeCartao,8,5,8,0);
+            margem(nomeCartao,9,8,9,0);
             cartao.addView(nomeCartao,new LinearLayout.LayoutParams(-1,0,1));
-            TextView dadosCartao=texto(video.getSecondTitle(),9,SECUNDARIO,false);
+            TextView dadosCartao=texto(video.getSecondTitle(),10,SECUNDARIO,false);
             dadosCartao.setSingleLine(true);
             dadosCartao.setEllipsize(TextUtils.TruncateAt.END);
             margem(dadosCartao,8,0,8,7);
-            cartao.addView(dadosCartao,new LinearLayout.LayoutParams(-1,dp(24)));
+            cartao.addView(dadosCartao,new LinearLayout.LayoutParams(-1,dp(27)));
             cartoesPorId.put(referencia,cartao);
             if(principal)primeiraFileira.add(cartao);
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 if(selecionado)setPainelAberto(false);
-                v.setBackground(fundo(selecionado?0xFF272D39:PAINEL,
-                        selecionado?0xFFF0F4F9:0,12));
+                v.setBackground(vidro(selecionado?0xAB47586D:0x611E2B3D,
+                        selecionado?0xFFF1F7FF:0x365E7189,15));
                 v.animate().cancel();
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
@@ -1292,10 +1298,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                             atualizarFileiraLive();
                     },250);
                 }
-                nomeCartao.setSelected(selecionado);
-                nomeCartao.setEllipsize(selecionado?
-                        TextUtils.TruncateAt.MARQUEE:TextUtils.TruncateAt.END);
-                nomeCartao.setMarqueeRepeatLimit(-1);
+                nomeCartao.setEllipsize(TextUtils.TruncateAt.END);
+                if(selecionado && tituloSelecionado!=null){
+                    tituloSelecionado.setText(video.getTitle());
+                    tituloSelecionado.setSelected(true);
+                }
                 if(selecionado){
                     dados.onVideoItemSelected(video);
                     if(estaNaHome())agendarDestaque(video);
