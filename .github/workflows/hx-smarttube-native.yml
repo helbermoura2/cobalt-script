@@ -1,4 +1,4 @@
-name: HX TV Native 0.9.1 - corrigir foco, ao vivo e player
+name: HX TV Native 0.9.2 - corrigir menu e atualizar direto
 on:
   push:
     branches: [smart-cobalt-hybrid]
@@ -80,6 +80,10 @@ jobs:
           python3 hybrid/patch_hx_home.py upstream
           python3 hybrid/patch_hx_player.py upstream
           grep -q 'restaurarFocoAposReproducao()' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/BrowseActivity.java
+          grep -q 'dispatchKeyEvent(KeyEvent evento)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          grep -q 'ATUALIZAR HX TV' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          grep -q 'native-beta.json' upstream/common/src/stbeta/res/values/update_urls.xml
+          python3 -m json.tool hybrid/updates/native-beta.json > /dev/null
           grep -q 'TextView aoVivo=texto' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'StateListDrawable states' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
           grep -q 'class HxHomeScreen extends FrameLayout implements BrowseView' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
@@ -101,7 +105,7 @@ jobs:
           grep -q 'raw.githubusercontent.com/helbermoura2/cobalt-script/smart-cobalt-hybrid' upstream/common/src/stbeta/res/values/update_urls.xml
           grep -q 'hx_update_app' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java
           grep -q '#B68A56' upstream/smarttubetv/src/main/res/values/colors.xml
-          grep -q 'versionCode 2479' upstream/smarttubetv/build.gradle
+          grep -q 'versionCode 2480' upstream/smarttubetv/build.gradle
       - name: Supply optional Android library typedef metadata for old release plugin
         shell: bash
         run: |
@@ -133,33 +137,33 @@ jobs:
           apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*armeabi-v7a.apk' -type f | head -n 1)
           if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
           mkdir -p out
-          cp "$apk" out/HX-TV-Native-0.9.1-unsigned-arm.apk
+          cp "$apk" out/HX-TV-Native-0.9.2-unsigned-arm.apk
           sdk="$ANDROID_HOME/build-tools"
           bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.1-unsigned-arm.apk | head -n 15
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.1-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.2-unsigned-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.2-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
           # This is intentionally unsigned; it must be signed locally with
           # the persistent private HX key, never uploaded as a public release.
-          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.1-unsigned-arm.apk
-          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.1-unsigned-arm.apk | grep -q '^application-debuggable'; then
+          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.2-unsigned-arm.apk
+          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.2-unsigned-arm.apk | grep -q '^application-debuggable'; then
             echo 'ERROR: Release APK is debuggable'
             exit 1
           fi
-          sha256sum out/HX-TV-Native-0.9.1-unsigned-arm.apk
+          sha256sum out/HX-TV-Native-0.9.2-unsigned-arm.apk
       - name: Upload backup APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hx-native-androidtv-release-unsigned-0.9.1
-          path: out/HX-TV-Native-0.9.1-unsigned-arm.apk
+          name: hx-native-androidtv-release-unsigned-0.9.2
+          path: out/HX-TV-Native-0.9.2-unsigned-arm.apk
           if-no-files-found: error
-      - name: Sign HX 0.9.1 APK with persistent certificate
+      - name: Sign HX 0.9.2 APK with persistent certificate
         shell: bash
         env:
           HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
-          src="out/HX-TV-Native-0.9.1-unsigned-arm.apk"
-          dst="out/HX-TV-Native-0.9.1-assinado-arm.apk"
+          src="out/HX-TV-Native-0.9.2-unsigned-arm.apk"
+          dst="out/HX-TV-Native-0.9.2-assinado-arm.apk"
           bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           [[ -x "$bt/apksigner" && -x "$bt/aapt" && -x "$bt/zipalign" ]] || exit 1
           mkdir -p "$RUNNER_TEMP/hx-private"
@@ -192,27 +196,27 @@ jobs:
             echo "::error::Certificado diferente da HX TV 0.3.0. Abortando."
             exit 1
           }
-          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2479' versionName='0.9.1'"
+          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2480' versionName='0.9.2'"
           ! "$bt/aapt" dump badging "$dst" | grep -q '^application-debuggable' || {
             echo 'Release debuggable forbidden'; exit 1; }
           "$bt/zipalign" -c -v 4 "$dst" >/dev/null
-          sha256sum "$dst" > out/HX-TV-Native-0.9.1.sha256
+          sha256sum "$dst" > out/HX-TV-Native-0.9.2.sha256
       - name: Publicar APK experimental sem ativar atualização automática
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag='hx-tv-independent-v0.9.1-beta'
-          apk='HX-TV-Native-0.9.1-assinado-arm.apk'
+          tag='hx-tv-independent-v0.9.2-beta'
+          apk='HX-TV-Native-0.9.2-assinado-arm.apk'
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::error::Já existe uma versão experimental com esse nome."
             exit 1
           fi
           gh release create "$tag" "out/$apk" --prerelease \
             --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
-            --title 'HX TV 0.9.1 — foco restaurado, AO VIVO e player HX (teste)' \
-            --notes 'VERSÃO EXPERIMENTAL: melhora a tela HX TV independente. Restaura a miniatura selecionada após voltar da reprodução; mantém foco quando recomendações são redesenhadas; mostra selo AO VIVO vermelho e EM BREVE sobre miniaturas; botões do player ganham seleção bronze e fundo OLED, preservando as funções originais. MODO CLÁSSICO continua disponível. O atualizador automático permanece na versão estável anterior até teste real na TCL P7K.'
+            --title 'HX TV 0.9.2 — menu corrigido, atualização direta e novos botões' \
+            --notes 'HX TV 0.9.2 EXPERIMENTAL: ao apertar PARA CIMA a partir de qualquer vídeo da primeira fileira o foco retorna às categorias superiores, inclusive no Histórico. Apenas o item com foco recebe contorno bronze; a categoria atual é indicada discretamente. Botão ATUALIZAR visível no topo e nas Configurações, usando canal beta separado e instalação assinada. Botões nativos do player mais redondos, com fundo OLED e borda bronze; funções originais mantidas. Mantém selo AO VIVO, EM BREVE, modo clássico e restauração do cursor. Esta versão ainda requer instalação inicial manual por não existir botão no 0.9.1.'
           mkdir -p test-release
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern "$apk" --dir test-release
