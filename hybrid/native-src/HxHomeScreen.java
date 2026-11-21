@@ -1135,9 +1135,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         mp.topMargin=dp(5);
         lateralTexto.addView(detalhesDestaque,mp);
 
-        TextView indicacao=texto("▶  ASSISTIR",11,0xFF101928,true);
+        TextView indicacao=texto("▶  ASSISTIR",11,TEXTO,true);
         indicacao.setGravity(Gravity.CENTER);
-        indicacao.setBackground(vidro(0xB0C5DBEB,0xFFEAF5FF,10));
+        indicacao.setBackground(vidro(0x98708BA5,0xFFEAF5FF,10));
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(dp(130),dp(30));
         hp.topMargin=dp(8);
         lateralTexto.addView(indicacao,hp);
@@ -1251,6 +1251,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .error(android.R.color.transparent)
                     .into(imagem);
+            adicionarDuracao(capa,video);
             LinearLayout informacoes=new LinearLayout(getContext());
             informacoes.setOrientation(LinearLayout.VERTICAL);
             informacoes.setGravity(Gravity.CENTER_VERTICAL);
@@ -1383,7 +1384,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             // Se a capa falhar, mostrar HX em vez de um retângulo cinza vazio.
             capa.setBackground(new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xFF182436,0xFF243446,0xFF111B2B}));
+                    new int[]{0xFF24384D,0xFF192A40,0xFF0C1727}));
             TextView seloEspera=texto("▶  HX TV",13,0xFF8DA4BB,true);
             seloEspera.setGravity(Gravity.CENTER);
             seloEspera.setLetterSpacing(.12f);
@@ -1414,6 +1415,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .error(android.R.color.transparent)
                     .into(miniatura);
+            adicionarDuracao(capa,video);
             TextView nomeCartao=texto(video.getTitle(),13,TEXTO,true);
             nomeCartao.setMaxLines(3);
             nomeCartao.setLineSpacing(dp(1),1.08f);
