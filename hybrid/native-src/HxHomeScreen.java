@@ -999,7 +999,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cp.rightMargin=dp(9);
             linha.addView(chip,cp);
             chip.setOnFocusChangeListener((v,selecionado)->{
-                chip.setBackground(fundo(selecionado?0xFF324A69:0xFF1B2533,
+                chip.setBackground(fundo(selecionado?0xFF484848:0xFF191919,
                         selecionado?0xFFF1F7FF:0,12));
                 if(selecionado)setPainelAberto(false);
             });
@@ -1082,7 +1082,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             }
         });
         quadro.setOnFocusChangeListener((v,active)->{
-            quadro.setForeground(fundo(0x00000000,active?0xFFE6F1FF:0,17));
+            quadro.setForeground(fundo(0x00000000,active?0xFFF5F5F5:0,17));
             if(Build.VERSION.SDK_INT>=21)quadro.setElevation(dp(active?8:0));
             v.animate().cancel();
             v.animate().scaleX(active?1.01f:1f).scaleY(active?1.01f:1f)
