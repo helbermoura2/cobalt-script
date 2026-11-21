@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.16: restaurar comandos estáveis do player 0.9.14, evitando recorte de capas.
+"""HX TV 0.9.17: vidro visual nos controles preservando ações e foco da 0.9.16.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -43,14 +43,14 @@ import android.animation.StateListAnimator;""")
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xEB475D72, 0xF0203142});
+                    new int[]{0xAA7390AB, 0x72415A74});
             focus.setCornerRadius(radius);
-            focus.setStroke(stroke, 0xFFF0F5FD);
+            focus.setStroke(stroke, 0xFFF5FAFF);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xAC202B38, 0xC1121D2B});
+                    new int[]{0x71506C86, 0x3D23384E});
             idle.setCornerRadius(radius);
-            idle.setStroke(Math.max(1, Math.round(density)), 0x246A7686);
+            idle.setStroke(Math.max(1, Math.round(density)), 0x8193B0C9);
             StateListDrawable states = new StateListDrawable();
             states.addState(new int[] {android.R.attr.state_focused}, focus);
             states.addState(new int[] {android.R.attr.state_pressed}, focus);
@@ -162,8 +162,9 @@ import android.os.SystemClock;""")
             aviso.setGravity(Gravity.CENTER);
             aviso.setPadding(22, 10, 22, 10);
             GradientDrawable fundo = new GradientDrawable();
-            fundo.setColor(0xDB101A26);
+            fundo.setColor(0xA3334A61);
             fundo.setCornerRadius(16f * getResources().getDisplayMetrics().density);
+            fundo.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density)),0x9F99B4CE);
             aviso.setBackground(fundo);
             aviso.setFocusable(false);
             aviso.setVisibility(View.GONE);
@@ -353,14 +354,14 @@ import android.os.SystemClock;""")
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {""")
     for arquivo,basecolor,borda in (
-        ("hx_player_primary_rail.xml","#69161E27","#33677383"),
-        ("hx_player_secondary_rail.xml","#41151D26","#23677383"),
+        ("hx_player_primary_rail.xml","#713A5268","#8BA5BED7"),
+        ("hx_player_secondary_rail.xml","#572B4158","#7793AEC7"),
     ):
         d=base/"res/drawable"/arquivo
         d.write_text(f'''<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="{basecolor}"/>
-    <corners android:radius="15dp"/>
+    <corners android:radius="18dp"/>
     <stroke android:color="{borda}" android:width="1dp"/>
 </shape>
 ''',encoding="utf-8")
@@ -371,9 +372,9 @@ import android.os.SystemClock;""")
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#CD090E16"
-        android:centerColor="#A50A121F"
-        android:centerY="0.30"
+        android:startColor="#99131E30"
+        android:centerColor="#73192C42"
+        android:centerY="0.35"
         android:endColor="#00121C2A" />
 </shape>
 """,encoding="utf-8")
@@ -383,14 +384,14 @@ import android.os.SystemClock;""")
     suggestions.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#D80B121D"
-        android:centerColor="#AB0C1420"
-        android:centerY="0.42"
-        android:endColor="#190C1420" />
+        android:startColor="#AA182A40"
+        android:centerColor="#7B1B3047"
+        android:centerY="0.44"
+        android:endColor="#131A2D43" />
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER 0.9.16: funcionalidade 0.9.14 restaurada, sugestões sem recorte excessivo")
+    print("HX PLAYER 0.9.17: vidro translúcido apenas visual; ações e foco da 0.9.16 intactos")
 
 if __name__=="__main__":
     main()
