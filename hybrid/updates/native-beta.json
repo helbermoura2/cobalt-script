@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.15-beta/HX-TV-Native-0.9.15-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.16-beta/HX-TV-Native-0.9.16-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.15-beta/HX-TV-Native-0.9.15-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.16-beta/HX-TV-Native-0.9.16-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -191,6 +191,18 @@
       "Botões do player redesenhados: sem arte antiga circular, superfícies de vidro, ícones padronizados e foco discreto",
       "Mantidos ExoPlayer original, legendas, qualidade, histórico, miniplayer, AO VIVO e atualização interna sem desinstalar",
       "Compilação assinada com o mesmo certificado permanente da versão 0.9.14"
+    ]
+  },
+  "0.9.16": {
+    "versionCode": 2494,
+    "changelog": [
+      "Correção emergencial do player: restaurados os botões e o mecanismo de foco que funcionavam na 0.9.14",
+      "Revertidas as alterações de 0.9.15 na grade Leanback que impediram selecionar qualidade, retroceder e abrir recomendações",
+      "Restaurados ícones e dimensões nativas originais dos controles, sem interferir em suas ações",
+      "Sugestões com mais espaço vertical para exibir capas, sem modificar o alinhamento de foco da grade",
+      "Preservados os novos cards com títulos legíveis, a Home Glass Studio, o menu com rolagem única e Inscrições verticais",
+      "Preservados PiP, AO VIVO, histórico, legendas, áudio, 4K quando disponível e assinatura permanente",
+      "Atualizador interno oferece APK assinado para instalar sobre a 0.9.15 sem desinstalar"
     ]
   }
 }
