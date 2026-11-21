@@ -11,9 +11,9 @@ import sys
 
 PACKAGE_ID = "br.com.hxnative.tvpreview"
 LABEL = "HX TV"
-VERSION_NAME = "0.9.16"
-VERSION_CODE = 2494
-RELEASE_TAG = "hx-tv-independent-v0.9.16-beta"
+VERSION_NAME = "0.9.17"
+VERSION_CODE = 2495
+RELEASE_TAG = "hx-tv-independent-v0.9.17-beta"
 REPO = "helbermoura2/cobalt-script"
 
 
