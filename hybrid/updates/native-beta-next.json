@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.16-beta/HX-TV-Native-0.9.16-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.17-beta/HX-TV-Native-0.9.17-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.16-beta/HX-TV-Native-0.9.16-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.17-beta/HX-TV-Native-0.9.17-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -203,6 +203,18 @@
       "Preservados os novos cards com títulos legíveis, a Home Glass Studio, o menu com rolagem única e Inscrições verticais",
       "Preservados PiP, AO VIVO, histórico, legendas, áudio, 4K quando disponível e assinatura permanente",
       "Atualizador interno oferece APK assinado para instalar sobre a 0.9.15 sem desinstalar"
+    ]
+  },
+  "0.9.17": {
+    "versionCode": 2495,
+    "changelog": [
+      "Glass Polish: menu lateral, cards, destaque, chips AO VIVO, painel de miniplayer e estados vazios com camadas translúcidas e contornos prateados",
+      "Capas de vídeos gravados agora mostram a minutagem real informada pelo catálogo no canto inferior direito",
+      "Minutagem no feed vertical de Inscrições; transmissões ao vivo e estreias não recebem duração falsa",
+      "Controles do player com materiais translúcidos, fileiras de vidro e foco contrastante sem alterar ações, dimensões ou foco do SmartTube",
+      "Selos AO VIVO e EM BREVE modernizados, preservando legibilidade",
+      "Mesma disposição de cards da versão 0.9.16; reorganização e novos formatos ficam para etapa futura",
+      "Mesma assinatura permanente para atualizar diretamente sem desinstalar"
     ]
   }
 }
