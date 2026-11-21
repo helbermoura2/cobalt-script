@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.16 Player Recovery (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.17 Glass Polish (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -44,11 +44,21 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.16"' in native and "VERSION_CODE = 2494" in native,
-  "manifest next version": manifest.get("0.9.16",{}).get("versionCode")==2494,
+  "consistent app version": 'VERSION_NAME = "0.9.17"' in native and "VERSION_CODE = 2495" in native,
+  "manifest next version": manifest.get("0.9.17",{}).get("versionCode")==2495,
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
-  "OTA only after release check": "cmp out/HX-TV-Native-0.9.16-assinado-arm.apk test-release-final/HX-TV-Native-0.9.16-assinado-arm.apk" in workflow,
+  "OTA only after release check": "cmp out/HX-TV-Native-0.9.17-assinado-arm.apk test-release-final/HX-TV-Native-0.9.17-assinado-arm.apk" in workflow,
   "glass panels and buttons": "private GradientDrawable vidro(int cor, int borda, int raio)" in home and "StateListDrawable states" in player,
+  "duration from source only": "video.getDurationMs()" in home and "duracao<=0" in home,
+  "live and upcoming have no minutes": "video.isLive||video.isUpcoming" in home,
+  "hour and minute duration supported": '"%d:%02d:%02d"' in home and '"%d:%02d"' in home,
+  "duration in both layouts": home.count("adicionarDuracao(capa,video);")==2,
+  "subtitle cards size preserved": "ALTURA_CAPA_HOME=218" in home and "dp(cartaz?LARGURA_CAPA_HOME:225),dp(cartaz?ALTURA_CAPA_HOME:226)" in home,
+  "translucent navigation": "new int[]{0xAF465E77,0x7B23374E,0x97101729}" in home,
+  "live glass chips": "chip.setBackground(vidro(" in home,
+  "glass player coloring only": "new int[]{0xAA7390AB, 0x72415A74}" in player and "new int[]{0x71506C86, 0x3D23384E}" in player,
+  "same DPAD and button dimensions": "screenHeight * 0.68f" in player and "Math.round(146f * d)" in player and "setImageDrawable(null)" not in player and "setWindowAlignmentOffsetPercent" not in player,
+
   "unified scrolling actions": "menu.addView(acao,lp)" in home and "lateral.addView(pesquisa,new" not in home and "lateral.addView(atualizar,new" not in home,
   "nav icon alignment": "private void posicionarNav(TextView alvo,String rotulo)" in home and "alvo.setCompoundDrawables(null,icone,null,null)" in home,
   "titles not crushed": "ALTURA_CAPA_HOME=218" in home and "nomeCartao.setMaxLines(3)" in home and "tituloSelecionado.setText(video.getTitle())" in home,
@@ -65,4 +75,4 @@ for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.16: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.17: {len(checks)} regression gates passed")
