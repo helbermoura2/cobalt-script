@@ -292,8 +292,11 @@ import android.os.SystemClock;""")
     # nativo de controles, foco, clique, geometria e espaco de toque.
     controls=base/"res/layout/lb_playback_transport_controls_row.xml"
     xmlOriginal=controls.read_text(encoding="utf-8")
+    # O SmartTube usa dois controles_dock em variantes diferentes do layout,
+    # enquanto secondary_controls_dock tem apenas uma ocorrencia.
+    # Validar presenca e nao unicidade para respeitar o XML original.
     for idControle in ("controls_dock","secondary_controls_dock"):
-        if xmlOriginal.count(f'android:id="@+id/{idControle}"')!=1:
+        if xmlOriginal.count(f'android:id="@+id/{idControle}"')<1:
             raise RuntimeError(f"Dock original ausente: {idControle}")
     if "hx_player_primary_rail" in xmlOriginal or "hx_player_secondary_rail" in xmlOriginal:
         raise RuntimeError("Capsula externa nao pode voltar")
