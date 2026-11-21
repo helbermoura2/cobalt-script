@@ -1231,12 +1231,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.setGravity(Gravity.CENTER_VERTICAL);
             cartao.setFocusable(true);
             cartao.setBackground(vidro(0x4C141414,0x81BCBCBC,17));
+            if(Build.VERSION.SDK_INT>=21)cartao.setClipToOutline(true);
+            cartao.setForeground(fundo(0x00000000,0x77888888,17));
             margem(cartao,10,9,12,9);
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(139));
             rp.bottomMargin=dp(11);
             lista.addView(cartao,rp);
             FrameLayout capa=new FrameLayout(getContext());
             capa.setBackground(vidro(0x61171717,0x729E9E9E,13));
+            if(Build.VERSION.SDK_INT>=21)capa.setClipToOutline(true);
             LinearLayout.LayoutParams im=new LinearLayout.LayoutParams(dp(190),dp(107));
             cartao.addView(capa,im);
             TextView fallback=texto("HX TV",14,SECUNDARIO,true);
@@ -1274,6 +1277,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 v.setBackground(vidro(selecionado?0xA9666666:0x4C141414,
                         selecionado?0xFFFFFFFF:0x81BCBCBC,17));
+                v.setForeground(fundo(0x00000000,
+                        selecionado?0xFFF1F1F1:0x77888888,17));
                 if(selecionado){
                     ultimoVideoFocado=referencia;
                     ultimoControleFocado=v;
@@ -1373,6 +1378,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             LinearLayout cartao=new LinearLayout(getContext());
             cartao.setOrientation(LinearLayout.VERTICAL);
             foco(cartao);
+            // O contorno arredondado agora recorta a miniatura e seus filhos.
+            if(Build.VERSION.SDK_INT>=21)cartao.setClipToOutline(true);
+            cartao.setForeground(fundo(0x00000000,0x77888888,17));
             LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(
                     dp(cartaz?LARGURA_CAPA_HOME:225),dp(cartaz?ALTURA_CAPA_HOME:226));
             cp.rightMargin=dp(11);faixa.addView(cartao,cp);
@@ -1382,9 +1390,12 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     dp(cartaz?115:123)));
             // Fundo editorial de baixo custo até a imagem real chegar.
             // Se a capa falhar, mostrar HX em vez de um retângulo cinza vazio.
-            capa.setBackground(new GradientDrawable(
+            GradientDrawable fundoCapa=new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xFF292929,0xFF181818,0xFF090909}));
+                    new int[]{0xFF292929,0xFF181818,0xFF090909});
+            fundoCapa.setCornerRadius(dp(14));
+            capa.setBackground(fundoCapa);
+            if(Build.VERSION.SDK_INT>=21)capa.setClipToOutline(true);
             TextView seloEspera=texto("▶  HX TV",13,0xFFA8A8A8,true);
             seloEspera.setGravity(Gravity.CENTER);
             seloEspera.setLetterSpacing(.12f);
@@ -1434,6 +1445,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 if(selecionado)setPainelAberto(false);
                 v.setBackground(vidro(selecionado?0xA9606060:0x46111111,
                         selecionado?0xFFFFFFFF:0x76BABABA,17));
+                // Borda em primeiro plano: a capa nao encobre mais o contorno.
+                v.setForeground(fundo(0x00000000,
+                        selecionado?0xFFF1F1F1:0x77888888,17));
                 v.animate().cancel();
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
