@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.17-beta/HX-TV-Native-0.9.17-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.18-beta/HX-TV-Native-0.9.18-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.17-beta/HX-TV-Native-0.9.17-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.18-beta/HX-TV-Native-0.9.18-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -215,6 +215,19 @@
       "Selos AO VIVO e EM BREVE modernizados, preservando legibilidade",
       "Mesma disposição de cards da versão 0.9.16; reorganização e novos formatos ficam para etapa futura",
       "Mesma assinatura permanente para atualizar diretamente sem desinstalar"
+    ]
+  },
+  "0.9.18": {
+    "versionCode": 2496,
+    "changelog": [
+      "Black Glass: fundo preto OLED e superficies de vidro neutro em cinza/prata, sem azul permanente",
+      "Transparencia alfa nos paineis, menu lateral, Home, filtros e foco, mantendo leveza para Android TV",
+      "Removidas as capsulas extras externas que faziam os botoes do player parecerem botoes dentro de outra barra",
+      "Player preserva os comandos, botoes individuais, selecao de qualidade e navegacao nas sugestoes da 0.9.17",
+      "Miniaturas realmente recortadas com cantos arredondados na Home e Inscricoes, com contorno de foco acima da imagem",
+      "Tema nativo SmartTube tambem mudou de azul para prata e preto neutro",
+      "Duracoes reais dos videos, layout atual dos cards e miniplayer preservados",
+      "Atualizacao assinada com certificado permanente, sem desinstalar"
     ]
   }
 }
