@@ -54,9 +54,9 @@ import java.util.Map;
  * Compartilha apenas os dados, contas e a reprodução do SmartTube.
  */
 public final class HxHomeScreen extends FrameLayout implements BrowseView {
-    private static final int PRETO=0xFF060910, PAINEL=0x99232D3C;
+    private static final int PRETO=0xFF060910, PAINEL=0x672E4053;
     private static final int GELO=0xFFE0E9F4, TEXTO=0xFFF8FAFE, SECUNDARIO=0xFFB3BECE;
-    private static final int FOCO=0x80536C83;
+    private static final int FOCO=0x996983A0;
     private final BrowsePresenter dados;
     private final List<BrowseSection> secoes=new ArrayList<>();
     private final LinkedHashMap<String,LinearLayout> fileiras=new LinkedHashMap<>();
@@ -171,15 +171,36 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(contorno!=0)forma.setStroke(dp(1.4f),contorno);
         return forma;
     }
-    // Vidro translúcido de baixo custo: sem blur em tempo real na TCL.
-    // Superfícies com alfa, brilho discreto e borda, não blocos azulados opacos.
+    // Superfície de vidro nativo: alfa verdadeiro sobre a cena, reflexo leve
+    // no topo e borda prateada. Evita desfoque GPU em tempo real na TCL.
     private GradientDrawable vidro(int cor, int borda, int raio){
         GradientDrawable forma=new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{0xA83F4C60,cor,0x8B121925});
+                new int[]{0x704E657C,cor,0x31111D2B});
         forma.setCornerRadius(dp(raio));
         forma.setStroke(dp(1),borda);
         return forma;
+    }
+    private void adicionarDuracao(FrameLayout capa,Video video){
+        if(capa==null||video==null||video.isLive||video.isUpcoming)return;
+        long duracao=video.getDurationMs();
+        if(duracao<=0)return; // Sem duração conhecida: não estimar.
+        long segundos=Math.max(1,(duracao+500L)/1000L);
+        long horas=segundos/3600L;
+        long minutos=(segundos%3600L)/60L;
+        long resto=segundos%60L;
+        String rotulo=horas>0
+                ?String.format(java.util.Locale.ROOT,"%d:%02d:%02d",horas,minutos,resto)
+                :String.format(java.util.Locale.ROOT,"%d:%02d",minutos,resto);
+        TextView etiqueta=texto(rotulo,11,0xFFFFFFFF,true);
+        etiqueta.setGravity(Gravity.CENTER);
+        etiqueta.setPadding(dp(7),dp(3),dp(7),dp(3));
+        etiqueta.setBackground(vidro(0xA10B1422,0x728DA3B9,7));
+        etiqueta.setContentDescription("Duração: "+rotulo);
+        FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-2,-2,
+                Gravity.END|Gravity.BOTTOM);
+        lp.setMargins(0,0,dp(8),dp(8));
+        capa.addView(etiqueta,lp);
     }
     private boolean estaNasInscricoes(){
         if(secaoAtual<0||secaoAtual>=secoes.size())return false;
@@ -203,10 +224,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     private void foco(View v){
         v.setFocusable(true);
-        v.setBackground(vidro(0x65263343,0x356F8399,14));
+        v.setBackground(vidro(0x522F4358,0x647A94AC,14));
         v.setOnFocusChangeListener((item,selecionado)->{
-            item.setBackground(vidro(selecionado?0xA44D6279:0x65263343,
-                    selecionado?0xFFF0F6FF:0x356F8399,14));
+            item.setBackground(vidro(selecionado?0xA36C87A1:0x522F4358,
+                    selecionado?0xFFF5FAFF:0x647A94AC,14));
             if(Build.VERSION.SDK_INT>=21)item.setElevation(dp(selecionado?4:0));
         });
     }
@@ -232,7 +253,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.setOrientation(LinearLayout.VERTICAL);
         lateral.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{0xE0313D4F,0xC8182433,0xD20A111E}));
+                new int[]{0xAF465E77,0x7B23374E,0x97101729}));
         margem(lateral,10,17,10,10);
         painelLateral=lateral;
         estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(186),-1));
@@ -260,7 +281,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         lateral.addView(alternar,toggleLp);
 
         View linhaBronze=new View(contexto);
-        linhaBronze.setBackgroundColor(0xFF2C333E);
+        linhaBronze.setBackgroundColor(0x668EA2B9);
         LinearLayout.LayoutParams divisorMenu=new LinearLayout.LayoutParams(-1,dp(1));
         divisorMenu.bottomMargin=dp(11);
         lateral.addView(linhaBronze,divisorMenu);
@@ -305,8 +326,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         // Modo clássico acompanha a rolagem.
         for(TextView item:new TextView[]{pesquisa,atualizar,antigo}){
             item.setOnFocusChangeListener((v,ativo)->{
-                v.setBackground(vidro(ativo?0x9B57748B:0x562B3C50,
-                        ativo?0xFFF3F8FF:0x346B8198,15));
+                v.setBackground(vidro(ativo?0xAA7088A3:0x57293C50,
+                        ativo?0xFFF3F8FF:0x608DA4BD,15));
                 Drawable d=item.getCompoundDrawables()[0];
                 if(d==null)d=item.getCompoundDrawables()[1];
                 if(d!=null)d.setTint(ativo?TEXTO:GELO);
@@ -316,9 +337,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
         LinearLayout coluna=new LinearLayout(contexto);
         coluna.setOrientation(LinearLayout.VERTICAL);
+        // Ambiente profundo por trás das superfícies transparentes.
         coluna.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{0xFF101B2B,0xFF080D18,PRETO}));
+                new int[]{0xFF1B2A3F,0xFF0B1626,PRETO}));
         estrutura.addView(coluna,new LinearLayout.LayoutParams(0,-1,1));
 
         // A faixa superior é informativa. Os controles reais ficam na lateral,
@@ -341,7 +363,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         topo.addView(ambiente);
 
         View separador=new View(contexto);
-        separador.setBackgroundColor(0xFF27313D);
+        separador.setBackgroundColor(0x66899EB4);
         coluna.addView(separador,new LinearLayout.LayoutParams(-1,dp(1)));
 
         // Quando há vídeo em mini-janela, reservar a zona superior direita.
@@ -350,7 +372,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         reservaPiP.setOrientation(LinearLayout.VERTICAL);
         reservaPiP.setGravity(Gravity.CENTER_VERTICAL);
         reservaPiP.setPadding(dp(20),dp(4),dp(230),dp(4));
-        reservaPiP.setBackground(fundo(0xFF101722,0,12));
+        reservaPiP.setBackground(vidro(0x452A3B4F,0x547C91A9,15));
         TextView tituloMini=texto("▶  VÍDEO EM MINI-JANELA",11,TEXTO,true);
         reservaPiP.addView(tituloMini);
         TextView notaMini=texto("Continue navegando",10,SECUNDARIO,false);
@@ -524,9 +546,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     /** Apenas o item com foco ganha CONTORNO. Categoria atual usa preenchimento discreto. */
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
-        aba.setBackground(vidro(focada?0xA458738C:
-                atual?0x80415267:0x52263444,
-                focada?0xFFF0F6FF:atual?0x708DAAC4:0x355C7186,14));
+        aba.setBackground(vidro(focada?0xAC6E89A6:
+                atual?0x7A48617C:0x492D4057,
+                focada?0xFFF4F9FF:atual?0x8BA6C4DE:0x60829AB4,16));
         aba.setTextColor(focada?TEXTO:atual?0xFFE2EAF3:SECUNDARIO);
         Drawable icone=aba.getCompoundDrawables()[0];
         if(icone==null)icone=aba.getCompoundDrawables()[1];
@@ -641,7 +663,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         estadoSecao=new LinearLayout(getContext());
         estadoSecao.setOrientation(LinearLayout.VERTICAL);
         estadoSecao.setGravity(Gravity.CENTER_VERTICAL);
-        estadoSecao.setBackground(fundo(0xAA192330,0x303C4D,13));
+        estadoSecao.setBackground(vidro(0x7A283B51,0x688BA2BA,17));
         estadoSecao.setPadding(dp(25),dp(18),dp(25),dp(17));
         LinearLayout.LayoutParams bloco=new LinearLayout.LayoutParams(-1,-2);
         bloco.topMargin=dp(12);
@@ -677,13 +699,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     new int[]{0xFF243448,0xFF1C2737,0xFF101926}));
             carta.addView(imagem,new LinearLayout.LayoutParams(-1,dp(96)));
             View tituloEspera=new View(getContext());
-            tituloEspera.setBackground(fundo(0xFF344357,0,4));
+            tituloEspera.setBackground(vidro(0x67435C76,0x5B92A8BC,5));
             LinearLayout.LayoutParams linha1=new LinearLayout.LayoutParams(
                     dp(i%2==0?128:148),dp(9));
             linha1.topMargin=dp(9);
             carta.addView(tituloEspera,linha1);
             View subtituloEspera=new View(getContext());
-            subtituloEspera.setBackground(fundo(0xFF29374A,0,4));
+            subtituloEspera.setBackground(vidro(0x53364D65,0x4E7B95AB,5));
             LinearLayout.LayoutParams linha2=new LinearLayout.LayoutParams(
                     dp(i%2==0?80:102),dp(7));
             linha2.topMargin=dp(5);
@@ -691,7 +713,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }
         tentarSecao=texto("↻  TENTAR NOVAMENTE",12,GELO,true);
         tentarSecao.setGravity(Gravity.CENTER_VERTICAL);
-        tentarSecao.setBackground(fundo(0xFF273344,0xFF51647C,9));
+        tentarSecao.setBackground(vidro(0x9A40566C,0x8FAAC2D7,12));
         tentarSecao.setPadding(dp(14),dp(6),dp(14),dp(6));
         LinearLayout.LayoutParams retry=new LinearLayout.LayoutParams(dp(188),dp(35));
         retry.topMargin=dp(12);
@@ -871,9 +893,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         },12500);
     }
     private void pintarFiltroLive(TextView chip,boolean emFoco,boolean selecionado){
-        chip.setBackground(fundo(emFoco?0xFF47566B:
-                selecionado?0xFF2D3848:0xFF19232E,
-                emFoco?0xFFF4F7FC:0,11));
+        chip.setBackground(vidro(emFoco?0xAE6F89A5:
+                selecionado?0x87435972:0x4E2B3E52,
+                emFoco?0xFFF5FAFF:selecionado?0x7E9EB4CC:0x61788FA6,13));
         chip.setTextColor(emFoco?TEXTO:selecionado?GELO:SECUNDARIO);
     }
     private void atualizarFileiraLive(){
@@ -1047,7 +1069,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         // Hero cinematográfico: uma imagem única com vinheta lateral,
         // e textos em área protegida. Não é um segundo player nem autoplay.
         FrameLayout quadro=new FrameLayout(getContext());
-        quadro.setBackground(fundo(0xFF101721,0,17));
+        quadro.setBackground(vidro(0x74334355,0x7596ADC7,18));
         if(Build.VERSION.SDK_INT>=21)quadro.setClipToOutline(true);
         exterior.addView(quadro,new LinearLayout.LayoutParams(-1,dp(142)));
         destaqueFocavel=quadro;
@@ -1113,9 +1135,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         mp.topMargin=dp(5);
         lateralTexto.addView(detalhesDestaque,mp);
 
-        TextView indicacao=texto("▶  ASSISTIR",11,0xFF101928,true);
+        TextView indicacao=texto("▶  ASSISTIR",11,TEXTO,true);
         indicacao.setGravity(Gravity.CENTER);
-        indicacao.setBackground(fundo(0xEDEDF5FF,0,8));
+        indicacao.setBackground(vidro(0x98708BA5,0xFFEAF5FF,10));
         LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(dp(130),dp(30));
         hp.topMargin=dp(8);
         lateralTexto.addView(indicacao,hp);
@@ -1208,13 +1230,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             cartao.setOrientation(LinearLayout.HORIZONTAL);
             cartao.setGravity(Gravity.CENTER_VERTICAL);
             cartao.setFocusable(true);
-            cartao.setBackground(vidro(0x5F253446,0x365B728A,16));
+            cartao.setBackground(vidro(0x4B32485F,0x728DAAC1,17));
             margem(cartao,10,9,12,9);
             LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(139));
             rp.bottomMargin=dp(11);
             lista.addView(cartao,rp);
             FrameLayout capa=new FrameLayout(getContext());
-            capa.setBackground(fundo(0xFF1D2B3D,0,12));
+            capa.setBackground(vidro(0x5A23354A,0x5E7D99B2,13));
             LinearLayout.LayoutParams im=new LinearLayout.LayoutParams(dp(190),dp(107));
             cartao.addView(capa,im);
             TextView fallback=texto("HX TV",14,SECUNDARIO,true);
@@ -1229,6 +1251,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .error(android.R.color.transparent)
                     .into(imagem);
+            adicionarDuracao(capa,video);
             LinearLayout informacoes=new LinearLayout(getContext());
             informacoes.setOrientation(LinearLayout.VERTICAL);
             informacoes.setGravity(Gravity.CENTER_VERTICAL);
@@ -1249,8 +1272,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             if(principal)primeiraFileira.add(cartao);
             if(primeiroCartao==null)primeiroCartao=cartao;
             cartao.setOnFocusChangeListener((v,selecionado)->{
-                v.setBackground(vidro(selecionado?0xAB485D74:0x5F253446,
-                        selecionado?0xFFF4F8FF:0x365B728A,16));
+                v.setBackground(vidro(selecionado?0xA87190B0:0x4B32485F,
+                        selecionado?0xFFF4F8FF:0x728DAAC1,17));
                 if(selecionado){
                     ultimoVideoFocado=referencia;
                     ultimoControleFocado=v;
@@ -1361,7 +1384,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             // Se a capa falhar, mostrar HX em vez de um retângulo cinza vazio.
             capa.setBackground(new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xFF182436,0xFF243446,0xFF111B2B}));
+                    new int[]{0xFF24384D,0xFF192A40,0xFF0C1727}));
             TextView seloEspera=texto("▶  HX TV",13,0xFF8DA4BB,true);
             seloEspera.setGravity(Gravity.CENTER);
             seloEspera.setLetterSpacing(.12f);
@@ -1372,7 +1395,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             if(video.isLive && !video.isLiveEnd && !video.isUpcoming){
                 TextView aoVivo=texto("● AO VIVO",10,TEXTO,true);
                 margem(aoVivo,9,5,9,5);
-                aoVivo.setBackground(fundo(0xF2BB1E2D,0,7));
+                aoVivo.setBackground(vidro(0xB0A32B46,0xCCED8198,9));
                 FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
                         -2,-2,Gravity.TOP|Gravity.END);
                 selo.setMargins(0,dp(8),dp(8),0);
@@ -1380,7 +1403,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             }else if(video.isUpcoming){
                 TextView emBreve=texto("EM BREVE",10,TEXTO,true);
                 margem(emBreve,9,5,9,5);
-                emBreve.setBackground(fundo(0xD6384958,0,7));
+                emBreve.setBackground(vidro(0xA43E5E77,0x9AABC0D6,9));
                 FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
                         -2,-2,Gravity.TOP|Gravity.END);
                 selo.setMargins(0,dp(8),dp(8),0);
@@ -1392,6 +1415,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .error(android.R.color.transparent)
                     .into(miniatura);
+            adicionarDuracao(capa,video);
             TextView nomeCartao=texto(video.getTitle(),13,TEXTO,true);
             nomeCartao.setMaxLines(3);
             nomeCartao.setLineSpacing(dp(1),1.08f);
@@ -1408,8 +1432,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             if(principal)primeiraFileira.add(cartao);
             cartao.setOnFocusChangeListener((v,selecionado)->{
                 if(selecionado)setPainelAberto(false);
-                v.setBackground(vidro(selecionado?0xAB47586D:0x611E2B3D,
-                        selecionado?0xFFF1F7FF:0x365E7189,15));
+                v.setBackground(vidro(selecionado?0xAC6F8BA7:0x472A3D53,
+                        selecionado?0xFFF4FAFF:0x67859EB7,17));
                 v.animate().cancel();
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)
