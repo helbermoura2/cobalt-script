@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.17: vidro visual nos controles preservando ações e foco da 0.9.16.
+"""HX TV 0.9.18: controles individuais preto-vidro, sem barra externa duplicada.
 Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
 """
 from pathlib import Path
@@ -43,14 +43,14 @@ import android.animation.StateListAnimator;""")
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xAA7390AB, 0x72415A74});
+                    new int[]{0xB05B5B5B, 0x80141414});
             focus.setCornerRadius(radius);
-            focus.setStroke(stroke, 0xFFF5FAFF);
+            focus.setStroke(stroke, 0xFFFFFFFF);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0x71506C86, 0x3D23384E});
+                    new int[]{0x5C242424, 0x34000000});
             idle.setCornerRadius(radius);
-            idle.setStroke(Math.max(1, Math.round(density)), 0x8193B0C9);
+            idle.setStroke(Math.max(1, Math.round(density)), 0x88B8B8B8);
             StateListDrawable states = new StateListDrawable();
             states.addState(new int[] {android.R.attr.state_focused}, focus);
             states.addState(new int[] {android.R.attr.state_pressed}, focus);
@@ -157,14 +157,14 @@ import android.os.SystemClock;""")
         if (root instanceof FrameLayout) {
             TextView aviso = new TextView(getContext());
             aviso.setText("PREPARANDO REPRODUÇÃO...");
-            aviso.setTextColor(0xFFF1F6FD);
+            aviso.setTextColor(0xFFF5F5F5);
             aviso.setTextSize(12);
             aviso.setGravity(Gravity.CENTER);
             aviso.setPadding(22, 10, 22, 10);
             GradientDrawable fundo = new GradientDrawable();
-            fundo.setColor(0xA3334A61);
+            fundo.setColor(0xAB121212);
             fundo.setCornerRadius(16f * getResources().getDisplayMetrics().density);
-            fundo.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density)),0x9F99B4CE);
+            fundo.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density)),0xAFC7C7C7);
             aviso.setBackground(fundo);
             aviso.setFocusable(false);
             aviso.setVisibility(View.GONE);
@@ -287,15 +287,16 @@ import android.os.SystemClock;""")
         hxResizeSuggestionsViewport(false);
     }""")
 
-    # Camadas de vidro nativas ao redor das duas fileiras do SmartTube.
-    # Preserva os IDs e listeners originais, incluindo ações de qualidade/live.
+    # Nunca criar uma capsula externa ao redor de cada fileira: ela criava
+    # o efeito de botoes dentro de outro botao maior. Preservar o layout
+    # nativo de controles, foco, clique, geometria e espaco de toque.
     controls=base/"res/layout/lb_playback_transport_controls_row.xml"
-    substituir(controls,
-        'android:id="@+id/controls_dock"\n                android:layout_width="wrap_content"',
-        'android:id="@+id/controls_dock"\n                android:background="@drawable/hx_player_primary_rail"\n                android:padding="3dp"\n                android:layout_width="wrap_content"')
-    substituir(controls,
-        'android:id="@+id/secondary_controls_dock"\n                android:layout_width="wrap_content"',
-        'android:id="@+id/secondary_controls_dock"\n                android:background="@drawable/hx_player_secondary_rail"\n                android:padding="2dp"\n                android:layout_marginTop="4dp"\n                android:layout_width="wrap_content"')
+    xmlOriginal=controls.read_text(encoding="utf-8")
+    for idControle in ("controls_dock","secondary_controls_dock"):
+        if xmlOriginal.count(f'android:id="@+id/{idControle}"')!=1:
+            raise RuntimeError(f"Dock original ausente: {idControle}")
+    if "hx_player_primary_rail" in xmlOriginal or "hx_player_secondary_rail" in xmlOriginal:
+        raise RuntimeError("Capsula externa nao pode voltar")
     ET.parse(controls)
     # Horário e codec: informações auxiliares e secundárias, não chamadas principais.
     xml=controls.read_text(encoding="utf-8")
@@ -353,29 +354,17 @@ import android.os.SystemClock;""")
 
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {""")
-    for arquivo,basecolor,borda in (
-        ("hx_player_primary_rail.xml","#713A5268","#8BA5BED7"),
-        ("hx_player_secondary_rail.xml","#572B4158","#7793AEC7"),
-    ):
-        d=base/"res/drawable"/arquivo
-        d.write_text(f'''<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="{basecolor}"/>
-    <corners android:radius="18dp"/>
-    <stroke android:color="{borda}" android:width="1dp"/>
-</shape>
-''',encoding="utf-8")
-        ET.parse(d)
-
+    # Nenhuma barra externa de controles e gerada. Apenas os botoes
+    # individuais recebem vidro neutro por StateListDrawable.
     gradient=base/"res/drawable/player_background_controls.xml"
     gradient.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#99131E30"
-        android:centerColor="#73192C42"
+        android:startColor="#B8000000"
+        android:centerColor="#79090909"
         android:centerY="0.35"
-        android:endColor="#00121C2A" />
+        android:endColor="#00000000" />
 </shape>
 """,encoding="utf-8")
     ET.parse(gradient)
@@ -384,14 +373,14 @@ import android.os.SystemClock;""")
     suggestions.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#AA182A40"
-        android:centerColor="#7B1B3047"
+        android:startColor="#B0000000"
+        android:centerColor="#70101010"
         android:centerY="0.44"
-        android:endColor="#131A2D43" />
+        android:endColor="#08000000" />
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER 0.9.17: vidro translúcido apenas visual; ações e foco da 0.9.16 intactos")
+    print("HX PLAYER 0.9.18: individual neutral glass controls, no extra rail, native focus intact")
 
 if __name__=="__main__":
     main()

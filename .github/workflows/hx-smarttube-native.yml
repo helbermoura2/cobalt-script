@@ -1,4 +1,4 @@
-name: HX TV 0.9.17 Glass Polish — translucent glass controls and duration badges
+name: HX TV 0.9.18 Black Glass — OLED, neutral buttons and clipped rounded artwork
 on:
   push:
     branches: [smart-cobalt-hybrid]
@@ -92,8 +92,8 @@ jobs:
           grep -q 'quadro.setOnClickListener' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'private void setPainelAberto(boolean abrir)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'ValueAnimator.ofInt(de,ate)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
-          grep -q 'hx_player_primary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
-          grep -q 'hx_player_secondary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
+          ! grep -q 'hx_player_primary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
+          ! grep -q 'hx_player_secondary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
           grep -q 'private void adicionarExplorar()' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'getSearchObserve(consulta,0)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'MAX_VIDEOS_POR_FILEIRA' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
@@ -141,13 +141,19 @@ jobs:
           ! grep -q 'focoStory(' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'Math.round(146f \* d)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/PlaybackFragment.java
           grep -q 'private void adicionarDuracao(FrameLayout capa,Video video)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          grep -q 'PRETO=0xFF000000' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          grep -q 'new int\[\]{0x26FFFFFF,cor,0x20000000}' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          test "$(grep -c 'capa.setClipToOutline(true)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java)" -ge 2
+          test "$(grep -c 'cartao.setClipToOutline(true)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java)" -ge 2
+          grep -q 'fundoCapa.setCornerRadius(dp(14))' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'video.getDurationMs()' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           test "$(grep -c 'adicionarDuracao(capa,video);' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java)" -eq 2
           grep -q 'chip.setBackground(vidro(' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
-          grep -q '0xAF465E77' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
-          grep -q '#713A5268' upstream/smarttubetv/src/main/res/drawable/hx_player_primary_rail.xml
-          grep -q '0xAA7390AB' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
-          grep -q 'hx_player_primary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
+          grep -q '0x9B202020' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          test ! -f upstream/smarttubetv/src/main/res/drawable/hx_player_primary_rail.xml
+          test ! -f upstream/smarttubetv/src/main/res/drawable/hx_player_secondary_rail.xml
+          grep -q '0xB05B5B5B' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
+          ! grep -q 'hx_player_primary_rail' upstream/smarttubetv/src/main/res/layout/lb_playback_transport_controls_row.xml
           grep -q 'grupoPrincipalId==null' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'StateListDrawable states' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
           grep -q 'class HxHomeScreen extends FrameLayout implements BrowseView' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
@@ -168,8 +174,9 @@ jobs:
           grep -q 'br.com.hxnative.tvpreview' upstream/smarttubetv/build.gradle
           grep -q 'raw.githubusercontent.com/helbermoura2/cobalt-script/smart-cobalt-hybrid' upstream/common/src/stbeta/res/values/update_urls.xml
           grep -q 'hx_update_app' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java
-          grep -q '#B5D7FF' upstream/smarttubetv/src/main/res/values/colors.xml
-          grep -q 'versionCode 2495' upstream/smarttubetv/build.gradle
+          grep -q '#BDBDBD' upstream/smarttubetv/src/main/res/values/colors.xml
+          ! grep -q '#B5D7FF' upstream/smarttubetv/src/main/res/values/colors.xml
+          grep -q 'versionCode 2496' upstream/smarttubetv/build.gradle
       - name: Supply optional Android library typedef metadata for old release plugin
         shell: bash
         run: |
@@ -201,33 +208,33 @@ jobs:
           apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*armeabi-v7a.apk' -type f | head -n 1)
           if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
           mkdir -p out
-          cp "$apk" out/HX-TV-Native-0.9.17-unsigned-arm.apk
+          cp "$apk" out/HX-TV-Native-0.9.18-unsigned-arm.apk
           sdk="$ANDROID_HOME/build-tools"
           bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.17-unsigned-arm.apk | head -n 15
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.17-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.18-unsigned-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.18-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
           # This is intentionally unsigned; it must be signed locally with
           # the persistent private HX key, never uploaded as a public release.
-          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.17-unsigned-arm.apk
-          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.17-unsigned-arm.apk | grep -q '^application-debuggable'; then
+          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.18-unsigned-arm.apk
+          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.18-unsigned-arm.apk | grep -q '^application-debuggable'; then
             echo 'ERROR: Release APK is debuggable'
             exit 1
           fi
-          sha256sum out/HX-TV-Native-0.9.17-unsigned-arm.apk
+          sha256sum out/HX-TV-Native-0.9.18-unsigned-arm.apk
       - name: Upload backup APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hx-native-androidtv-release-unsigned-0.9.17
-          path: out/HX-TV-Native-0.9.17-unsigned-arm.apk
+          name: hx-native-androidtv-release-unsigned-0.9.18
+          path: out/HX-TV-Native-0.9.18-unsigned-arm.apk
           if-no-files-found: error
-      - name: Sign HX 0.9.17 APK with persistent certificate
+      - name: Sign HX 0.9.18 APK with persistent certificate
         shell: bash
         env:
           HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
-          src="out/HX-TV-Native-0.9.17-unsigned-arm.apk"
-          dst="out/HX-TV-Native-0.9.17-assinado-arm.apk"
+          src="out/HX-TV-Native-0.9.18-unsigned-arm.apk"
+          dst="out/HX-TV-Native-0.9.18-assinado-arm.apk"
           bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           [[ -x "$bt/apksigner" && -x "$bt/aapt" && -x "$bt/zipalign" ]] || exit 1
           mkdir -p "$RUNNER_TEMP/hx-private"
@@ -260,51 +267,51 @@ jobs:
             echo "::error::Certificado diferente da HX TV 0.3.0. Abortando."
             exit 1
           }
-          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2495' versionName='0.9.17'"
+          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2496' versionName='0.9.18'"
           ! "$bt/aapt" dump badging "$dst" | grep -q '^application-debuggable' || {
             echo 'Release debuggable forbidden'; exit 1; }
           "$bt/zipalign" -c -v 4 "$dst" >/dev/null
-          sha256sum "$dst" > out/HX-TV-Native-0.9.17.sha256
+          sha256sum "$dst" > out/HX-TV-Native-0.9.18.sha256
       - name: Publicar APK experimental sem ativar atualização automática
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag='hx-tv-independent-v0.9.17-beta'
-          apk='HX-TV-Native-0.9.17-assinado-arm.apk'
+          tag='hx-tv-independent-v0.9.18-beta'
+          apk='HX-TV-Native-0.9.18-assinado-arm.apk'
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::error::Já existe uma versão experimental com esse nome."
             exit 1
           fi
           gh release create "$tag" "out/$apk" --prerelease \
             --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
-            --title 'HX TV 0.9.17 Glass Polish — transparência e duração dos vídeos' \
-          --notes 'HX TV 0.9.17 GLASS POLISH BETA: primeira fase visual após o retorno dos comandos do player na 0.9.16. Superfícies translúcidas com bordas prateadas no menu, cards, faixa PiP, destaque, filtros AO VIVO, selos e painéis de carregamento. Duração real vinda do metadado getDurationMs exibida no canto inferior das capas da Home e da lista vertical de Inscrições (sem inventar minutagem para lives, estreias ou dados ausentes). Botões do player com cores/transparências de vidro, mas mantendo exatamente os listeners, imagens originais, dimensões, keyline e fluxo de foco da 0.9.16. Formatos e distribuição dos cards foram mantidos, para revisão futura. Aplicativo nativo Android TV sem blur pesado. APK código 2495 assinado com o certificado persistente e atualização interna após verificação da release. Conferir no dispositivo antes de aprovar o visual.'
+            --title 'HX TV 0.9.18 Black Glass — OLED preto, bordas arredondadas e player limpo' \
+          --notes 'HX TV 0.9.18 BLACK GLASS BETA: corrige cinco defeitos visuais encontrados na 0.9.17. Fundo OLED preto, superfícies nativas com transparência alfa neutra, brilho branco discreto e bordas cinza/prata, eliminando a dominância azul. Tema nativo SmartTube também usa preto/prata em vez do azul original. Removidas as barras externas de fundo hx_player_primary_rail/secondary que faziam os controles parecerem botões dentro de uma cápsula maior; permanecem os botões individuais Leanback, ações, foco, qualidade, avançar e selecionar vídeos nas sugestões intactos. Miniaturas da Home e Inscrições agora são recortadas de verdade com clipToOutline em contêiner e imagem, com bordas de foco desenhadas acima da capa. Duracões reais e organização das fileiras da 0.9.17 preservadas. Sem blur de fundo em tempo real para não comprometer a TCL P7K: vidro por transparência alfa nativa. APK assinado com o certificado persistente, versionCode 2496. Necessária validação na televisão.'
           mkdir -p test-release
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern "$apk" --dir test-release
           cmp "out/$apk" "test-release/$apk"
       # Só liberar a atualização automática depois da publicação e da validação
       # do APK assinado. Dessa forma, a 0.9.2 não recebe link quebrado durante o build.
-      - name: Ativar atualização 0.9.17 no botão ATUALIZAR após release válido
+      - name: Ativar atualização 0.9.18 no botão ATUALIZAR após release válido
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 -m json.tool hybrid/updates/native-beta-next.json >/dev/null
-          gh release view hx-tv-independent-v0.9.17-beta --repo "$GITHUB_REPOSITORY" >/dev/null
+          gh release view hx-tv-independent-v0.9.18-beta --repo "$GITHUB_REPOSITORY" >/dev/null
           mkdir -p test-release-final
-          gh release download hx-tv-independent-v0.9.17-beta --repo "$GITHUB_REPOSITORY" \
-            --pattern 'HX-TV-Native-0.9.17-assinado-arm.apk' --dir test-release-final
-          cmp out/HX-TV-Native-0.9.17-assinado-arm.apk test-release-final/HX-TV-Native-0.9.17-assinado-arm.apk
+          gh release download hx-tv-independent-v0.9.18-beta --repo "$GITHUB_REPOSITORY" \
+            --pattern 'HX-TV-Native-0.9.18-assinado-arm.apk' --dir test-release-final
+          cmp out/HX-TV-Native-0.9.18-assinado-arm.apk test-release-final/HX-TV-Native-0.9.18-assinado-arm.apk
           SHA="$(gh api "repos/$GITHUB_REPOSITORY/contents/hybrid/updates/native-beta.json?ref=smart-cobalt-hybrid" --jq .sha)"
           DATA="$(base64 -w0 hybrid/updates/native-beta-next.json)"
           gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/hybrid/updates/native-beta.json" \
-            -f message="chore(hx): activate signed 0.9.17 in-app update after release verification" \
+            -f message="chore(hx): activate signed 0.9.18 in-app update after release verification" \
             -f content="$DATA" -f sha="$SHA" -f branch=smart-cobalt-hybrid >/dev/null
-          echo "OTA ACTIVATED: Signed HX TV 0.9.17 available via native-beta.json"
+          echo "OTA ACTIVATED: Signed HX TV 0.9.18 available via native-beta.json"
       - name: Apagar assinatura temporária do ambiente
         if: always()
         shell: bash
