@@ -699,13 +699,13 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     new int[]{0xFF243448,0xFF1C2737,0xFF101926}));
             carta.addView(imagem,new LinearLayout.LayoutParams(-1,dp(96)));
             View tituloEspera=new View(getContext());
-            tituloEspera.setBackground(fundo(0xFF344357,0,4));
+            tituloEspera.setBackground(vidro(0x67435C76,0x5B92A8BC,5));
             LinearLayout.LayoutParams linha1=new LinearLayout.LayoutParams(
                     dp(i%2==0?128:148),dp(9));
             linha1.topMargin=dp(9);
             carta.addView(tituloEspera,linha1);
             View subtituloEspera=new View(getContext());
-            subtituloEspera.setBackground(fundo(0xFF29374A,0,4));
+            subtituloEspera.setBackground(vidro(0x53364D65,0x4E7B95AB,5));
             LinearLayout.LayoutParams linha2=new LinearLayout.LayoutParams(
                     dp(i%2==0?80:102),dp(7));
             linha2.topMargin=dp(5);
@@ -1395,7 +1395,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             if(video.isLive && !video.isLiveEnd && !video.isUpcoming){
                 TextView aoVivo=texto("● AO VIVO",10,TEXTO,true);
                 margem(aoVivo,9,5,9,5);
-                aoVivo.setBackground(fundo(0xF2BB1E2D,0,7));
+                aoVivo.setBackground(vidro(0xB0A32B46,0xCCED8198,9));
                 FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
                         -2,-2,Gravity.TOP|Gravity.END);
                 selo.setMargins(0,dp(8),dp(8),0);
@@ -1403,7 +1403,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             }else if(video.isUpcoming){
                 TextView emBreve=texto("EM BREVE",10,TEXTO,true);
                 margem(emBreve,9,5,9,5);
-                emBreve.setBackground(fundo(0xD6384958,0,7));
+                emBreve.setBackground(vidro(0xA43E5E77,0x9AABC0D6,9));
                 FrameLayout.LayoutParams selo=new FrameLayout.LayoutParams(
                         -2,-2,Gravity.TOP|Gravity.END);
                 selo.setMargins(0,dp(8),dp(8),0);
