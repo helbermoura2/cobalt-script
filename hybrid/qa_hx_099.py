@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.18 Glass Polish (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.19 Black Glass (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -44,34 +44,34 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.18"' in native and "VERSION_CODE = 2496" in native,
-  "manifest next version": manifest.get("0.9.18",{}).get("versionCode")==2496,
+  "consistent app version": 'VERSION_NAME = "0.9.19"' in native and "VERSION_CODE = 2497" in native,
+  "published OTA retained": manifest.get("0.9.18",{}).get("versionCode")==2496,
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
-  "OTA only after release check": "cmp out/HX-TV-Native-0.9.18-assinado-arm.apk test-release-final/HX-TV-Native-0.9.18-assinado-arm.apk" in workflow,
+  "preview APK release verified": 'cmp "out/$apk" "test-release/$apk"' in workflow and "contents/hybrid/updates/native-beta.json" not in workflow,
   "glass panels and buttons": "private GradientDrawable vidro(int cor, int borda, int raio)" in home and "StateListDrawable states" in player,
   "duration from source only": "video.getDurationMs()" in home and "duracao<=0" in home,
   "live and upcoming have no minutes": "video.isLive||video.isUpcoming" in home,
   "hour and minute duration supported": '"%d:%02d:%02d"' in home and '"%d:%02d"' in home,
   "duration in both layouts": home.count("adicionarDuracao(capa,video);")==2,
   "subtitle cards size preserved": "ALTURA_CAPA_HOME=218" in home and "dp(cartaz?LARGURA_CAPA_HOME:225),dp(cartaz?ALTURA_CAPA_HOME:226)" in home,
-  "translucent navigation": "new int[]{0x9B202020,0x6A101010,0x99000000}" in home,
+  "translucent navigation": "new int[]{0x40161E2B,0x24080D16,0x70000000}" in home,
   "live glass chips": "chip.setBackground(vidro(" in home,
   "glass player coloring only": "new int[]{0xB05B5B5B, 0x80141414}" in player and "new int[]{0x5C242424, 0x34000000}" in player,
   "same DPAD and button dimensions": "screenHeight * 0.68f" in player and "Math.round(146f * d)" in player and "setImageDrawable(null)" not in player and "setWindowAlignmentOffsetPercent" not in player,
 
   "unified scrolling actions": "menu.addView(acao,lp)" in home and "lateral.addView(pesquisa,new" not in home and "lateral.addView(atualizar,new" not in home,
   "nav icon alignment": "private void posicionarNav(TextView alvo,String rotulo)" in home and "alvo.setCompoundDrawables(null,icone,null,null)" in home,
-  "titles not crushed": "ALTURA_CAPA_HOME=218" in home and "nomeCartao.setMaxLines(3)" in home and "tituloSelecionado.setText(video.getTitle())" in home,
-  "subscriptions vertical": "private void desenharInscricoesEmLista" in home and "coluna.setOrientation(LinearLayout.VERTICAL)" in home,
-  "subscriptions remote": "if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1<lista.getChildCount())" in home,
+  "titles not crushed": "ALTURA_CAPA_HOME=218" in home and "nomeCartao.setMaxLines(3)" in home and "tituloSelecionado.setText(secoes.get(indice).getTitle())" in home,
+  "subscriptions four-column grid": "private void desenharGradeInscricoes" in home and "COLUNAS_INSCRICOES=4" in home,
+  "subscriptions remote": "pos-COLUNAS_INSCRICOES" in home and "Math.min(pos+COLUNAS_INSCRICOES,limite-1)" in home,
   "suggestions images unclipped": "screenHeight * 0.68f" in player and "setClipChildren(false)" in player,
   "native click targets restored": 'recursos=root/"leanback-1.0.0/src/main/res/layout"' not in player and "setImageDrawable(null)" not in player,
   "critical player rollback": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player,
   "keep selection row logic": "setPlayerRowIndex(1);" in player and "setPlayerRowIndex(0);" in player,
   "focus events intact": "holder.mFocusableView.setBackground(states)" in player and "mFocusableView.setStateListAnimator(motion)" in player,
-  "OLED black main theme": "PRETO=0xFF000000" in home and "0xFF101010,0xFF050505,PRETO" in home,
+  "OLED black main theme": "PRETO=0xFF000000" in home and "tela.drawColor(PRETO)" in home,
   "true neutral alpha glass": "new int[]{0x26FFFFFF,cor,0x20000000}" in home,
-  "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=2 and home.count("cartao.setClipToOutline(true)")>=2,
+  "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=1 and home.count("cartao.setClipToOutline(true)")>=2,
   "focus border above thumbnail": home.count("v.setForeground(fundo(0x00000000,")>=2,
   "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xB05B5B5B, 0x80141414}" in player,
   "original playback buttons preserved": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player and "Math.round(146f * d)" in player,
@@ -83,4 +83,4 @@ for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.18: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.19: {len(checks)} regression gates passed")

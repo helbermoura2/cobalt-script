@@ -2,6 +2,11 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -56,6 +61,8 @@ import java.util.Map;
 public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private static final int PRETO=0xFF000000, PAINEL=0x52141414;
     private static final int GELO=0xFFE7E7E7, TEXTO=0xFFFFFFFF, SECUNDARIO=0xFFB5B5B5;
+    private static final int CIANO=0xFF8DEAFF;
+    private static final int COLUNAS_INSCRICOES=4;
     private static final int FOCO=0xAA565656;
     private final BrowsePresenter dados;
     private final List<BrowseSection> secoes=new ArrayList<>();
@@ -82,6 +89,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private final List<VideoGroup> loteAtualizacao=new ArrayList<>();
     private Runnable finalizarLoteAtualizacao;
     private TextView tituloDestaque, detalhesDestaque, seloDestaque, tituloSelecionado;
+    private TextView resumoSecao;
+    private View acoesTopo;
     private ImageView imagemDestaque;
     private View primeiroCartao;
     private Video videoDestaque;
@@ -203,11 +212,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         capa.addView(etiqueta,lp);
     }
     private boolean estaNasInscricoes(){
-        if(secaoAtual<0||secaoAtual>=secoes.size())return false;
-        String titulo=secoes.get(secaoAtual).getTitle();
-        if(titulo==null)return false;
-        String v=titulo.toLowerCase(java.util.Locale.ROOT);
-        return v.contains("inscri")||v.contains("subscription");
+        return secaoAtual>=0 && secaoAtual<secoes.size()
+                && secoes.get(secaoAtual).getId()==MediaGroup.TYPE_SUBSCRIPTIONS;
     }
     private TextView texto(CharSequence valor,int tamanho,int cor,boolean negrito){
         TextView t=new TextView(getContext());
@@ -246,19 +252,21 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         // o Picture-in-Picture/miniplayer, que aparece no canto superior direito.
         LinearLayout estrutura=new LinearLayout(contexto);
         estrutura.setOrientation(LinearLayout.HORIZONTAL);
-        estrutura.setBackgroundColor(PRETO);
+        addView(new FundoBlackGlass(contexto),new FrameLayout.LayoutParams(-1,-1));
         addView(estrutura,new FrameLayout.LayoutParams(-1,-1));
 
         LinearLayout lateral=new LinearLayout(contexto);
         lateral.setOrientation(LinearLayout.VERTICAL);
         lateral.setBackground(new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{0x9B202020,0x6A101010,0x99000000}));
+                new int[]{0x40161E2B,0x24080D16,0x70000000}));
         margem(lateral,10,17,10,10);
         painelLateral=lateral;
-        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(186),-1));
+        estrutura.addView(lateral,new LinearLayout.LayoutParams(dp(171),-1));
 
-        TextView marca=texto("HX  TV",26,TEXTO,true);
+        TextView marca=texto("HX TV",30,TEXTO,true);
+        marca.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD_ITALIC));
+        marca.setShadowLayer(dp(11),dp(5),0,0xB0439FFF);
         marcaNav=marca;
         marca.setLetterSpacing(0.06f);
         margem(marca,9,0,0,0);
@@ -266,7 +274,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         TextView lema=texto("A SUA EXPERIÊNCIA",9,SECUNDARIO,true);
         subtituloNav=lema;
         lema.setLetterSpacing(0.12f);
-        margem(lema,9,3,0,22);
+        margem(lema,9,0,0,16);
         lateral.addView(lema);
 
         TextView alternar=texto("‹  RECOLHER MENU",11,GELO,true);
@@ -277,14 +285,11 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         iconeNativo(alternar,android.R.drawable.ic_menu_sort_by_size);
         alternar.setOnClickListener(v->setPainelAberto(!menuAberto));
         LinearLayout.LayoutParams toggleLp=new LinearLayout.LayoutParams(-1,dp(36));
-        toggleLp.bottomMargin=dp(12);
+        toggleLp.bottomMargin=dp(7);
+        alternar.setBackground(vidro(0x8F19202D,0x88B2BCCB,14));
+        alternar.setOnFocusChangeListener((v,ativo)->v.setBackground(
+                vidro(ativo?0xB4265369:0x8F19202D,ativo?CIANO:0x88B2BCCB,14)));
         lateral.addView(alternar,toggleLp);
-
-        View linhaBronze=new View(contexto);
-        linhaBronze.setBackgroundColor(0x70BDBDBD);
-        LinearLayout.LayoutParams divisorMenu=new LinearLayout.LayoutParams(-1,dp(1));
-        divisorMenu.bottomMargin=dp(11);
-        lateral.addView(linhaBronze,divisorMenu);
 
         ScrollView navegacao=new ScrollView(contexto);
         navegacao.setVerticalScrollBarEnabled(false);
@@ -337,34 +342,38 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
         LinearLayout coluna=new LinearLayout(contexto);
         coluna.setOrientation(LinearLayout.VERTICAL);
-        // Ambiente profundo por trás das superfícies transparentes.
-        coluna.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{0xFF101010,0xFF050505,PRETO}));
         estrutura.addView(coluna,new LinearLayout.LayoutParams(0,-1,1));
 
-        // A faixa superior é informativa. Os controles reais ficam na lateral,
-        // longe da área utilizada pelo miniplayer flutuante do Android TV.
         LinearLayout topo=new LinearLayout(contexto);
         topo.setGravity(Gravity.CENTER_VERTICAL);
-        margem(topo,22,7,18,5);
-        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(47)));
-        TextView assinatura=texto("DESCUBRA  ·  HX TV",13,TEXTO,true);
-        tituloSelecionado=assinatura;
-        assinatura.setSingleLine(true);
-        assinatura.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-        assinatura.setMarqueeRepeatLimit(-1);
-        assinatura.setSelected(true);
-        assinatura.setLetterSpacing(0.08f);
-        topo.addView(assinatura);
-        topo.addView(new View(contexto),new LinearLayout.LayoutParams(0,1,1));
-        TextView ambiente=texto("",10,SECUNDARIO,true);
-        ambiente.setLetterSpacing(0.1f);
-        topo.addView(ambiente);
+        margem(topo,13,5,15,3);
+        coluna.addView(topo,new LinearLayout.LayoutParams(-1,dp(67)));
+        LinearLayout identidade=new LinearLayout(contexto);
+        identidade.setOrientation(LinearLayout.VERTICAL);
+        identidade.setGravity(Gravity.CENTER_VERTICAL);
+        topo.addView(identidade,new LinearLayout.LayoutParams(0,-1,1));
+        tituloSelecionado=texto("HX TV",24,TEXTO,true);
+        tituloSelecionado.setSingleLine(true);
+        tituloSelecionado.setEllipsize(TextUtils.TruncateAt.END);
+        identidade.addView(tituloSelecionado,new LinearLayout.LayoutParams(-1,-2));
+        resumoSecao=texto("",11,SECUNDARIO,false);
+        resumoSecao.setSingleLine(true);
+        resumoSecao.setVisibility(View.GONE);
+        identidade.addView(resumoSecao);
 
-        View separador=new View(contexto);
-        separador.setBackgroundColor(0x50BDBDBD);
-        coluna.addView(separador,new LinearLayout.LayoutParams(-1,dp(1)));
+        LinearLayout acoes=new LinearLayout(contexto);
+        acoes.setGravity(Gravity.CENTER_VERTICAL);
+        acoesTopo=acoes;
+        topo.addView(acoes);
+        adicionarAcaoTopo(acoes,"Pesquisar",android.R.drawable.ic_menu_search,
+                ()->SearchPresenter.instance(getContext()).startSearch(null));
+        adicionarAcaoTopo(acoes,"Pesquisa por voz",android.R.drawable.ic_btn_speak_now,
+                ()->SearchPresenter.instance(getContext()).startVoice());
+        adicionarAcaoTopo(acoes,"Notificações",
+                com.liskovsoft.smartyoutubetv2.common.R.drawable.icon_notification,
+                ()->dados.selectSection(MediaGroup.TYPE_NOTIFICATIONS));
+        adicionarAcaoTopo(acoes,"Configurações",android.R.drawable.ic_menu_preferences,
+                ()->dados.selectSection(MediaGroup.TYPE_SETTINGS));
 
         // Quando há vídeo em mini-janela, reservar a zona superior direita.
         // A TV decide a posição real do PiP: esta faixa é apenas proteção do catálogo.
@@ -383,12 +392,15 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
         rolagem=new ScrollView(contexto);
         rolagem.setFillViewport(false);
+        rolagem.setClipToPadding(false);
         rolagem.setVerticalScrollBarEnabled(false);
         rolagem.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         coluna.addView(rolagem,new LinearLayout.LayoutParams(-1,0,1));
         pagina=new LinearLayout(contexto);
         pagina.setOrientation(LinearLayout.VERTICAL);
-        margem(pagina,20,12,20,30);
+        margem(pagina,10,7,13,16);
+        pagina.setClipChildren(false);
+        pagina.setClipToPadding(false);
         rolagem.addView(pagina,new ScrollView.LayoutParams(-1,-2));
         TextView inicio=texto("ESCOLHA UMA CATEGORIA À ESQUERDA",15,SECUNDARIO,true);
         margem(inicio,0,24,0,20);
@@ -399,15 +411,69 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 dp(42),dp(42),Gravity.CENTER);
         addView(carregando,progresso);
         carregando.setVisibility(View.GONE);
-        // O menu já nasce recolhido; o foco nele abre os nomes automaticamente.
-        post(()->{if(!menu.hasFocus())setPainelAberto(false);});
         post(this::atualizarReservaPiP);
+    }
+
+    private void adicionarAcaoTopo(LinearLayout barra,String nome,int recurso,Runnable acao){
+        ImageView botao=new ImageView(getContext());
+        botao.setImageResource(recurso);
+        botao.setColorFilter(TEXTO);
+        botao.setPadding(dp(6),dp(5),dp(6),dp(5));
+        botao.setContentDescription(nome);
+        botao.setFocusable(true);
+        botao.setBackground(vidro(0xAE161C28,0x8C9BA6B9,9));
+        botao.setOnFocusChangeListener((v,ativo)->v.setBackground(
+                vidro(ativo?0xC1265369:0xAE161C28,ativo?CIANO:0x8C9BA6B9,9)));
+        botao.setOnClickListener(v->acao.run());
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(34),dp(31));
+        lp.leftMargin=dp(7);
+        barra.addView(botao,lp);
+    }
+
+    private static final class FundoBlackGlass extends View {
+        private final Paint pintura=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path superior=new Path(), inferior=new Path();
+        private Shader luzSuperior, luzInferior;
+
+        FundoBlackGlass(Context contexto){super(contexto);}
+
+        @Override protected void onSizeChanged(int w,int h,int anteriorW,int anteriorH){
+            super.onSizeChanged(w,h,anteriorW,anteriorH);
+            if(w==0||h==0)return;
+            superior.reset();
+            superior.moveTo(0,h*.045f);
+            superior.cubicTo(w*.20f,-h*.16f,w*.27f,h*.26f,w*.44f,h*.07f);
+            superior.cubicTo(w*.55f,-h*.065f,w*.72f,-h*.12f,w,h*.015f);
+            superior.cubicTo(w*.65f,-h*.04f,w*.55f,h*.11f,w*.44f,h*.125f);
+            superior.cubicTo(w*.28f,h*.24f,w*.16f,-h*.06f,0,h*.13f);
+            superior.close();
+            inferior.reset();
+            inferior.moveTo(0,h*.87f);
+            inferior.cubicTo(w*.27f,h*.66f,w*.44f,h*1.22f,w*.78f,h*.94f);
+            inferior.lineTo(w,h*.75f);
+            inferior.cubicTo(w*.76f,h*1.37f,w*.47f,h*1.08f,w*.18f,h*.97f);
+            inferior.lineTo(0,h);
+            inferior.close();
+            luzSuperior=new LinearGradient(0,0,0,h*.18f,
+                    new int[]{0xFF04060C,0xFF153059,0xFF070B19,PRETO},null,Shader.TileMode.CLAMP);
+            luzInferior=new LinearGradient(0,h*.82f,w*.53f,h,
+                    new int[]{PRETO,0xFF123057,0xFF070B19,PRETO},null,Shader.TileMode.CLAMP);
+        }
+
+        @Override protected void onDraw(Canvas tela){
+            tela.drawColor(PRETO);
+            pintura.setShader(luzSuperior);
+            tela.drawPath(superior,pintura);
+            pintura.setShader(luzInferior);
+            tela.drawPath(inferior,pintura);
+        }
     }
 
     private void atualizarReservaPiP(){
         if(reservaPiP==null)return;
         boolean emMini=PlaybackActivity.isHxMiniPlayerActive();
         reservaPiP.setVisibility(emMini?View.VISIBLE:View.GONE);
+        acoesTopo.setVisibility(emMini?View.INVISIBLE:View.VISIBLE);
     }
 
     @Override public void onWindowFocusChanged(boolean possuiFoco){
@@ -446,29 +512,34 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             alvo.setCompoundDrawablePadding(0);
         }
     }
-    private String simbolo(String texto){
-        String t=texto==null?"":texto.toLowerCase(java.util.Locale.ROOT);
-        if(t.contains("iníc")||t.contains("inicio"))return "⌂";
-        if(t.contains("esport"))return "◈";
-        if(t.contains("hist"))return "↶";
-        if(t.contains("vivo"))return "●";
-        if(t.contains("jogo"))return "◇";
-        if(t.contains("notíc")||t.contains("notic"))return "▣";
-        if(t.contains("mús")||t.contains("mus"))return "♫";
-        if(t.contains("canal")||t.contains("canais"))return "▥";
-        if(t.contains("inscri"))return "☆";
-        if(t.contains("playlist"))return "≡";
-        if(t.contains("config"))return "⚙";
-        return "•";
+    private int ordemMenu(int id){
+        switch(id){
+            case MediaGroup.TYPE_HOME:return 0;
+            case MediaGroup.TYPE_SUBSCRIPTIONS:return 1;
+            case MediaGroup.TYPE_USER_PLAYLISTS:return 2;
+            case MediaGroup.TYPE_HISTORY:return 3;
+            case MediaGroup.TYPE_MUSIC:return 4;
+            case MediaGroup.TYPE_LIVE:return 5;
+            case MediaGroup.TYPE_NEWS:return 6;
+            case MediaGroup.TYPE_CHANNEL_UPLOADS:return 7;
+            case MediaGroup.TYPE_SETTINGS:return 8;
+            default:return 9;
+        }
     }
+
+    private View itemCategoriaAtual(){
+        if(itensMenu.isEmpty())return null;
+        return itensMenu.get(Math.max(0,Math.min(secaoAtual,itensMenu.size()-1)));
+    }
+
     private void atualizarLegendasMenu(){
         for(int i=0;i<itensMenu.size()&&i<secoes.size();i++){
             TextView aba=itensMenu.get(i);
             posicionarNav(aba,secoes.get(i).getTitle());
         }
         if(marcaNav!=null){
-            marcaNav.setText(menuAberto?"HX  TV":"HX");
-            marcaNav.setTextSize(menuAberto?26:21);
+            marcaNav.setText(menuAberto?"HX TV":"HX");
+            marcaNav.setTextSize(menuAberto?30:21);
             margem(marcaNav,menuAberto?9:0,0,0,0);
         }
         if(subtituloNav!=null)subtituloNav.setVisibility(menuAberto?View.VISIBLE:View.GONE);
@@ -483,7 +554,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(animacaoNav!=null)animacaoNav.cancel();
         atualizarLegendasMenu();
         int de=painelLateral.getLayoutParams().width;
-        int ate=dp(abrir?186:68);
+        int ate=dp(abrir?171:56);
         animacaoNav=ValueAnimator.ofInt(de,ate);
         animacaoNav.setDuration(190);
         animacaoNav.addUpdateListener(a->{
@@ -527,28 +598,37 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 }
                 return false;
             });
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(45));
-            lp.bottomMargin=dp(6);
-            menu.addView(aba,lp);
+        }
+        List<Integer> ordem=new ArrayList<>();
+        for(int i=0;i<itensMenu.size();i++)ordem.add(i);
+        Collections.sort(ordem,(a,b)->Integer.compare(ordemMenu(secoes.get(a).getId()),
+                ordemMenu(secoes.get(b).getId())));
+        for(int indice:ordem){
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(34));
+            lp.bottomMargin=dp(5);
+            menu.addView(itensMenu.get(indice),lp);
         }
         for(TextView acao:new TextView[]{pesquisaNav,atualizarNav,classicoNav}){
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(45));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(34));
             lp.topMargin=dp(acao==pesquisaNav?17:2);
-            lp.bottomMargin=dp(6);
+            lp.bottomMargin=dp(5);
             menu.addView(acao,lp);
         }
         atualizarLegendasMenu();
         marcarMenu();
-        if(restaurarMenu && menu.getChildCount()>0){
-            final int restaurarIndice=Math.max(0,Math.min(secaoAtual,menu.getChildCount()-1));
-            post(()->menu.getChildAt(restaurarIndice).requestFocus());
-        }
+        View categoria=itemCategoriaAtual();
+        if(restaurarMenu && categoria!=null)post(categoria::requestFocus);
     }
     /** Apenas o item com foco ganha CONTORNO. Categoria atual usa preenchimento discreto. */
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
-        aba.setBackground(vidro(focada?0xA9636363:
-                atual?0x7D363636:0x48101010,
-                focada?0xFFFFFFFF:atual?0xB0D0D0D0:0x65AAAAAA,16));
+        aba.setBackground(vidro(focada?0xE42A586E:
+                atual?0xCA1C465C:0x8C161C28,
+                focada?CIANO:atual?0xCC65CDEB:0x8697A3B8,16));
+        aba.setElevation(focada?dp(5):0);
+        if(Build.VERSION.SDK_INT>=28){
+            aba.setOutlineAmbientShadowColor(CIANO);
+            aba.setOutlineSpotShadowColor(CIANO);
+        }
         aba.setTextColor(focada?TEXTO:atual?0xFFE2EAF3:SECUNDARIO);
         Drawable icone=aba.getCompoundDrawables()[0];
         if(icone==null)icone=aba.getCompoundDrawables()[1];
@@ -572,10 +652,9 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
 
     private boolean focarCategoriaAtual(){
-        if(menu.getChildCount()==0)return false;
-        int indice=Math.max(0,Math.min(secaoAtual,menu.getChildCount()-1));
+        View aba=itemCategoriaAtual();
+        if(aba==null)return false;
         setPainelAberto(true);
-        View aba=menu.getChildAt(indice);
         if(aba.requestFocus()){
             estavaNoMenu=true;
             ultimoControleFocado=aba;
@@ -600,6 +679,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(LinearLayout faixa:fileiras.values()){
             for(int i=0;i<faixa.getChildCount();i++){
                 View card=faixa.getChildAt(i);
+                if(estaNasInscricoes() && card instanceof LinearLayout)
+                    card=((LinearLayout)card).getChildAt(0);
                 if(card!=null&&card.isAttachedToWindow()&&card.isShown()
                         &&card.isFocusable())return card;
             }
@@ -638,7 +719,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         if(evento.getAction()==KeyEvent.ACTION_DOWN){
             View atual=findFocus();
             int tecla=evento.getKeyCode();
-            if(tecla==KeyEvent.KEYCODE_DPAD_RIGHT && menu.hasFocus()){
+            if(tecla==KeyEvent.KEYCODE_DPAD_RIGHT && menu.hasFocus()
+                    && !itensMenu.contains(atual)){
                 return entrarNoConteudo();
             }
             if(tecla==KeyEvent.KEYCODE_DPAD_LEFT &&
@@ -777,6 +859,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         pagina.removeAllViews();
         fileiras.clear();
         grupos.clear();
+        resumoSecao.setVisibility(View.GONE);
         limitesPorFileira.clear();
         idsNaTela.clear();
         primeiroCartao=null;
@@ -801,6 +884,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             focoPendente=false;
         }
         secaoAtual=indice;
+        tituloSelecionado.setText(secoes.get(indice).getTitle());
         limparConteudo();
         marcarMenu();
         mostrarCarregamentoSecao();
@@ -1192,123 +1276,77 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     }
     // INSCRIÇÕES: feed vertical de verdade, sem carrossel horizontal.
     // Cada linha tem capa à esquerda e título amplo à direita.
-    private void desenharInscricoesEmLista(String chave,String nome,
-            List<Video> videos,boolean principal){
-        if(videos==null||videos.isEmpty())return;
-        LinearLayout coluna=fileiras.get(chave);
-        if(coluna==null){
-            LinearLayout bloco=new LinearLayout(getContext());
-            bloco.setOrientation(LinearLayout.VERTICAL);
-            LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);
-            bp.bottomMargin=dp(20);
-            pagina.addView(bloco,bp);
-            TextView cabecalho=texto(principal?"ÚLTIMOS DAS SUAS INSCRIÇÕES":nome,
-                    17,TEXTO,true);
-            margem(cabecalho,3,4,0,14);
-            bloco.addView(cabecalho);
-            coluna=new LinearLayout(getContext());
-            coluna.setOrientation(LinearLayout.VERTICAL);
-            bloco.addView(coluna,new LinearLayout.LayoutParams(-1,-2));
-            fileiras.put(chave,coluna);
+    private void desenharGradeInscricoes(String chave,List<Video> videos,boolean principal){
+        LinearLayout grade=fileiras.get(chave);
+        if(grade==null){
+            grade=new LinearLayout(getContext());
+            grade.setOrientation(LinearLayout.VERTICAL);
+            grade.setClipChildren(false);
+            pagina.addView(grade,new LinearLayout.LayoutParams(-1,-2));
+            fileiras.put(chave,grade);
         }
-        final LinearLayout lista=coluna;
-        if(lista.hasFocus()){
+        if(grade.hasFocus()){
             focoPendente=true;
             ultimaSecaoFocada=secaoAtual;
         }
         if(principal)primeiraFileira.clear();
-        lista.removeAllViews();
-        int limite=Math.min(videos.size(),
-                limitesPorFileira.containsKey(chave)?limitesPorFileira.get(chave):28);
+        cartoesPorId.keySet().removeIf(id->id.startsWith(chave+"|"));
+        grade.removeAllViews();
+        List<Video> disponiveis=new ArrayList<>();
+        for(Video video:videos)if(video!=null)disponiveis.add(video);
+        int limite=Math.min(disponiveis.size(),limitesPorFileira.getOrDefault(chave,28));
+        List<View> cartoes=new ArrayList<>(limite);
+        LinearLayout linha=null;
         for(int i=0;i<limite;i++){
+            if(i%COLUNAS_INSCRICOES==0){
+                linha=new LinearLayout(getContext());
+                linha.setClipChildren(false);
+                linha.setGravity(Gravity.TOP);
+                LinearLayout.LayoutParams faixa=new LinearLayout.LayoutParams(-1,-2);
+                faixa.bottomMargin=dp(9);
+                grade.addView(linha,faixa);
+            }
             final int pos=i;
-            final Video video=videos.get(i);
-            if(video==null)continue;
-            String referencia=chave+"|"+(video.videoId==null?
-                    "id:"+video.id:"vid:"+video.videoId);
-            LinearLayout cartao=new LinearLayout(getContext());
-            cartao.setOrientation(LinearLayout.HORIZONTAL);
-            cartao.setGravity(Gravity.CENTER_VERTICAL);
-            cartao.setFocusable(true);
-            cartao.setBackground(vidro(0x4C141414,0x81BCBCBC,17));
-            if(Build.VERSION.SDK_INT>=21)cartao.setClipToOutline(true);
-            cartao.setForeground(fundo(0x00000000,0x77888888,17));
-            margem(cartao,10,9,12,9);
-            LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(139));
-            rp.bottomMargin=dp(11);
-            lista.addView(cartao,rp);
-            FrameLayout capa=new FrameLayout(getContext());
-            capa.setBackground(vidro(0x61171717,0x729E9E9E,13));
-            if(Build.VERSION.SDK_INT>=21)capa.setClipToOutline(true);
-            LinearLayout.LayoutParams im=new LinearLayout.LayoutParams(dp(190),dp(107));
-            cartao.addView(capa,im);
-            TextView fallback=texto("HX TV",14,SECUNDARIO,true);
-            fallback.setGravity(Gravity.CENTER);
-            capa.addView(fallback,new FrameLayout.LayoutParams(-1,-1));
-            ImageView imagem=new ImageView(getContext());
-            imagem.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            capa.addView(imagem,new FrameLayout.LayoutParams(-1,-1));
-            Glide.with(getContext())
-                    .load(ClickbaitRemover.updateThumbnail(video,
-                            MainUIData.instance(getContext()).getThumbQuality()))
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .error(android.R.color.transparent)
-                    .into(imagem);
-            adicionarDuracao(capa,video);
-            LinearLayout informacoes=new LinearLayout(getContext());
-            informacoes.setOrientation(LinearLayout.VERTICAL);
-            informacoes.setGravity(Gravity.CENTER_VERTICAL);
-            LinearLayout.LayoutParams txt=new LinearLayout.LayoutParams(0,-1,1);
-            txt.leftMargin=dp(17);
-            cartao.addView(informacoes,txt);
-            TextView titulo=texto(video.getTitle(),16,TEXTO,true);
-            titulo.setGravity(Gravity.TOP|Gravity.START);
-            titulo.setMaxLines(3);
-            titulo.setLineSpacing(dp(2),1.1f);
-            titulo.setEllipsize(TextUtils.TruncateAt.END);
-            informacoes.addView(titulo,new LinearLayout.LayoutParams(-1,0,1));
-            TextView detalhes=texto(video.getSecondTitle(),11,SECUNDARIO,false);
-            detalhes.setMaxLines(2);
-            detalhes.setEllipsize(TextUtils.TruncateAt.END);
-            informacoes.addView(detalhes,new LinearLayout.LayoutParams(-1,dp(36)));
+            Video video=disponiveis.get(i);
+            String referencia=chave+"|"+(video.videoId==null?"id:"+video.id:"vid:"+video.videoId);
+            View cartao=criarCartaoInscricao(video);
+            cartoes.add(cartao);
             cartoesPorId.put(referencia,cartao);
-            if(principal)primeiraFileira.add(cartao);
-            if(primeiroCartao==null)primeiroCartao=cartao;
+            if(principal && i<COLUNAS_INSCRICOES)primeiraFileira.add(cartao);
+            if(principal && i==0)primeiroCartao=cartao;
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);
+            if(i%COLUNAS_INSCRICOES!=0)lp.leftMargin=dp(9);
+            linha.addView(cartao,lp);
             cartao.setOnFocusChangeListener((v,selecionado)->{
-                v.setBackground(vidro(selecionado?0xA9666666:0x4C141414,
-                        selecionado?0xFFFFFFFF:0x81BCBCBC,17));
-                v.setForeground(fundo(0x00000000,
-                        selecionado?0xFFF1F1F1:0x77888888,17));
-                if(selecionado){
-                    ultimoVideoFocado=referencia;
-                    ultimoControleFocado=v;
-                    ultimaSecaoFocada=secaoAtual;
-                    estavaNoMenu=false;
-                    if(tituloSelecionado!=null){
-                        tituloSelecionado.setText(video.getTitle());
-                        tituloSelecionado.setSelected(true);
-                    }
-                    dados.onVideoItemSelected(video);
-                    if(pos>=limite-3 && limite<videos.size()){
-                        int mais=Math.min(videos.size(),limite+18);
-                        limitesPorFileira.put(chave,mais);
-                        postDelayed(()->{
-                            if(lista.isAttachedToWindow())
-                                desenharInscricoesEmLista(chave,nome,videos,principal);
-                        },180);
-                    }
-                }
+                v.animate().scaleX(selecionado?1.025f:1f)
+                        .scaleY(selecionado?1.025f:1f).setDuration(130).start();
+                v.setElevation(selecionado?dp(5):0);
+                v.setForeground(fundo(0x00000000,selecionado?CIANO:0x85838C9F,15));
+                if(!selecionado)return;
+                ultimoVideoFocado=referencia;
+                ultimoControleFocado=v;
+                ultimaSecaoFocada=secaoAtual;
+                estavaNoMenu=false;
+                dados.onVideoItemSelected(video);
             });
             cartao.setOnKeyListener((v,key,event)->{
                 if(event.getAction()!=KeyEvent.ACTION_DOWN)return false;
-                if(key==KeyEvent.KEYCODE_DPAD_LEFT)return focarCategoriaAtual();
-                if(key==KeyEvent.KEYCODE_DPAD_UP && pos==0)
-                    return focarCategoriaAtual();
-                if(key==KeyEvent.KEYCODE_DPAD_UP && pos>0)
-                    return lista.getChildAt(pos-1).requestFocus();
-                if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1<lista.getChildCount())
-                    return lista.getChildAt(pos+1).requestFocus();
-                if(key==KeyEvent.KEYCODE_DPAD_DOWN && pos+1==lista.getChildCount()){
+                int coluna=pos%COLUNAS_INSCRICOES;
+                if(key==KeyEvent.KEYCODE_DPAD_LEFT)
+                    return coluna==0?focarCategoriaAtual():cartoes.get(pos-1).requestFocus();
+                if(key==KeyEvent.KEYCODE_DPAD_RIGHT && coluna<COLUNAS_INSCRICOES-1
+                        && pos+1<limite)return cartoes.get(pos+1).requestFocus();
+                if(key==KeyEvent.KEYCODE_DPAD_UP && pos>=COLUNAS_INSCRICOES)
+                    return cartoes.get(pos-COLUNAS_INSCRICOES).requestFocus();
+                if(key==KeyEvent.KEYCODE_DPAD_DOWN){
+                    int proximaLinha=pos-coluna+COLUNAS_INSCRICOES;
+                    if(proximaLinha<limite)
+                        return cartoes.get(Math.min(pos+COLUNAS_INSCRICOES,limite-1)).requestFocus();
+                    if(limite<disponiveis.size()){
+                        limitesPorFileira.put(chave,limite+16);
+                        desenharGradeInscricoes(chave,videos,principal);
+                        return true;
+                    }
                     dados.onScrollEnd(video);
                 }
                 return false;
@@ -1322,14 +1360,124 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 return true;
             });
         }
-        if(focoPendente && ultimaSecaoFocada==secaoAtual)
-            post(this::tentarRestaurarFoco);
+        if(linha!=null && limite%COLUNAS_INSCRICOES!=0){
+            for(int i=limite%COLUNAS_INSCRICOES;i<COLUNAS_INSCRICOES;i++){
+                LinearLayout.LayoutParams espaco=new LinearLayout.LayoutParams(0,0,1);
+                espaco.leftMargin=dp(9);
+                linha.addView(new View(getContext()),espaco);
+            }
+        }
+        atualizarResumoInscricoes();
+        if(focoPendente && ultimaSecaoFocada==secaoAtual)post(this::tentarRestaurarFoco);
         if(entrarNoConteudoPendente)post(this::entrarNoConteudo);
+    }
+
+    private void atualizarResumoInscricoes(){
+        LinkedHashSet<Video> unicos=new LinkedHashSet<>();
+        for(List<Video> grupo:grupos.values())unicos.addAll(grupo);
+        int lives=0;
+        for(Video video:unicos)if(video!=null&&video.isLive&&!video.isLiveEnd&&!video.isUpcoming)lives++;
+        android.text.SpannableString resumo=new android.text.SpannableString(
+                "Últimos vídeos  •  ● "+lives+" ao vivo");
+        int ponto=resumo.toString().indexOf('●');
+        resumo.setSpan(new android.text.style.ForegroundColorSpan(0xFFFF414D),
+                ponto,ponto+1,0);
+        resumoSecao.setText(resumo);
+        resumoSecao.setVisibility(View.VISIBLE);
+    }
+
+    private View criarCartaoInscricao(Video video){
+        LinearLayout cartao=new LinearLayout(getContext());
+        cartao.setOrientation(LinearLayout.VERTICAL);
+        cartao.setFocusable(true);
+        cartao.setBackground(vidro(0xE0232A38,0x85838C9F,15));
+        cartao.setClipToOutline(true);
+        if(Build.VERSION.SDK_INT>=28){
+            cartao.setOutlineAmbientShadowColor(CIANO);
+            cartao.setOutlineSpotShadowColor(CIANO);
+        }
+        cartao.setForeground(fundo(0x00000000,0x85838C9F,15));
+        FrameLayout capa=new FrameLayout(getContext()){
+            @Override protected void onMeasure(int largura,int altura){
+                int medida=Math.round(MeasureSpec.getSize(largura)*0.50f);
+                super.onMeasure(largura,MeasureSpec.makeMeasureSpec(medida,MeasureSpec.EXACTLY));
+            }
+        };
+        cartao.addView(capa,new LinearLayout.LayoutParams(-1,-2));
+        TextView fallback=texto("HX TV",13,SECUNDARIO,true);
+        fallback.setGravity(Gravity.CENTER);
+        capa.addView(fallback,new FrameLayout.LayoutParams(-1,-1));
+        ImageView imagem=new ImageView(getContext());
+        imagem.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        capa.addView(imagem,new FrameLayout.LayoutParams(-1,-1));
+        Glide.with(this)
+                .load(ClickbaitRemover.updateThumbnail(video,MainUIData.instance(getContext()).getThumbQuality()))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .error(android.R.color.transparent)
+                .transition(DrawableTransitionOptions.withCrossFade(140))
+                .into(imagem);
+        if((video.isLive&&!video.isLiveEnd)||video.isUpcoming){
+            TextView selo=texto(video.isUpcoming?"EM BREVE":"● AO VIVO",10,TEXTO,true);
+            margem(selo,6,2,6,2);
+            selo.setBackground(fundo(video.isUpcoming?0xE0353C49:0xF0D91829,0,8));
+            FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-2,-2,Gravity.END|Gravity.BOTTOM);
+            lp.setMargins(0,0,dp(5),dp(4));
+            capa.addView(selo,lp);
+        }else adicionarDuracao(capa,video);
+
+        LinearLayout detalhes=new LinearLayout(getContext());
+        detalhes.setOrientation(LinearLayout.VERTICAL);
+        margem(detalhes,9,3,8,6);
+        cartao.addView(detalhes,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout tituloLinha=new LinearLayout(getContext());
+        detalhes.addView(tituloLinha,new LinearLayout.LayoutParams(-1,-2));
+        TextView titulo=texto(video.getTitle(),12,TEXTO,true);
+        titulo.setLines(2);
+        titulo.setIncludeFontPadding(false);
+        titulo.setGravity(Gravity.TOP|Gravity.START);
+        titulo.setEllipsize(TextUtils.TruncateAt.END);
+        tituloLinha.addView(titulo,new LinearLayout.LayoutParams(0,-2,1));
+        TextView opcoes=texto("⋮",15,TEXTO,true);
+        opcoes.setGravity(Gravity.TOP|Gravity.CENTER_HORIZONTAL);
+        opcoes.setContentDescription("Opções do vídeo");
+        opcoes.setOnClickListener(v->dados.onVideoItemLongClicked(video));
+        opcoes.setFocusable(false);
+        tituloLinha.addView(opcoes,new LinearLayout.LayoutParams(dp(15),-1));
+        String canal=video.getAuthor();
+        CharSequence metadados=video.getSecondTitle();
+        LinearLayout canalLinha=new LinearLayout(getContext());
+        canalLinha.setGravity(Gravity.CENTER_VERTICAL);
+        detalhes.addView(canalLinha,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout linhasCanal=new LinearLayout(getContext());
+        linhasCanal.setOrientation(LinearLayout.VERTICAL);
+        if(!TextUtils.isEmpty(canal)){
+            String inicial=new String(Character.toChars(canal.codePointAt(0)));
+            TextView avatar=texto(inicial.toUpperCase(java.util.Locale.ROOT),10,TEXTO,true);
+            avatar.setGravity(Gravity.CENTER);
+            avatar.setBackground(vidro(0xCB274D72,0x8EB1D2ED,20));
+            LinearLayout.LayoutParams circulo=new LinearLayout.LayoutParams(dp(22),dp(22));
+            circulo.rightMargin=dp(6);
+            canalLinha.addView(avatar,circulo);
+            TextView autor=texto(canal,10,GELO,false);
+            autor.setSingleLine(true);
+            autor.setEllipsize(TextUtils.TruncateAt.END);
+            linhasCanal.addView(autor);
+            if(metadados!=null && metadados.toString().startsWith(canal)){
+                metadados=metadados.subSequence(canal.length(),metadados.length())
+                        .toString().replaceFirst("^[\\s•·]+","");
+            }
+        }
+        TextView info=texto(metadados,9,SECUNDARIO,false);
+        info.setSingleLine(true);
+        info.setEllipsize(TextUtils.TruncateAt.END);
+        linhasCanal.addView(info);
+        canalLinha.addView(linhasCanal,new LinearLayout.LayoutParams(0,-2,1));
+        return cartao;
     }
 
     private void desenharFileira(String chave,String nome,List<Video> videos,boolean principal){
         if(estaNasInscricoes()){
-            desenharInscricoesEmLista(chave,nome,videos,principal);
+            desenharGradeInscricoes(chave,videos,principal);
             return;
         }
         final List<Video> exibidos=semDuplicarNaHome(chave,videos);
@@ -1468,10 +1616,6 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                     },250);
                 }
                 nomeCartao.setEllipsize(TextUtils.TruncateAt.END);
-                if(selecionado && tituloSelecionado!=null){
-                    tituloSelecionado.setText(video.getTitle());
-                    tituloSelecionado.setSelected(true);
-                }
                 if(selecionado){
                     dados.onVideoItemSelected(video);
                     if(estaNaHome())agendarDestaque(video);
@@ -1779,10 +1923,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         }else if(ultimaSecaoFocada==secaoAtual && ultimoVideoFocado!=null){
             alvo=cartoesPorId.get(ultimoVideoFocado);
         }
-        if(alvo==null && estavaNoMenu && menu.getChildCount()>0){
-            alvo=menu.getChildAt(Math.max(0,Math.min(secaoAtual,
-                    menu.getChildCount()-1)));
-        }
+        if(alvo==null && estavaNoMenu)alvo=itemCategoriaAtual();
         if(alvo==null)alvo=primeiroCartao;
         if(alvo!=null && alvo.isShown() && alvo.requestFocus()){
             focoPendente=false;
@@ -1792,9 +1933,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
 
     /** Voltar, quando dentro dos vídeos, retorna à navegação lateral. */
     public boolean voltarAoMenu(){
-        if(menu.getChildCount()>0&&!menu.hasFocus()){
-            View categoria=menu.getChildAt(Math.max(0,Math.min(secaoAtual,
-                    menu.getChildCount()-1)));
+        View categoria=itemCategoriaAtual();
+        if(categoria!=null&&!menu.hasFocus()){
             categoria.requestFocus();
             ultimoControleFocado=categoria;
             estavaNoMenu=true;
