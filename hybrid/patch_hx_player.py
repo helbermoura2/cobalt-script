@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""HX TV 0.9.18: controles individuais preto-vidro, sem barra externa duplicada.
-Conserva IDs, ações, atalhos, barras de progresso e comportamento existente.
+"""HX TV: controles individuais Black Glass com foco neon.
+Conserva IDs, ações e atalhos do player.
 """
 from pathlib import Path
 import argparse
+import re
 import xml.etree.ElementTree as ET
 
 def substituir(arquivo,antes,depois):
@@ -19,11 +20,17 @@ def main():
     root=args.parse_args().upstream.resolve()
 
     base=root/"smarttubetv/src/main"
+    widgets=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/widgets"
+    fonte=Path(__file__).resolve().parent/"native-src/ContornoNeon.java"
+    (widgets/fonte.name).write_bytes(fonte.read_bytes())
     classe=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java"
     substituir(classe,
         "import android.text.TextUtils;",
         """import android.text.TextUtils;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ContornoNeon;
 import android.graphics.drawable.StateListDrawable;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
@@ -35,27 +42,25 @@ import android.animation.StateListAnimator;""")
         """            View v = LayoutInflater.from(parent.getContext())
                     .inflate(mLayoutResourceId, parent, false);
             ActionViewHolder holder = new ActionViewHolder(v);
-            // HX Signature: superfície vidro grafite e borda gelo
-            // no foco, sem modificar a ação de cada botão. Mantém os ícones,
-            // acessibilidade, cliques e todos os atalhos do player original.
+            // O ícone continua na camada original acima da superfície de vidro.
             float density = parent.getResources().getDisplayMetrics().density;
-            int radius = Math.round(12 * density);
+            int radius = Math.round(10 * density);
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xB05B5B5B, 0x80141414});
+                    new int[]{0xDD263541, 0xEE080B11});
             focus.setCornerRadius(radius);
-            focus.setStroke(stroke, 0xFFFFFFFF);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0x5C242424, 0x34000000});
+                    new int[]{0xC92D3034, 0xE208090B});
             idle.setCornerRadius(radius);
-            idle.setStroke(Math.max(1, Math.round(density)), 0x88B8B8B8);
-            StateListDrawable states = new StateListDrawable();
-            states.addState(new int[] {android.R.attr.state_focused}, focus);
-            states.addState(new int[] {android.R.attr.state_pressed}, focus);
-            states.addState(new int[] {}, idle);
+            idle.setStroke(stroke, 0xAABAC3CB);
             if (holder.mFocusableView != null) {
+                StateListDrawable states = new StateListDrawable();
+                states.addState(new int[] {android.R.attr.state_focused},
+                        new LayerDrawable(new Drawable[]{focus,
+                                new ContornoNeon(holder.mFocusableView, radius, true, true)}));
+                states.addState(new int[] {}, idle);
                 holder.mFocusableView.setBackground(states);
                 // Microtransição nativa curta, sem dependências React e
                 // sem atrasar o foco, o clique nem o controle remoto.
@@ -301,6 +306,23 @@ import android.os.SystemClock;""")
     if "hx_player_primary_rail" in xmlOriginal or "hx_player_secondary_rail" in xmlOriginal:
         raise RuntimeError("Capsula externa nao pode voltar")
     ET.parse(controls)
+    for variante in ("primary", "secondary"):
+        layout=root/f"leanback-1.0.0/src/main/res/layout/lb_control_button_{variante}.xml"
+        substituir(layout, f'\n        android:src="@drawable/lb_control_button_{variante}"', '')
+        ET.parse(layout)
+    presenter=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/PlaybackTransportRowPresenter.java"
+    substituir(presenter, "        TypedValue outValue = new TypedValue();\n        if (context.getTheme()\n                .resolveAttribute(R.attr.playbackProgressPrimaryColor, outValue, true)) {\n            return context.getResources().getColor(outValue.resourceId);\n        }\n        return context.getResources().getColor(R.color.lb_playback_progress_color_no_theme);",
+               "        return 0xFF42DEFF;")
+    # Posicionar a linha do tempo acima das duas fileiras com o mesmo SeekBar nativo.
+    busca=re.search(r'        <[^\n]*SeekBar\s+android:id="@\+id/playback_progress"[\s\S]*? />\n\n', xmlOriginal)
+    if busca is None:
+        raise RuntimeError("Barra de progresso nativa ausente")
+    barra=busca.group()
+    xml=xmlOriginal.replace(barra, "", 1)
+    ancora="        <!-- Original top player row -->"
+    if xml.count(ancora)!=1:
+        raise RuntimeError("Posição da primeira fileira alterada")
+    controls.write_text(xml.replace(ancora, barra+ancora, 1), encoding="utf-8")
     # Horário e codec: informações auxiliares e secundárias, não chamadas principais.
     xml=controls.read_text(encoding="utf-8")
     for identificador in ("quality_info","date_time","ending_time",
@@ -383,7 +405,7 @@ import android.os.SystemClock;""")
 </shape>
 """,encoding="utf-8")
     ET.parse(suggestions)
-    print("HX PLAYER 0.9.18: individual neutral glass controls, no extra rail, native focus intact")
+    print("HX PLAYER: individual glass controls with animated cyan focus")
 
 if __name__=="__main__":
     main()
