@@ -49,6 +49,7 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.playback.PlaybackActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1290,11 +1291,16 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
             ultimaSecaoFocada=secaoAtual;
         }
         if(principal)primeiraFileira.clear();
-        cartoesPorId.keySet().removeIf(id->id.startsWith(chave+"|"));
+        String prefixo=chave+"|";
+        Iterator<String> referencias=cartoesPorId.keySet().iterator();
+        while(referencias.hasNext()){
+            if(referencias.next().startsWith(prefixo))referencias.remove();
+        }
         grade.removeAllViews();
         List<Video> disponiveis=new ArrayList<>();
         for(Video video:videos)if(video!=null)disponiveis.add(video);
-        int limite=Math.min(disponiveis.size(),limitesPorFileira.getOrDefault(chave,28));
+        Integer limiteAnterior=limitesPorFileira.get(chave);
+        int limite=Math.min(disponiveis.size(),limiteAnterior==null?28:limiteAnterior);
         List<View> cartoes=new ArrayList<>(limite);
         LinearLayout linha=null;
         for(int i=0;i<limite;i++){
