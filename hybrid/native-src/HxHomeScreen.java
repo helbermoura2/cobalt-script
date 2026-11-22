@@ -3,15 +3,21 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -288,8 +294,10 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout.LayoutParams toggleLp=new LinearLayout.LayoutParams(-1,dp(36));
         toggleLp.bottomMargin=dp(7);
         alternar.setBackground(vidro(0x8F19202D,0x88B2BCCB,14));
-        alternar.setOnFocusChangeListener((v,ativo)->v.setBackground(
-                vidro(ativo?0xB4265369:0x8F19202D,ativo?CIANO:0x88B2BCCB,14)));
+        alternar.setOnFocusChangeListener((v,ativo)->{
+            v.setBackground(vidro(ativo?0xB4265369:0x8F19202D,0x88B2BCCB,14));
+            pintarContornoNeon(v,ativo,true,14,0);
+        });
         lateral.addView(alternar,toggleLp);
 
         ScrollView navegacao=new ScrollView(contexto);
@@ -333,7 +341,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         for(TextView item:new TextView[]{pesquisa,atualizar,antigo}){
             item.setOnFocusChangeListener((v,ativo)->{
                 v.setBackground(vidro(ativo?0xA3616161:0x55161616,
-                        ativo?0xFFFFFFFF:0x70B7B7B7,15));
+                        0x70B7B7B7,15));
+                pintarContornoNeon(v,ativo,true,15,0);
                 Drawable d=item.getCompoundDrawables()[0];
                 if(d==null)d=item.getCompoundDrawables()[1];
                 if(d!=null)d.setTint(ativo?TEXTO:GELO);
@@ -429,6 +438,84 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(34),dp(31));
         lp.leftMargin=dp(7);
         barra.addView(botao,lp);
+    }
+
+    private void pintarContornoNeon(View alvo,boolean ativo,boolean intenso,int raio,int borda){
+        Drawable atual=alvo.getForeground();
+        if(ativo && atual instanceof ContornoNeon && ((ContornoNeon)atual).intenso==intenso)return;
+        alvo.setForeground(ativo ? new ContornoNeon(alvo,dp(raio),intenso)
+                : fundo(0x00000000,borda,raio));
+    }
+
+    private static final class ContornoNeon extends Drawable {
+        private static final long VOLTA_MS=2600L;
+        private final View alvo;
+        private final float raio, densidade;
+        private final boolean intenso;
+        private final Paint pincel=new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path perimetro=new Path(), trecho=new Path();
+        private final PathMeasure medida=new PathMeasure();
+        private final Runnable proximoQuadro=this::invalidateSelf;
+        private final long inicio=SystemClock.uptimeMillis();
+        private float comprimento;
+
+        ContornoNeon(View alvo,int raio,boolean intenso){
+            this.alvo=alvo;
+            this.raio=raio;
+            this.intenso=intenso;
+            densidade=alvo.getResources().getDisplayMetrics().density;
+            pincel.setStyle(Paint.Style.STROKE);
+            pincel.setStrokeCap(Paint.Cap.ROUND);
+        }
+
+        @Override protected void onBoundsChange(Rect limites){
+            perimetro.rewind();
+            RectF borda=new RectF(limites);
+            borda.inset(2.5f*densidade,2.5f*densidade);
+            if(!borda.isEmpty())perimetro.addRoundRect(borda,raio,raio,Path.Direction.CW);
+            medida.setPath(perimetro,true);
+            comprimento=medida.getLength();
+        }
+
+        @Override public void draw(Canvas tela){
+            if(comprimento<=0)return;
+            long agora=SystemClock.uptimeMillis();
+            boolean animar=alvo.isShown() && alvo.hasWindowFocus()
+                    && (Build.VERSION.SDK_INT<26 || ValueAnimator.areAnimatorsEnabled());
+            float ponta=animar ? ((agora-inicio)%VOLTA_MS)/(float)VOLTA_MS*comprimento
+                    : comprimento*.35f;
+            tracar(tela,perimetro,0x2516C8FF,5f);
+            tracar(tela,perimetro,intenso?0xCE57DBFF:0x8851C6E9,1.5f);
+            desenharArco(tela,ponta,0.15f,0x4033CFFF,5f);
+            desenharArco(tela,ponta,0.11f,intenso?0xE353DBFF:0xAE53DBFF,2.8f);
+            desenharArco(tela,ponta,0.045f,intenso?0xFFFFFFFF:0xE0B8F6FF,1.65f);
+            if(animar){
+                unscheduleSelf(proximoQuadro);
+                scheduleSelf(proximoQuadro,agora+32L);
+            }
+        }
+
+        private void desenharArco(Canvas tela,float ponta,float fracao,int cor,float espessura){
+            trecho.rewind();
+            float inicioTrecho=ponta-comprimento*fracao;
+            if(inicioTrecho<0){
+                medida.getSegment(comprimento+inicioTrecho,comprimento,trecho,true);
+                medida.getSegment(0,ponta,trecho,false);
+            }else{
+                medida.getSegment(inicioTrecho,ponta,trecho,true);
+            }
+            tracar(tela,trecho,cor,espessura);
+        }
+
+        private void tracar(Canvas tela,Path caminho,int cor,float espessura){
+            pincel.setColor(cor);
+            pincel.setStrokeWidth(espessura*densidade);
+            tela.drawPath(caminho,pincel);
+        }
+
+        @Override public void setAlpha(int alpha){}
+        @Override public void setColorFilter(ColorFilter filtro){}
+        @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
     }
 
     private static final class FundoBlackGlass extends View {
@@ -624,7 +711,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
     private void pintarCategoria(TextView aba, boolean focada, boolean atual){
         aba.setBackground(vidro(focada?0xE42A586E:
                 atual?0xCA1C465C:0x8C161C28,
-                focada?CIANO:atual?0xCC65CDEB:0x8697A3B8,16));
+                atual?0xCC65CDEB:0x8697A3B8,16));
+        pintarContornoNeon(aba,focada||atual,focada,16,0);
         aba.setElevation(focada?dp(5):0);
         if(Build.VERSION.SDK_INT>=28){
             aba.setOutlineAmbientShadowColor(CIANO);
@@ -1327,7 +1415,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 v.animate().scaleX(selecionado?1.025f:1f)
                         .scaleY(selecionado?1.025f:1f).setDuration(130).start();
                 v.setElevation(selecionado?dp(5):0);
-                v.setForeground(fundo(0x00000000,selecionado?CIANO:0x85838C9F,15));
+                pintarContornoNeon(v,selecionado,true,15,0x85838C9F);
                 if(!selecionado)return;
                 ultimoVideoFocado=referencia;
                 ultimoControleFocado=v;
@@ -1602,8 +1690,7 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 v.setBackground(vidro(selecionado?0xA9606060:0x46111111,
                         selecionado?0xFFFFFFFF:0x76BABABA,17));
                 // Borda em primeiro plano: a capa nao encobre mais o contorno.
-                v.setForeground(fundo(0x00000000,
-                        selecionado?0xFFF1F1F1:0x77888888,17));
+                pintarContornoNeon(v,selecionado,true,17,0x77888888);
                 v.animate().cancel();
                 v.animate().scaleX(selecionado?1.018f:1f)
                         .scaleY(selecionado?1.018f:1f)

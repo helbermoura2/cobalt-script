@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.19 Black Glass (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.20 Black Glass (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -44,7 +44,7 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.19"' in native and "VERSION_CODE = 2497" in native,
+  "consistent app version": 'VERSION_NAME = "0.9.20"' in native and "VERSION_CODE = 2498" in native,
   "published OTA retained": manifest.get("0.9.18",{}).get("versionCode")==2496,
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
   "preview APK release verified": 'cmp "out/$apk" "test-release/$apk"' in workflow and "contents/hybrid/updates/native-beta.json" not in workflow,
@@ -72,7 +72,10 @@ checks={
   "OLED black main theme": "PRETO=0xFF000000" in home and "tela.drawColor(PRETO)" in home,
   "true neutral alpha glass": "new int[]{0x26FFFFFF,cor,0x20000000}" in home,
   "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=2 and home.count("cartao.setClipToOutline(true)")>=2,
-  "focus border above thumbnail": home.count("v.setForeground(fundo(0x00000000,")>=2,
+  "focus border above thumbnail": "alvo.setForeground(ativo ? new ContornoNeon" in home and home.count("pintarContornoNeon(v,selecionado")>=2,
+  "neon on active sidebar": "pintarContornoNeon(aba,focada||atual" in home,
+  "neon follows a rounded outline": "medida.getSegment" in home and "Path.Direction.CW" in home,
+  "neon respects system motion": "ValueAnimator.areAnimatorsEnabled()" in home and "alvo.hasWindowFocus()" in home,
   "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xB05B5B5B, 0x80141414}" in player,
   "original playback buttons preserved": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player and "Math.round(146f * d)" in player,
   "silver native theme": '#BDBDBD' in native and '#B5D7FF' not in native,
@@ -83,4 +86,4 @@ for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.19: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.20: {len(checks)} regression gates passed")
