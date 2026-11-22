@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.21 Black Glass (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.22 Black Glass (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -45,8 +45,8 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.21"' in native and "VERSION_CODE = 2499" in native,
-  "next update version": manifest.get("0.9.21",{}).get("versionCode")==2499 and manifest["package"]["downloadUrl"].endswith("/HX-TV-Native-0.9.21-assinado-arm.apk"),
+  "consistent app version": 'VERSION_NAME = "0.9.22"' in native and "VERSION_CODE = 2500" in native,
+  "next update version": manifest.get("0.9.22",{}).get("versionCode")==2500 and manifest["package"]["downloadUrl"].endswith("/HX-TV-Native-0.9.22-assinado-arm.apk"),
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
   "preview APK release verified": 'cmp "out/$apk" "test-release/$apk"' in workflow and "contents/hybrid/updates/native-beta.json" not in workflow,
   "glass panels and buttons": "private GradientDrawable vidro(int cor, int borda, int raio)" in home and "StateListDrawable states" in player,
@@ -57,7 +57,9 @@ checks={
   "subtitle cards size preserved": "ALTURA_CAPA_HOME=218" in home and "dp(cartaz?LARGURA_CAPA_HOME:225),dp(cartaz?ALTURA_CAPA_HOME:226)" in home,
   "translucent navigation": "new int[]{0x40161E2B,0x24080D16,0x70000000}" in home,
   "live glass chips": "chip.setBackground(vidro(" in home,
-  "glass player focus layer": "new ContornoNeon(holder.mFocusableView, radius, true, true)" in player and "new int[]{0xC92D3034, 0xE208090B}" in player,
+  "glass player focus layer": "new ContornoNeon(holder.mFocusableView, radius, true, true)" in player and "new int[]{0xF42A2D32, 0xFA07090C}" in player,
+  "player rows distribute enabled controls": "setHxDistributed" in player and "MAX_CONTROLS = 16" in player,
+  "player tooltip clears both rows": "baseline - tooltipHeight - tooltipOffset" in player,
   "player native seekbar above both rows": "barra+ancora" in player and "return 0xFF42DEFF" in player,
   "same DPAD and button dimensions": "screenHeight * 0.68f" in player and "Math.round(146f * d)" in player and "setImageDrawable(null)" not in player and "setWindowAlignmentOffsetPercent" not in player,
 
@@ -78,7 +80,7 @@ checks={
   "neon on active sidebar": "pintarContornoNeon(aba,focada||atual" in home,
   "neon follows a rounded outline": "medida.getSegment" in neon and "Path.Direction.CW" in neon,
   "neon respects system motion": "ValueAnimator.areAnimatorsEnabled()" in neon and "alvo.hasWindowFocus()" in neon,
-  "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xDD263541, 0xEE080B11}" in player,
+  "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xFA162632, 0xFD03080D}" in player,
   "original playback buttons preserved": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player and "Math.round(146f * d)" in player,
   "silver native theme": '#BDBDBD' in native and '#B5D7FF' not in native,
   "no blue legacy palette": "0xAF465E77" not in home and "0xAA7390AB" not in player,
@@ -88,4 +90,4 @@ for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.21: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.22: {len(checks)} regression gates passed")

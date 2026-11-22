@@ -1,4 +1,4 @@
-name: HX TV 0.9.21 Black Glass — player com foco neon
+name: HX TV 0.9.22 Black Glass — player com foco neon
 on:
   push:
     branches: [smart-cobalt-hybrid]
@@ -111,8 +111,8 @@ jobs:
           grep -q 'screenHeight \* 0.68f' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/PlaybackFragment.java
           ! grep -q 'setWindowAlignmentOffsetPercent' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/PlaybackFragment.java
           ! grep -q 'setImageDrawable(null)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
-          grep -q '@dimen/lb_control_button_diameter' upstream/leanback-1.0.0/src/main/res/layout/lb_control_button_primary.xml
-          grep -q '@dimen/lb_control_button_secondary_diameter' upstream/leanback-1.0.0/src/main/res/layout/lb_control_button_secondary.xml
+          grep -q 'android:layout_width="match_parent"' upstream/leanback-1.0.0/src/main/res/layout/lb_control_button_primary.xml
+          grep -q 'android:layout_width="match_parent"' upstream/leanback-1.0.0/src/main/res/layout/lb_control_button_secondary.xml
           grep -q 'private void posicionarNav(TextView alvo,String rotulo)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           grep -q 'params.setAspectRatio(new Rational(16,9))' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/PlaybackActivity.java
           grep -q 'public static boolean isHxMiniPlayerActive()' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/playback/PlaybackActivity.java
@@ -176,7 +176,7 @@ jobs:
           grep -q 'hx_update_app' upstream/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/misc/AppDataSourceManager.java
           grep -q '#BDBDBD' upstream/smarttubetv/src/main/res/values/colors.xml
           ! grep -q '#B5D7FF' upstream/smarttubetv/src/main/res/values/colors.xml
-          grep -q 'versionCode 2499' upstream/smarttubetv/build.gradle
+          grep -q 'versionCode 2500' upstream/smarttubetv/build.gradle
       - name: Supply optional Android library typedef metadata for old release plugin
         shell: bash
         run: |
@@ -208,33 +208,33 @@ jobs:
           apk=$(find upstream/smarttubetv/build/outputs/apk/stbeta/release -name '*armeabi-v7a.apk' -type f | head -n 1)
           if [ -z "$apk" ]; then echo 'ARMv7 APK missing'; exit 1; fi
           mkdir -p out
-          cp "$apk" out/HX-TV-Native-0.9.21-unsigned-arm.apk
+          cp "$apk" out/HX-TV-Native-0.9.22-unsigned-arm.apk
           sdk="$ANDROID_HOME/build-tools"
           bt=$(ls -d "$sdk"/* | sort -V | tail -n 1)
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.21-unsigned-arm.apk | head -n 15
-          "$bt/aapt" dump badging out/HX-TV-Native-0.9.21-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.22-unsigned-arm.apk | head -n 15
+          "$bt/aapt" dump badging out/HX-TV-Native-0.9.22-unsigned-arm.apk | grep -q "package: name='br.com.hxnative.tvpreview'"
           # This is intentionally unsigned; it must be signed locally with
           # the persistent private HX key, never uploaded as a public release.
-          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.21-unsigned-arm.apk
-          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.21-unsigned-arm.apk | grep -q '^application-debuggable'; then
+          "$bt/zipalign" -c -v 4 out/HX-TV-Native-0.9.22-unsigned-arm.apk
+          if "$bt/aapt" dump badging out/HX-TV-Native-0.9.22-unsigned-arm.apk | grep -q '^application-debuggable'; then
             echo 'ERROR: Release APK is debuggable'
             exit 1
           fi
-          sha256sum out/HX-TV-Native-0.9.21-unsigned-arm.apk
+          sha256sum out/HX-TV-Native-0.9.22-unsigned-arm.apk
       - name: Upload backup APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hx-native-androidtv-release-unsigned-0.9.21
-          path: out/HX-TV-Native-0.9.21-unsigned-arm.apk
+          name: hx-native-androidtv-release-unsigned-0.9.22
+          path: out/HX-TV-Native-0.9.22-unsigned-arm.apk
           if-no-files-found: error
-      - name: Sign HX 0.9.21 APK with persistent certificate
+      - name: Sign HX 0.9.22 APK with persistent certificate
         shell: bash
         env:
           HX_SIGNING_BUNDLE_B64: ${{ secrets.HX_SIGNING_BUNDLE_B64 }}
         run: |
           set -euo pipefail
-          src="out/HX-TV-Native-0.9.21-unsigned-arm.apk"
-          dst="out/HX-TV-Native-0.9.21-assinado-arm.apk"
+          src="out/HX-TV-Native-0.9.22-unsigned-arm.apk"
+          dst="out/HX-TV-Native-0.9.22-assinado-arm.apk"
           bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           [[ -x "$bt/apksigner" && -x "$bt/aapt" && -x "$bt/zipalign" ]] || exit 1
           mkdir -p "$RUNNER_TEMP/hx-private"
@@ -267,27 +267,27 @@ jobs:
             echo "::error::Certificado diferente da HX TV 0.3.0. Abortando."
             exit 1
           }
-          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2499' versionName='0.9.21'"
+          "$bt/aapt" dump badging "$dst" | grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2500' versionName='0.9.22'"
           ! "$bt/aapt" dump badging "$dst" | grep -q '^application-debuggable' || {
             echo 'Release debuggable forbidden'; exit 1; }
           "$bt/zipalign" -c -v 4 "$dst" >/dev/null
-          sha256sum "$dst" > out/HX-TV-Native-0.9.21.sha256
+          sha256sum "$dst" > out/HX-TV-Native-0.9.22.sha256
       - name: Publicar APK experimental sem ativar atualização automática
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag='hx-tv-independent-v0.9.21-beta'
-          apk='HX-TV-Native-0.9.21-assinado-arm.apk'
+          tag='hx-tv-independent-v0.9.22-beta'
+          apk='HX-TV-Native-0.9.22-assinado-arm.apk'
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::error::Já existe uma versão experimental com esse nome."
             exit 1
           fi
           gh release create "$tag" "out/$apk" --prerelease \
             --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
-            --title 'HX TV 0.9.21 Black Glass — player com foco neon' \
-            --notes 'Black Glass no player com duas fileiras de botões independentes, foco neon e barra de progresso ciano. Inclui o neon nos cards e no menu lateral.'
+            --title 'HX TV 0.9.22 Black Glass — player com foco neon' \
+            --notes 'Player Black Glass com botões distribuídos pela largura disponível, fundo inferior mais escuro e dica de foco acima dos controles.'
           mkdir -p test-release
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
             --pattern "$apk" --dir test-release

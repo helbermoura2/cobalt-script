@@ -48,11 +48,11 @@ import android.animation.StateListAnimator;""")
             int stroke = Math.max(1, Math.round(1f * density));
             GradientDrawable focus = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xDD263541, 0xEE080B11});
+                    new int[]{0xFA162632, 0xFD03080D});
             focus.setCornerRadius(radius);
             GradientDrawable idle = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    new int[]{0xC92D3034, 0xE208090B});
+                    new int[]{0xF42A2D32, 0xFA07090C});
             idle.setCornerRadius(radius);
             idle.setStroke(stroke, 0xAABAC3CB);
             if (holder.mFocusableView != null) {
@@ -70,14 +70,12 @@ import android.animation.StateListAnimator;""")
                     selected.playTogether(
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.0f, 1.035f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.0f, 1.035f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 0.86f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 0f, 8f * density));
                     selected.setDuration(140);
                     AnimatorSet normal = new AnimatorSet();
                     normal.playTogether(
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleX", 1.035f, 1.0f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "scaleY", 1.035f, 1.0f),
-                        ObjectAnimator.ofFloat(holder.mFocusableView, "alpha", 1.0f, 0.86f),
                         ObjectAnimator.ofFloat(holder.mFocusableView, "translationZ", 8f * density, 0f));
                     normal.setDuration(130);
                     motion.addState(new int[] {android.R.attr.state_focused}, selected);
@@ -309,6 +307,11 @@ import android.os.SystemClock;""")
     for variante in ("primary", "secondary"):
         layout=root/f"leanback-1.0.0/src/main/res/layout/lb_control_button_{variante}.xml"
         substituir(layout, f'\n        android:src="@drawable/lb_control_button_{variante}"', '')
+        # A largura vem da fileira; o botão preenche a célula e o ícone
+        # mantém seu tamanho original no centro.
+        sufixo="" if variante=="primary" else "_secondary"
+        substituir(layout, f'android:layout_width="@dimen/lb_control_button{sufixo}_diameter"',
+                   'android:layout_width="match_parent"')
         ET.parse(layout)
     presenter=base/"java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tweaks/PlaybackTransportRowPresenter.java"
     substituir(presenter, "        TypedValue outValue = new TypedValue();\n        if (context.getTheme()\n                .resolveAttribute(R.attr.playbackProgressPrimaryColor, outValue, true)) {\n            return context.getResources().getColor(outValue.resourceId);\n        }\n        return context.getResources().getColor(R.color.lb_playback_progress_color_no_theme);",
@@ -323,6 +326,85 @@ import android.os.SystemClock;""")
     if xml.count(ancora)!=1:
         raise RuntimeError("Posição da primeira fileira alterada")
     controls.write_text(xml.replace(ancora, barra+ancora, 1), encoding="utf-8")
+    # Tirar os metadados da largura reservada aos botões. Os mesmos IDs são
+    # usados pelo presenter para atualização e para o modo de busca no vídeo.
+    xml=controls.read_text(encoding="utf-8")
+    metadados=[]
+    for id_info, id_dock in (("additional_info","controls_dock"),("time_info","secondary_controls_dock")):
+        busca=re.search(
+            rf'        <RelativeLayout android:layout_width="match_parent"\n(?:(?!^        </RelativeLayout>).)*?'
+            rf'            <RelativeLayout android:id="@\+id/{id_info}"(?:(?!^        </RelativeLayout>).)*?'
+            r'^        </RelativeLayout>\n', xml, re.S|re.M)
+        if not busca:
+            raise RuntimeError(f"Fileira nativa ausente: {id_dock}")
+        trecho=busca.group()
+        inicio=trecho.index(f'            <RelativeLayout android:id="@+id/{id_info}"')
+        fim=trecho.rindex('        </RelativeLayout>')
+        info=trecho[inicio:fim].replace('android:layout_centerVertical="true"', 'android:layout_gravity="center_vertical"')
+        info=info.replace('                            android:layout_gravity="bottom"\n','')
+        if id_info=="additional_info":
+            info=info.replace('android:layout_alignParentEnd="true"', 'android:layout_alignParentStart="true"')
+        metadados.append(info)
+        margem=' android:layout_marginTop="5dp"' if id_dock=="secondary_controls_dock" else ' android:layout_marginTop="18dp"'
+        dock=f"""        <FrameLayout android:id="@+id/{id_dock}"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layoutDirection="ltr"{margem} />
+"""
+        xml=xml.replace(trecho,dock,1)
+    faixa='        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content">\n'
+    faixa+=''.join(metadados)+'        </RelativeLayout>\n\n'
+    xml=xml.replace(barra,faixa+barra,1)
+    controls.write_text(xml,encoding="utf-8")
+
+    diretório=presenter.parent
+    barra_controles=diretório/"ControlBar.java"
+    substituir(barra_controles,"    private int mChildMarginFromCenter;",
+        """    private int mChildMarginFromCenter;
+    private boolean mHxDistributed;
+
+    void setHxDistributed() {
+        mHxDistributed = true;
+        setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+    }""")
+    substituir(barra_controles,
+        "        super.onMeasure(widthMeasureSpec, heightMeasureSpec);",
+        """        int count = getChildCount();
+        if (mHxDistributed && count > 0 && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED) {
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+            int available = Math.max(0, width - getPaddingLeft() - getPaddingRight());
+            float density = getResources().getDisplayMetrics().density;
+            int gap = count > 1 ? Math.min(Math.round(7 * density), available / (count * 5)) : 0;
+            int usable = Math.max(0, available - gap * (count - 1));
+            int maxTile = Math.round(108 * density);
+            for (int i = 0; i < count; i++) {
+                LayoutParams params = (LayoutParams) getChildAt(i).getLayoutParams();
+                params.width = Math.min(maxTile, usable * (i + 1) / count - usable * i / count);
+                params.setMarginStart(i == 0 ? 0 : gap);
+            }
+            super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), heightMeasureSpec);
+            return;
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);""")
+    substituir(diretório/"ControlBarPresenter.java","static final int MAX_CONTROLS = 12;",
+               "static final int MAX_CONTROLS = 16;")
+    for holder,dock in (("mControlsVh","mControlsDock"),("mSecondaryControlsVh","mSecondaryControlsDock")):
+        substituir(presenter, f"        vh.{dock}.addView(vh.{holder}.view);",
+                   f"        vh.{holder}.mControlBar.setHxDistributed();\n"
+                   f"        vh.{dock}.addView(vh.{holder}.view);")
+    tooltip=classe.with_name("TooltipPopup.java")
+    substituir(tooltip,
+        """        if (fromTouch) {
+            if (yAbove >= 0) {""",
+        """        View controls = appView.findViewById(R.id.controls_dock);
+        if (controls != null && controls.isShown()) {
+            controls.getLocationOnScreen(mTmpAnchorPos);
+            int baseline = mTmpAnchorPos[1] - mTmpAppPos[1];
+            outParams.y = Math.max(0, baseline - tooltipHeight - tooltipOffset);
+            return;
+        }
+        if (fromTouch) {
+            if (yAbove >= 0) {""")
     # Horário e codec: informações auxiliares e secundárias, não chamadas principais.
     xml=controls.read_text(encoding="utf-8")
     for identificador in ("quality_info","date_time","ending_time",
@@ -386,9 +468,9 @@ import android.os.SystemClock;""")
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#B8000000"
-        android:centerColor="#79090909"
-        android:centerY="0.35"
+        android:startColor="#FF000000"
+        android:centerColor="#F0000000"
+        android:centerY="0.70"
         android:endColor="#00000000" />
 </shape>
 """,encoding="utf-8")
