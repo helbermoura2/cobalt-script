@@ -1409,6 +1409,8 @@ public final class HxHomeScreen extends FrameLayout implements BrowseView {
                 super.onMeasure(largura,MeasureSpec.makeMeasureSpec(medida,MeasureSpec.EXACTLY));
             }
         };
+        capa.setBackground(fundo(0xFF151A25,0,15));
+        capa.setClipToOutline(true);
         cartao.addView(capa,new LinearLayout.LayoutParams(-1,-2));
         TextView fallback=texto("HX TV",13,SECUNDARIO,true);
         fallback.setGravity(Gravity.CENTER);

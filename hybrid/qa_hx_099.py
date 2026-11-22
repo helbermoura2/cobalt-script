@@ -71,7 +71,7 @@ checks={
   "focus events intact": "holder.mFocusableView.setBackground(states)" in player and "mFocusableView.setStateListAnimator(motion)" in player,
   "OLED black main theme": "PRETO=0xFF000000" in home and "tela.drawColor(PRETO)" in home,
   "true neutral alpha glass": "new int[]{0x26FFFFFF,cor,0x20000000}" in home,
-  "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=1 and home.count("cartao.setClipToOutline(true)")>=2,
+  "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=2 and home.count("cartao.setClipToOutline(true)")>=2,
   "focus border above thumbnail": home.count("v.setForeground(fundo(0x00000000,")>=2,
   "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xB05B5B5B, 0x80141414}" in player,
   "original playback buttons preserved": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player and "Math.round(146f * d)" in player,

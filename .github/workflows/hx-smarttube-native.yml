@@ -149,7 +149,7 @@ jobs:
           grep -q 'video.getDurationMs()' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           test "$(grep -c 'adicionarDuracao(capa,video);' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java)" -eq 2
           grep -q 'chip.setBackground(vidro(' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
-          grep -q '0x9B202020' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
+          grep -q 'new FundoBlackGlass(contexto)' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/browse/HxHomeScreen.java
           test ! -f upstream/smarttubetv/src/main/res/drawable/hx_player_primary_rail.xml
           test ! -f upstream/smarttubetv/src/main/res/drawable/hx_player_secondary_rail.xml
           grep -q '0xB05B5B5B' upstream/smarttubetv/src/main/java/com/liskovsoft/smartyoutubetv2/tv/ui/mod/leanback/playerglue/tooltips/ControlButtonPresenterSelector.java
