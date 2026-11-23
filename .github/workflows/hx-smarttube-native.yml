@@ -285,13 +285,31 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --pattern "$apk" --dir "$old"
           bt=$(ls -d "$ANDROID_HOME/build-tools"/* | sort -V | tail -n 1)
           "$bt/aapt" dump badging "$old/$apk" > "$old/badging.txt"
-          grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2497' versionName='0.9.19'" "$old/badging.txt"
-          grep -q "native-code: 'armeabi-v7a'" "$old/badging.txt"
-          "$bt/apksigner" verify --print-certs "$old/$apk" > "$old/signature.txt"
-          cert() { sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$1"; }
+          if ! grep -q "package: name='br.com.hxnative.tvpreview' versionCode='2497' versionName='0.9.19'" "$old/badging.txt"; then
+            echo "::error::O pacote ou a versão do APK de referência mudou."
+            exit 1
+          fi
+          python3 - "$old/$apk" <<'PYAPK'
+          import sys
+          import zipfile
+          with zipfile.ZipFile(sys.argv[1]) as apk:
+              abis = {name.split("/")[1] for name in apk.namelist()
+                      if name.startswith("lib/") and name.endswith(".so")}
+          if abis != {"armeabi-v7a"}:
+              sys.exit(f"ABI inesperada no APK de referência: {sorted(abis)}")
+          PYAPK
+          "$bt/apksigner" verify --verbose --print-certs "$old/$apk" > "$old/signature.txt"
+          cert() {
+            awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' "$1" |
+              tr '[:upper:]' '[:lower:]' | tr -d '[:space:]'
+          }
           old_cert="$(cert "$old/signature.txt")"
           new_cert="$(cert out/hx04-signature.txt)"
-          [[ -n "$old_cert" && "$old_cert" == "$new_cert" ]]
+          if ! [[ -n "$old_cert" && "$old_cert" == "$new_cert" ]]; then
+            echo "::error::O certificado do novo APK não corresponde ao da 0.9.19."
+            exit 1
+          fi
+          echo "Pacote ARMv7 e certificado da 0.9.19 confirmados."
       - name: Publicar APK experimental sem ativar atualização automática
         shell: bash
         env:
