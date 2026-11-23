@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static regression assertions for HX TV 0.9.22 Black Glass (no extra dependencies)."""
+"""Static regression assertions for HX TV 0.9.23 Black Glass (no extra dependencies)."""
 from pathlib import Path
 import json,re,sys
 
@@ -7,11 +7,18 @@ root=Path(__file__).resolve().parent
 home=(root/"native-src/HxHomeScreen.java").read_text(encoding="utf-8")
 neon=(root/"native-src/ContornoNeon.java").read_text(encoding="utf-8")
 player=(root/"patch_hx_player.py").read_text(encoding="utf-8")
+updater=(root/"patch_hx_design.py").read_text(encoding="utf-8")
 native=(root/"patch_smarttube.py").read_text(encoding="utf-8")
 workflow=(root.parent/".github/workflows/hx-smarttube-native.yml").read_text(encoding="utf-8")
 manifest=json.loads((root/"updates/native-beta-next.json").read_text(encoding="utf-8"))
 
 checks={
+  "settings OK focuses first native action": "if(configuracoes)entrarNoConteudo();" in home and "if(estaNasConfiguracoes())alvo=primeiroCartao;" in home,
+  "settings supplies native options on missing callback": "AppDataSourceManager.instance().getSettingItems(getContext())" in home,
+  "settings back restores menu focus": "if(!focarCategoriaAtual())return false;" in home,
+  "player overlay stays translucent": '#A6000000' in player and '#4D000000' in player and 'setBackgroundResource(android.R.color.transparent)' in player,
+  "updater rejects mismatched metadata and incompatible ABI": "downloaded.versionCode <= installed.versionCode" in updater and "downloaded.versionName" in updater and "Build.SUPPORTED_ABIS" in updater,
+  "release verifies installed baseline": "hx-tv-independent-v0.9.19-beta" in workflow and '"$old_cert" == "$new_cert"' in workflow,
   "no story expansion": "focoStory(" not in home and "DEMORA_EXPANSAO_MS" not in home,
   "native home and controls": "class HxHomeScreen extends FrameLayout" in home and "dispatchKeyEvent(KeyEvent evento)" in home,
   "per-card remote navigation": "cartao.setOnKeyListener" in home and "KEYCODE_DPAD_LEFT" in home,
@@ -45,8 +52,8 @@ checks={
   "hide skeleton when source empty": "esqueletosSecao.setVisibility(View.GONE)" in home and "TENTAR NOVAMENTE" in home,
   "batched refresh": "private final List<VideoGroup> loteAtualizacao" in home and "postDelayed(finalizarLoteAtualizacao,300)" in home,
   "stale refresh cancelled": "loteAtualizacao.clear();" in home and "if(geracao!=geracaoPagina||categoria!=secaoAtual)" in home,
-  "consistent app version": 'VERSION_NAME = "0.9.22"' in native and "VERSION_CODE = 2500" in native,
-  "next update version": manifest.get("0.9.22",{}).get("versionCode")==2500 and manifest["package"]["downloadUrl"].endswith("/HX-TV-Native-0.9.22-assinado-arm.apk"),
+  "consistent app version": 'VERSION_NAME = "0.9.23"' in native and "VERSION_CODE = 2501" in native,
+  "next update version": manifest.get("0.9.23",{}).get("versionCode")==2501 and manifest["package"]["downloadUrl"].endswith("/HX-TV-Native-0.9.23-assinado-arm.apk"),
   "signature hash gate": "expected='1e929c67bf65dd36a8875595f882089f036b4d8c68700a6f4fd70fb23efd86d7'" in workflow,
   "preview APK release verified": 'cmp "out/$apk" "test-release/$apk"' in workflow and "contents/hybrid/updates/native-beta.json" not in workflow,
   "glass panels and buttons": "private GradientDrawable vidro(int cor, int borda, int raio)" in home and "StateListDrawable states" in player,
@@ -66,8 +73,8 @@ checks={
   "unified scrolling actions": "menu.addView(acao,lp)" in home and "lateral.addView(pesquisa,new" not in home and "lateral.addView(atualizar,new" not in home,
   "nav icon alignment": "private void posicionarNav(TextView alvo,String rotulo)" in home and "alvo.setCompoundDrawables(null,icone,null,null)" in home,
   "titles not crushed": "ALTURA_CAPA_HOME=218" in home and "nomeCartao.setMaxLines(3)" in home and "tituloSelecionado.setText(secoes.get(indice).getTitle())" in home,
-  "subscriptions four-column grid": "private void desenharGradeInscricoes" in home and "COLUNAS_INSCRICOES=4" in home,
-  "subscriptions remote": "pos-COLUNAS_INSCRICOES" in home and "Math.min(pos+COLUNAS_INSCRICOES,limite-1)" in home,
+  "subscriptions four-column grid": "private void desenharGradeInscricoes" in home and "largura<dp(640)?3:4" in home,
+  "subscriptions remote": "pos-colunas" in home and "Math.min(pos+colunas,limite-1)" in home,
   "suggestions images unclipped": "screenHeight * 0.68f" in player and "setClipChildren(false)" in player,
   "native click targets restored": 'recursos=root/"leanback-1.0.0/src/main/res/layout"' not in player and "setImageDrawable(null)" not in player,
   "critical player rollback": "setWindowAlignmentOffsetPercent" not in player and "setImageDrawable(null)" not in player,
@@ -77,7 +84,7 @@ checks={
   "true neutral alpha glass": "new int[]{0x26FFFFFF,cor,0x20000000}" in home,
   "card artwork clips rounded": home.count("capa.setClipToOutline(true)")>=2 and home.count("cartao.setClipToOutline(true)")>=2,
   "focus border above thumbnail": "alvo.setForeground(ativo ? new ContornoNeon" in home and home.count("pintarContornoNeon(v,selecionado")>=2,
-  "neon on active sidebar": "pintarContornoNeon(aba,focada||atual" in home,
+  "neon on active sidebar": "pintarContornoNeon(aba,focada,true" in home,
   "neon follows a rounded outline": "medida.getSegment" in neon and "Path.Direction.CW" in neon,
   "neon respects system motion": "ValueAnimator.areAnimatorsEnabled()" in neon and "alvo.hasWindowFocus()" in neon,
   "black native player without outer rails": "hx_player_primary_rail.xml" not in player and "android:background=\"@drawable/hx_player_primary_rail\"" not in player and "new int[]{0xFA162632, 0xFD03080D}" in player,
@@ -90,4 +97,4 @@ for desc,success in checks.items():
     print(("PASS" if success else "FAIL"),desc)
 if not all(checks.values()):
     sys.exit(1)
-print(f"HX TV 0.9.22: {len(checks)} regression gates passed")
+print(f"HX TV 0.9.23: {len(checks)} regression gates passed")

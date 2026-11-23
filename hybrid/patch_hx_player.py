@@ -269,6 +269,8 @@ import android.os.SystemClock;""")
             setBackgroundResource(compact ? R.drawable.player_background_suggestions :
                     R.drawable.player_background_controls);
             hxResizeSuggestionsViewport(compact);
+        } else {
+            setBackgroundResource(android.R.color.transparent);
         }
     }""")
     substituir(playback,
@@ -374,9 +376,9 @@ import android.os.SystemClock;""")
             int width = MeasureSpec.getSize(widthMeasureSpec);
             int available = Math.max(0, width - getPaddingLeft() - getPaddingRight());
             float density = getResources().getDisplayMetrics().density;
-            int gap = count > 1 ? Math.min(Math.round(7 * density), available / (count * 5)) : 0;
+            int gap = count > 1 ? Math.min(Math.round(6 * density), available / (count * 5)) : 0;
             int usable = Math.max(0, available - gap * (count - 1));
-            int maxTile = Math.round(108 * density);
+            int maxTile = Math.round(82 * density);
             for (int i = 0; i < count; i++) {
                 LayoutParams params = (LayoutParams) getChildAt(i).getLayoutParams();
                 params.width = Math.min(maxTile, usable * (i + 1) / count - usable * i / count);
@@ -468,9 +470,9 @@ import android.os.SystemClock;""")
 <!-- HX TV: degradê OLED na base. Só aparece junto dos controles nativos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#FF000000"
-        android:centerColor="#F0000000"
-        android:centerY="0.70"
+        android:startColor="#A6000000"
+        android:centerColor="#4D000000"
+        android:centerY="0.22"
         android:endColor="#00000000" />
 </shape>
 """,encoding="utf-8")
@@ -480,8 +482,8 @@ import android.os.SystemClock;""")
     suggestions.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient android:angle="90"
-        android:startColor="#B0000000"
-        android:centerColor="#70101010"
+        android:startColor="#99000000"
+        android:centerColor="#38000000"
         android:centerY="0.44"
         android:endColor="#08000000" />
 </shape>

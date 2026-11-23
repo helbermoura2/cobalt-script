@@ -129,7 +129,7 @@ def patch_updater(root: Path):
         if (mIsForceCheck) {''',
                  '''    public void onUpdateFound(String versionName, List<String> changelog, String apkPath) {
         // HX: validate the downloaded APK bytes before presenting Install.
-        if (!isCompatibleHxRelease(apkPath)) {
+        if (!isCompatibleHxRelease(apkPath, versionName)) {
             if (mIsForceCheck) {
                 LoadingManager.showLoading(getContext(), false);
                 MessageHelpers.showMessage(getContext(), R.string.hx_update_safe_wait);
@@ -144,7 +144,7 @@ def patch_updater(root: Path):
     // onUpdateFound(..., apkPath) with a LOCAL FILE PATH, not the release URL.
     // Hence validate the actual downloaded APK signature and package, never
     // require a GitHub URL here.
-    private boolean isCompatibleHxRelease(String apkPath) {
+    private boolean isCompatibleHxRelease(String apkPath, String versionName) {
         if (apkPath == null || getContext() == null ||
                 !new java.io.File(apkPath).isFile() ||
                 new java.io.File(apkPath).length() < 1_000_000L) {
@@ -160,7 +160,11 @@ def patch_updater(root: Path):
             if (downloaded == null || installed == null ||
                     !getContext().getPackageName().equals(downloaded.packageName) ||
                     !installed.packageName.equals(downloaded.packageName) ||
-                    downloaded.versionCode <= installed.versionCode) {
+                    downloaded.applicationInfo == null ||
+                    (downloaded.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0 ||
+                    !android.text.TextUtils.equals(versionName, downloaded.versionName) ||
+                    downloaded.versionCode <= installed.versionCode ||
+                    !hasCompatibleNativeLibraries(apkPath)) {
                 return false;
             }
 
@@ -174,6 +178,20 @@ def patch_updater(root: Path):
                     exception.getClass().getSimpleName());
             return false;
         }
+    }
+
+    private boolean hasCompatibleNativeLibraries(String apkPath) throws java.io.IOException {
+        try (java.util.zip.ZipFile archive = new java.util.zip.ZipFile(apkPath)) {
+            for (java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = archive.entries();
+                    entries.hasMoreElements();) {
+                String name = entries.nextElement().getName();
+                if (!name.endsWith(".so")) continue;
+                for (String abi : android.os.Build.SUPPORTED_ABIS) {
+                    if (name.startsWith("lib/" + abi + "/")) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean hasHxSigningCertificate(PackageInfo packageInfo) throws Exception {
@@ -191,7 +209,7 @@ def patch_updater(root: Path):
 
 '''
     replace_once(presenter, marker, method + marker)
-    assert "isCompatibleHxRelease(apkPath)" in presenter.read_text(encoding="utf-8")
+    assert "isCompatibleHxRelease(apkPath, versionName)" in presenter.read_text(encoding="utf-8")
     assert "getPackageArchiveInfo(" in presenter.read_text(encoding="utf-8")
     assert 'apkPath.startsWith(' not in presenter.read_text(encoding="utf-8")
 
