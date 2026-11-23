@@ -1,9 +1,9 @@
 {
   "package": {
     "downloadUrlList": [
-      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.22-beta/HX-TV-Native-0.9.22-assinado-arm.apk"
+      "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.23-beta/HX-TV-Native-0.9.23-assinado-arm.apk"
     ],
-    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.22-beta/HX-TV-Native-0.9.22-assinado-arm.apk"
+    "downloadUrl": "https://github.com/helbermoura2/cobalt-script/releases/download/hx-tv-independent-v0.9.23-beta/HX-TV-Native-0.9.23-assinado-arm.apk"
   },
   "0.9.1": {
     "versionCode": 2479,
@@ -254,6 +254,15 @@
     "changelog": [
       "Player Black Glass com duas fileiras distribuídas pela largura disponível",
       "Degradê inferior mais escuro e dica de foco acima dos botões"
+    ]
+  },
+  "0.9.23": {
+    "versionCode": 2501,
+    "changelog": [
+      "Configurações abre com OK e recebe o foco",
+      "Player com fundo translúcido e botões compactos",
+      "Inscrições com três ou quatro colunas",
+      "Atualizador verifica versão, assinatura, pacote e arquitetura do APK"
     ]
   }
 }
